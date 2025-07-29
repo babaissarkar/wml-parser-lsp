@@ -1,0 +1,308 @@
+options
+{
+	LOOKAHEAD=3;
+	STATIC=false;
+}
+
+PARSER_BEGIN(Preprocessor)
+package wml;
+
+import java.awt.Color;
+import java.util.*;
+import java.util.logging.*;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static wml.ANSIFormatter.*;
+
+public class Preprocessor {
+	private final Logger pL = Logger.getLogger("preprocessor.parse");
+	private boolean showParseLogs = false;
+	private boolean warnParseLogs = false;
+	
+	private PrintStream out = null;
+	private HashMap<String, Definition> defines = new HashMap<>();
+	
+	public static void main(String[] args) {
+		ArgParser argParse = new ArgParser();
+		argParse.parseArgs(args);
+		
+		if (argParse.in == null) return;
+
+		for (Handler handler : Logger.getLogger("").getHandlers()) {
+			handler.setFormatter(new java.util.logging.Formatter() {
+				@Override
+				public String format(LogRecord r) {
+					// Customize Message for separators between Level and Message
+					Level l = r.getLevel();
+					String lvlStr = "[" + l + "]";
+					if (l == Level.WARNING) {
+						lvlStr = colorify(lvlStr, Color.RED);
+					} else if (l == Level.INFO) {
+						lvlStr = colorify(lvlStr, Color.CYAN);
+					}
+					
+					return lvlStr + " " + r.getMessage() + "\n";
+				}
+			});
+		}
+		
+		try {
+			Preprocessor p = new Preprocessor(argParse.in);
+			p.showParseLogs = argParse.showParseLogs;
+			p.warnParseLogs = argParse.warnParseLogs;
+			p.out = (argParse.out == null) ? System.out : argParse.out;
+			p.token_source.setDataPath(argParse.dataPath);
+			p.token_source.setLogs(argParse.showLogs);
+			p.parse();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// @Nullable
+	public PrintStream getOutput() {
+		return out;
+	}
+
+	public void setOutput(PrintStream out) {
+		this.out = out;
+	}
+
+	public HashMap<String, Definition> getDefines() {
+		return this.defines;
+	}
+
+	public void addDefines(HashMap<String, Definition> newDefines) {
+		this.defines.putAll(newDefines);
+	}
+	
+	public void debugPrint(String s) {
+		if (showParseLogs) {
+			pL.info(s);
+		}
+	}
+	
+	public void warningPrint(String s) {
+		if (showParseLogs || warnParseLogs) {
+			pL.warning(s);
+		}
+	}
+
+	public String position(Token tok) {
+		return position(tok.beginLine, tok.beginColumn);
+	}
+	
+	public String position(int line, int col) {
+		return "(" + line + ":" + col + ")";
+	}
+}
+
+PARSER_END(Preprocessor)
+
+TOKEN_MGR_DECLS : {
+	private boolean showLogs = false;
+	private Path dataPath;
+	private final Logger tL = Logger.getLogger("preprocessor.token");
+	
+	public void setLogs(boolean showLogs) {
+		this.showLogs = showLogs;
+	}
+
+	public void setDataPath(Path path) {
+		this.dataPath = path;
+	}
+
+	public Path getDataPath() {
+		return this.dataPath;
+	}
+	
+	public void debugPrint(String s) {
+		if (showLogs) {
+			tL.info(s);
+		}
+	}
+}
+
+SKIP : { < ("# "|"#!"|"##"|"#\n"|"#\r") (~["\n","\r"])* ("\n"|"\r"|"\r\n") > }
+
+TOKEN : {
+	< DEFINE : "#define" >	{ debugPrint("DEFINE"); }
+|	< ENDDEF : "#enddef" >	{ debugPrint("ENDDEF"); }
+|	< IFDEF  : "#ifdef" >	{ debugPrint("IFDEF"); }
+|	< ENDIF  : "#endif" >	{ debugPrint("ENDIF"); }
+|	< UNDEF  : "#undef" >	{ debugPrint("UNDEF"); }
+|	< TEXTDOMAIN : "#textdomain" > { debugPrint("TEXTDOMAIN"); }
+//|	< COMMENT: "#" (~["\n","\r"])* ("\n"|"\r"|"\r\n") > { debugPrint("Comment"); }
+|	< LBR    : "{" >		{ debugPrint("Left Brace"); }
+|	< RBR    : "}" >		{ debugPrint("Right Brace"); }
+|	< EQL    : "=" >		{ debugPrint("Equals"); }
+|	< SLASH  : "/" >		{ debugPrint("Slash"); }
+|	< SPACE  : " "|"\t" >	{ debugPrint("Space"); }
+|	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
+|	< STRING : (<LETTER>|<DIGIT>)+ >				{ debugPrint("STRING"); }
+|	< NUMBER : (<DIGIT>)+ ("." (<DIGIT>)+)? >		{ debugPrint("NUMBER"); }
+|	< LETTER :
+		["A"-"Z"]|["a"-"z"]|<EQL>|"?"|"!"|":"|";"|"."|","
+		|"["|"]"|"_"|"-"|"\""|"'"|"+"|">"|"<"|"("|")"|"~"
+		|"*"|<SLASH>
+	>
+	{ debugPrint("LETTER"); }
+|	< DIGIT  : ["0"-"9"] >					{ debugPrint("DIGIT"); }
+|	< EOL    : "\n"|"\r"|"\r\n" >			{ debugPrint("EOL"); }
+}
+
+void parse() :
+{
+	Token tok; String exp;
+}
+{
+	(
+		  define() 
+		| exp=expand() { out.println(exp); }
+		| ifdef()
+		| undef()
+		| expandPath()
+		| <TEXTDOMAIN> <SPACE> (tok=<STRING>) { debugPrint("Textdomain " + tok.image); }
+//		| <COMMENT>
+		| <SPACE>
+		| <EOL>
+		| <EOF> {
+			debugPrint(defines.size() + " defines found.");
+			out.close();
+			return;
+		}
+	)+
+}
+
+void define() :
+{
+	Token name, body, arg;
+	StringBuilder sb = new StringBuilder();
+	Definition def;
+	String macro;
+	Vector<String> args = new Vector<>();
+}
+{
+	(
+		<DEFINE> <SPACE>
+		(name=<STRING>)
+		(
+			<SPACE> (arg=<STRING>) { args.add(arg.toString()); }
+		)*
+		(<EOL>)?
+		(
+			(
+				macro=expand()
+			) { sb.append(macro); }
+			|
+			(
+				  body=<STRING>
+				| body=<LBR>
+				| body=<RBR>
+				| body=<SPACE>
+				| body=<EOL>
+				| body=<PATH>
+			) { sb.append(body.toString()); }
+		)+
+		<ENDDEF>
+	) {
+		def = new Definition(name.toString(), sb.toString(), args);
+		debugPrint("defining macro " + name.toString());
+		defines.put(name.toString(), def);
+	}
+}
+
+String expand() :
+{
+	Token name, arg;
+	Vector<String> args = new Vector<>();
+	StringBuilder sb = new StringBuilder();
+}
+{
+	(
+		(<LBR>) (name=<STRING>) { sb.append("{" + name.image); }
+		(
+			<SPACE> (arg=<STRING>) { sb.append(" " + arg.image); args.add(arg.toString()); }
+		)*
+		(<RBR>) { sb.append("}"); }
+	) {
+		Definition def = defines.get(name.image);
+		if (def != null) {
+			debugPrint("expanding macro " + name.image);
+			try {
+				return def.expand(args);
+			} catch(IllegalArgumentException e) {
+				e.printStackTrace();
+				return sb.toString();
+			}
+		} else {
+			warningPrint(position(name) + " undefined macro " + name.image);
+			return sb.toString();
+		}
+	}
+}
+
+void expandPath() :
+{
+	Token tok;
+	StringBuilder sb = new StringBuilder();
+}
+{
+	(<LBR> (tok=<PATH>) <RBR>) {
+		Path p;
+		
+		if (tok.image.startsWith(".")) {
+			p = Path.of(tok.image);
+		} else {
+			p = token_source.getDataPath().resolve(tok.image);
+		}
+		
+		if (Files.exists(p)) {
+			debugPrint(tok.image + " found, including");
+			try {
+				Preprocessor p2 = new Preprocessor(Files.newInputStream(p));
+				p2.setOutput(this.out);
+				p2.parse();
+				addDefines(p2.getDefines());
+			} catch(IOException ioe) {
+				debugPrint("Cannot parse " + tok.image);
+				ioe.printStackTrace();
+			}
+		} else {
+			warningPrint(tok.image + " not found");
+		}
+	}
+}
+
+void ifdef() :
+{
+	Token name;
+}
+{
+	(<IFDEF> <SPACE> (name=<STRING>) <EOL>) {
+		if (defines.get(name.image) == null) {
+			debugPrint("ifdef: define " + name.image + " not found, skipping block");
+			while(token.kind != ENDIF) {
+				token = getNextToken();
+			}
+		} else {
+			debugPrint("ifdef: define " + name.image + " found, parsing block");
+		}
+	}
+}
+
+void undef() :
+{
+	Token name;
+}
+{
+	<UNDEF> <SPACE> (name=<STRING>) {
+		debugPrint("removing macro " + name.toString());
+		defines.remove(name.image);
+	}
+
+}
+
+
