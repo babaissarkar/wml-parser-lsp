@@ -20,6 +20,9 @@ public class Preprocessor {
 	private final Logger pL = Logger.getLogger("preprocessor.parse");
 	private boolean showParseLogs = false;
 	private boolean warnParseLogs = false;
+	private Color tdColor = new Color(255, 221, 0);
+	private Color macroNameColor = new Color(0, 255, 128);
+	private Color lineNumColor = new Color(0, 153, 255);
 	
 	private PrintStream out = null;
 	private HashMap<String, Definition> defines = new HashMap<>();
@@ -95,7 +98,7 @@ public class Preprocessor {
 	}
 	
 	public String position(int line, int col) {
-		return "(" + line + ":" + col + ")";
+		return colorify("(" + line + ":" + col + ")", lineNumColor);
 	}
 }
 
@@ -160,11 +163,11 @@ void parse() :
 {
 	(
 		  define() 
-		| exp=expand() { out.println(exp); }
+		| exp=expand(new Vector<String>()) { out.println(exp); }
 		| ifdef()
 		| undef()
 		| expandPath()
-		| <TEXTDOMAIN> <SPACE> (tok=<STRING>) { debugPrint("Textdomain " + tok.image); }
+		| <TEXTDOMAIN> <SPACE> (tok=<STRING>) { debugPrint("Textdomain " + colorify(tok.image, tdColor)); }
 //		| <COMMENT>
 		| <SPACE>
 		| <EOL>
@@ -194,7 +197,7 @@ void define() :
 		(<EOL>)?
 		(
 			(
-				macro=expand()
+				macro=expand(args)
 			) { sb.append(macro); }
 			|
 			(
@@ -209,12 +212,12 @@ void define() :
 		<ENDDEF>
 	) {
 		def = new Definition(name.toString(), sb.toString(), args);
-		debugPrint("defining macro " + name.toString());
+		debugPrint("defining macro " + colorify(name.toString(), macroNameColor));
 		defines.put(name.toString(), def);
 	}
 }
 
-String expand() :
+String expand(Vector<String> possibleArgs) :
 {
 	Token name, arg;
 	Vector<String> args = new Vector<>();
@@ -237,6 +240,9 @@ String expand() :
 				e.printStackTrace();
 				return sb.toString();
 			}
+		} else if(possibleArgs.contains(name.image)) {
+			// FIXME: do nothing for now. may need checks later why this is happening.
+			return sb.toString();
 		} else {
 			warningPrint(position(name) + " undefined macro " + name.image);
 			return sb.toString();

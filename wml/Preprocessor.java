@@ -15,6 +15,9 @@ public class Preprocessor implements PreprocessorConstants {
         private final Logger pL = Logger.getLogger("preprocessor.parse");
         private boolean showParseLogs = false;
         private boolean warnParseLogs = false;
+        private Color tdColor = new Color(255, 221, 0);
+        private Color macroNameColor = new Color(0, 255, 128);
+        private Color lineNumColor = new Color(0, 153, 255);
 
         private PrintStream out = null;
         private HashMap<String, Definition> defines = new HashMap<>();
@@ -90,7 +93,7 @@ public class Preprocessor implements PreprocessorConstants {
         }
 
         public String position(int line, int col) {
-                return "(" + line + ":" + col + ")";
+                return colorify("(" + line + ":" + col + ")", lineNumColor);
         }
 
   final public void parse() throws ParseException {Token tok; String exp;
@@ -99,7 +102,7 @@ public class Preprocessor implements PreprocessorConstants {
       if (jj_2_1(3)) {
         define();
       } else if (jj_2_2(3)) {
-        exp = expand();
+        exp = expand(new Vector<String>());
 out.println(exp);
       } else if (jj_2_3(3)) {
         ifdef();
@@ -111,7 +114,7 @@ out.println(exp);
         jj_consume_token(TEXTDOMAIN);
         jj_consume_token(SPACE);
         tok = jj_consume_token(STRING);
-debugPrint("Textdomain " + tok.image);
+debugPrint("Textdomain " + colorify(tok.image, tdColor));
       } else if (jj_2_7(3)) {
         jj_consume_token(SPACE);
       } else if (jj_2_8(3)) {
@@ -160,7 +163,7 @@ args.add(arg.toString());
     label_3:
     while (true) {
       if (jj_2_19(3)) {
-        macro = expand();
+        macro = expand(args);
 sb.append(macro);
       } else if (jj_2_20(3)) {
         if (jj_2_13(3)) {
@@ -192,11 +195,11 @@ sb.append(body.toString());
     }
     jj_consume_token(ENDDEF);
 def = new Definition(name.toString(), sb.toString(), args);
-                debugPrint("defining macro " + name.toString());
+                debugPrint("defining macro " + colorify(name.toString(), macroNameColor));
                 defines.put(name.toString(), def);
 }
 
-  final public String expand() throws ParseException {Token name, arg;
+  final public String expand(Vector<String> possibleArgs) throws ParseException {Token name, arg;
         Vector<String> args = new Vector<>();
         StringBuilder sb = new StringBuilder();
     jj_consume_token(LBR);
@@ -224,6 +227,9 @@ Definition def = defines.get(name.image);
                                 e.printStackTrace();
                                 {if ("" != null) return sb.toString();}
                         }
+                } else if(possibleArgs.contains(name.image)) {
+                        // FIXME: do nothing for now. may need checks later why this is happening.
+                        {if ("" != null) return sb.toString();}
                 } else {
                         warningPrint(position(name) + " undefined macro " + name.image);
                         {if ("" != null) return sb.toString();}
@@ -459,54 +465,27 @@ debugPrint("removing macro " + name.toString());
     finally { jj_save(21, xla); }
   }
 
-  private boolean jj_3R_expand_224_9_6()
- {
-    if (jj_scan_token(LBR)) return true;
-    if (jj_scan_token(STRING)) return true;
-    Token xsp;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_22()) { jj_scanpos = xsp; break; }
-    }
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_6()
- {
-    if (jj_scan_token(TEXTDOMAIN)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_5()
- {
-    if (jj_3R_expandPath_253_9_9()) return true;
-    return false;
-  }
-
   private boolean jj_3_4()
  {
-    if (jj_3R_undef_301_9_8()) return true;
+    if (jj_3R_undef_307_9_8()) return true;
     return false;
   }
 
   private boolean jj_3_3()
  {
-    if (jj_3R_ifdef_284_9_7()) return true;
+    if (jj_3R_ifdef_290_9_7()) return true;
     return false;
   }
 
   private boolean jj_3_2()
  {
-    if (jj_3R_expand_224_9_6()) return true;
+    if (jj_3R_expand_227_9_6()) return true;
     return false;
   }
 
   private boolean jj_3_1()
  {
-    if (jj_3R_define_188_9_5()) return true;
+    if (jj_3R_define_191_9_5()) return true;
     return false;
   }
 
@@ -578,18 +557,11 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_19()
  {
-    if (jj_3R_expand_224_9_6()) return true;
+    if (jj_3R_expand_227_9_6()) return true;
     return false;
   }
 
-  private boolean jj_3_11()
- {
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_undef_301_9_8()
+  private boolean jj_3R_undef_307_9_8()
  {
     if (jj_scan_token(UNDEF)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -597,11 +569,18 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3R_expandPath_253_9_9()
+  private boolean jj_3R_expandPath_259_9_9()
  {
     if (jj_scan_token(LBR)) return true;
     if (jj_scan_token(PATH)) return true;
     if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_11()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
@@ -618,7 +597,7 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3R_ifdef_284_9_7()
+  private boolean jj_3R_ifdef_290_9_7()
  {
     if (jj_scan_token(IFDEF)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -626,7 +605,7 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3R_define_188_9_5()
+  private boolean jj_3R_define_191_9_5()
  {
     if (jj_scan_token(DEFINE)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -685,6 +664,33 @@ debugPrint("removing macro " + name.toString());
   private boolean jj_3_7()
  {
     if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_expand_227_9_6()
+ {
+    if (jj_scan_token(LBR)) return true;
+    if (jj_scan_token(STRING)) return true;
+    Token xsp;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_22()) { jj_scanpos = xsp; break; }
+    }
+    if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_6()
+ {
+    if (jj_scan_token(TEXTDOMAIN)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3_5()
+ {
+    if (jj_3R_expandPath_259_9_9()) return true;
     return false;
   }
 
