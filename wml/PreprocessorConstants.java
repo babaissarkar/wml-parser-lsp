@@ -27,23 +27,31 @@ public interface PreprocessorConstants {
   /** RegularExpression Id. */
   int RBR = 9;
   /** RegularExpression Id. */
-  int EQL = 10;
+  int LSB = 10;
   /** RegularExpression Id. */
-  int SLASH = 11;
+  int RSB = 11;
   /** RegularExpression Id. */
-  int SPACE = 12;
+  int EQL = 12;
   /** RegularExpression Id. */
-  int PATH = 13;
+  int SLASH = 13;
   /** RegularExpression Id. */
-  int STRING = 14;
+  int SPACE = 14;
   /** RegularExpression Id. */
-  int NUMBER = 15;
+  int STAG = 15;
   /** RegularExpression Id. */
-  int LETTER = 16;
+  int ETAG = 16;
   /** RegularExpression Id. */
-  int DIGIT = 17;
+  int PATH = 17;
   /** RegularExpression Id. */
-  int EOL = 18;
+  int STRING = 18;
+  /** RegularExpression Id. */
+  int NUMBER = 19;
+  /** RegularExpression Id. */
+  int LETTER = 20;
+  /** RegularExpression Id. */
+  int DIGIT = 21;
+  /** RegularExpression Id. */
+  int EOL = 22;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -60,9 +68,13 @@ public interface PreprocessorConstants {
     "\"#textdomain\"",
     "\"{\"",
     "\"}\"",
+    "\"[\"",
+    "\"]\"",
     "\"=\"",
     "\"/\"",
     "<SPACE>",
+    "<STAG>",
+    "<ETAG>",
     "<PATH>",
     "<STRING>",
     "<NUMBER>",

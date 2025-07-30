@@ -2,6 +2,10 @@ options
 {
 	LOOKAHEAD=3;
 	STATIC=false;
+	// Enable these to print verbose javacc logs
+	DEBUG_PARSER = false;
+	DEBUG_LOOKAHEAD = false;
+	DEBUG_TOKEN_MANAGER = false;
 }
 
 PARSER_BEGIN(Preprocessor)
@@ -150,16 +154,19 @@ TOKEN : {
 //|	< COMMENT: "#" (~["\n","\r"])* ("\n"|"\r"|"\r\n") > { debugPrint("Comment"); }
 |	< LBR    : "{" >		{ debugPrint("Left Brace"); }
 |	< RBR    : "}" >		{ debugPrint("Right Brace"); }
+|	< LSB    : "[" >		{ debugPrint("Left Sq Bkt"); }
+|	< RSB    : "]" >		{ debugPrint("Right Sq Bkt"); }
 |	< EQL    : "=" >		{ debugPrint("Equals"); }
 |	< SLASH  : "/" >		{ debugPrint("Slash"); }
 |	< SPACE  : " "|"\t" >	{ debugPrint("Space"); }
+|	< STAG   : <LSB> (<STRING>)+ <RSB> > { debugPrint("Start tag"); }
+|	< ETAG   : <LSB> <SLASH> (<STRING>)+ <RSB> > { debugPrint("End tag"); }
 |	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
-|	< STRING : (<LETTER>|<DIGIT>)+ >				{ debugPrint("STRING"); }
-|	< NUMBER : (<DIGIT>)+ ("." (<DIGIT>)+)? >		{ debugPrint("NUMBER"); }
+|	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING"); }
+|	< NUMBER : (<DIGIT>)+ ("." (<DIGIT>)+)? >				{ debugPrint("NUMBER"); }
 |	< LETTER :
 		["A"-"Z"]|["a"-"z"]|<EQL>|"?"|"!"|":"|";"|"."|","
-		|"["|"]"|"_"|"-"|"\""|"'"|"+"|">"|"<"|"("|")"|"~"
-		|"*"|<SLASH>
+		|"_"|"-"|"\""|"'"|"+"|">"|"<"|"("|")"|"~"|"*"
 	>
 	{ debugPrint("LETTER"); }
 |	< DIGIT  : ["0"-"9"] >					{ debugPrint("DIGIT"); }
@@ -168,25 +175,65 @@ TOKEN : {
 
 void parse() :
 {
-	Token tok; String exp;
+	Token tok; String content, exp;
 }
 {
 	(
 		  define() 
-		| exp=expand(new Vector<String>()) { out.println(exp); }
+		| content=tag() { out.print(content); }
+		| exp=expand(new Vector<String>()) { out.print(exp); }
 		| ifdef()
 		| undef()
 		| expandPath()
-		| <TEXTDOMAIN> <SPACE> (tok=<STRING>) { debugPrint("Textdomain " + colorify(tok.image, tdColor)); }
+		| textdomain()
 //		| <COMMENT>
-		| <SPACE>
-		| <EOL>
+		| tok=<SPACE>   { out.print(tok.image); }
+		| tok=<EOL>     { out.print(tok.image); }
 		| <EOF> {
+			out.println();
 			debugPrint(defines.size() + " defines found.");
 			out.close();
 			return;
 		}
 	)+
+}
+
+String tag() :
+{
+	Token t, t2, body;
+	String macro;
+	StringBuilder sb = new StringBuilder();
+}
+{
+	(
+		(t=<STAG>) { debugPrint("Start tag: " + t.image); sb.append(t.image); }
+		(
+			(<EOL>) { sb.append("\n"); }
+		)?
+		(
+			(
+				macro=expand(new Vector<String>())
+			) { sb.append(macro); }
+			|
+			(
+				  body=<STRING>
+				| body=<LBR>
+				| body=<RBR>
+				| body=<SPACE>
+				| body=<EOL>
+				| body=<PATH>
+			) { sb.append(body.toString()); }
+		)+
+		(t2=<ETAG>) { debugPrint("End tag: " + t2.image); sb.append(t2.image); }
+	) { return sb.toString(); }
+}
+
+void textdomain() :
+{
+	Token tok;
+}
+{
+	<TEXTDOMAIN> <SPACE> (tok=<STRING>) { debugPrint("Textdomain " + colorify(tok.image, tdColor)); }
 }
 
 void define() :
@@ -217,6 +264,8 @@ void define() :
 				| body=<SPACE>
 				| body=<EOL>
 				| body=<PATH>
+				| body=<STAG>
+				| body=<ETAG>
 			) { sb.append(body.toString()); }
 		)+
 		<ENDDEF>
