@@ -12,21 +12,10 @@ import static wml.ANSIFormatter.*;
 /** Token Manager. */
 @SuppressWarnings ("unused")
 public class PreprocessorTokenManager implements PreprocessorConstants {
-        private boolean showLogs = false;
-        private Path dataPath;
         private final Logger tL = Logger.getLogger("preprocessor.token");
 
-        public void setLogs(boolean showLogs) {
-                this.showLogs = showLogs;
-        }
-
-        public void setDataPath(Path path) {
-                this.dataPath = path;
-        }
-
-        public Path getDataPath() {
-                return this.dataPath;
-        }
+        public boolean showLogs = false;
+        public Path dataPath;
 
         public void debugPrint(String s) {
                 if (showLogs) {

@@ -21,14 +21,12 @@ public class Preprocessor implements PreprocessorConstants {
         private Color lineNumColor = new Color(0, 153, 255);
         private Color filePathColor = new Color(128, 192, 255);
 
-        private PrintStream out = null;
+        private PrintStream out;
         private HashMap<String, Definition> defines = new HashMap<>();
 
         public static void main(String[] args) {
                 ArgParser argParse = new ArgParser();
                 argParse.parseArgs(args);
-
-                if (argParse.in == null) return;
 
                 for (Handler handler : Logger.getLogger("").getHandlers()) {
                         handler.setFormatter(new java.util.logging.Formatter() {
@@ -49,12 +47,20 @@ public class Preprocessor implements PreprocessorConstants {
                 }
 
                 try {
-                        Preprocessor p = new Preprocessor(argParse.in);
+                        Preprocessor p = new Preprocessor(System.in);
+                        if (argParse.inputPath != null) {
+                                p = new Preprocessor(Files.newInputStream(argParse.inputPath));
+                        }
+
                         p.showParseLogs = argParse.showParseLogs;
                         p.warnParseLogs = argParse.warnParseLogs;
                         p.out = (argParse.out == null) ? System.out : argParse.out;
-                        p.token_source.setDataPath(argParse.dataPath);
-                        p.token_source.setLogs(argParse.showLogs);
+                        p.token_source.dataPath = argParse.dataPath;
+                        p.token_source.showLogs = argParse.showLogs;
+
+                        if (argParse.inputPath != null) {
+                                p.debugPrint("Parsing file " + colorify(argParse.inputPath.toString(), p.filePathColor));
+                        }
 
                         for (Path incpath : argParse.includes) {
                                 p.debugPrint("Including file " + colorify(incpath.toString(), p.filePathColor));
@@ -62,8 +68,8 @@ public class Preprocessor implements PreprocessorConstants {
                                 pinc.showParseLogs = argParse.showParseLogs;
                                 pinc.warnParseLogs = argParse.warnParseLogs;
                                 pinc.out = (argParse.out == null) ? System.out : argParse.out;
-                                pinc.token_source.setDataPath(argParse.dataPath);
-                                pinc.token_source.setLogs(argParse.showLogs);
+                                pinc.token_source.dataPath = argParse.dataPath;
+                                pinc.token_source.showLogs = argParse.showLogs;
                                 pinc.parse();
                                 p.addDefines(pinc.getDefines());
                         }
@@ -262,13 +268,17 @@ Path p;
                 if (tok.image.startsWith(".")) {
                         p = Path.of(tok.image);
                 } else {
-                        p = token_source.getDataPath().resolve(tok.image);
+                        p = token_source.dataPath.resolve(tok.image);
                 }
 
                 if (Files.exists(p)) {
                         debugPrint("Including file " + colorify(tok.image, filePathColor));
                         try {
                                 Preprocessor p2 = new Preprocessor(Files.newInputStream(p));
+                                p2.showParseLogs = showParseLogs;
+                                p2.warnParseLogs = warnParseLogs;
+                                p2.token_source.dataPath = token_source.dataPath;
+                                p2.token_source.showLogs = token_source.showLogs;
                                 p2.setOutput(this.out);
                                 p2.parse();
                                 addDefines(p2.getDefines());
@@ -480,9 +490,49 @@ debugPrint("removing macro " + name.toString());
     finally { jj_save(21, xla); }
   }
 
+  private boolean jj_3_21()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_19()) {
+    jj_scanpos = xsp;
+    if (jj_3_20()) return true;
+    }
+    return false;
+  }
+
+  private boolean jj_3_19()
+ {
+    if (jj_3R_expand_237_9_6()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_expandPath_269_9_9()
+ {
+    if (jj_scan_token(LBR)) return true;
+    if (jj_scan_token(PATH)) return true;
+    if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_11()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
   private boolean jj_3_12()
  {
     if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_ifdef_304_9_7()
+ {
+    if (jj_scan_token(IFDEF)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
@@ -493,15 +543,7 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3R_ifdef_305_9_7()
- {
-    if (jj_scan_token(IFDEF)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_define_206_9_5()
+  private boolean jj_3R_define_201_9_5()
  {
     if (jj_scan_token(DEFINE)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -563,7 +605,7 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3R_expand_242_9_6()
+  private boolean jj_3R_expand_237_9_6()
  {
     if (jj_scan_token(LBR)) return true;
     if (jj_scan_token(STRING)) return true;
@@ -586,31 +628,31 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_5()
  {
-    if (jj_3R_expandPath_274_9_9()) return true;
+    if (jj_3R_expandPath_269_9_9()) return true;
     return false;
   }
 
   private boolean jj_3_4()
  {
-    if (jj_3R_undef_322_9_8()) return true;
+    if (jj_3R_undef_321_9_8()) return true;
     return false;
   }
 
   private boolean jj_3_3()
  {
-    if (jj_3R_ifdef_305_9_7()) return true;
+    if (jj_3R_ifdef_304_9_7()) return true;
     return false;
   }
 
   private boolean jj_3_2()
  {
-    if (jj_3R_expand_242_9_6()) return true;
+    if (jj_3R_expand_237_9_6()) return true;
     return false;
   }
 
   private boolean jj_3_1()
  {
-    if (jj_3R_define_206_9_5()) return true;
+    if (jj_3R_define_201_9_5()) return true;
     return false;
   }
 
@@ -669,41 +711,9 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_21()
- {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_19()) {
-    jj_scanpos = xsp;
-    if (jj_3_20()) return true;
-    }
-    return false;
-  }
-
-  private boolean jj_3_19()
- {
-    if (jj_3R_expand_242_9_6()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_undef_322_9_8()
+  private boolean jj_3R_undef_321_9_8()
  {
     if (jj_scan_token(UNDEF)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_expandPath_274_9_9()
- {
-    if (jj_scan_token(LBR)) return true;
-    if (jj_scan_token(PATH)) return true;
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_11()
- {
     if (jj_scan_token(SPACE)) return true;
     if (jj_scan_token(STRING)) return true;
     return false;

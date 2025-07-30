@@ -26,14 +26,12 @@ public class Preprocessor {
 	private Color lineNumColor = new Color(0, 153, 255);
 	private Color filePathColor = new Color(128, 192, 255);
 	
-	private PrintStream out = null;
+	private PrintStream out;
 	private HashMap<String, Definition> defines = new HashMap<>();
 	
 	public static void main(String[] args) {
 		ArgParser argParse = new ArgParser();
 		argParse.parseArgs(args);
-		
-		if (argParse.in == null) return;
 
 		for (Handler handler : Logger.getLogger("").getHandlers()) {
 			handler.setFormatter(new java.util.logging.Formatter() {
@@ -54,12 +52,20 @@ public class Preprocessor {
 		}
 		
 		try {
-			Preprocessor p = new Preprocessor(argParse.in);
+			Preprocessor p = new Preprocessor(System.in);
+			if (argParse.inputPath != null) {
+				p = new Preprocessor(Files.newInputStream(argParse.inputPath));
+			}
+			
 			p.showParseLogs = argParse.showParseLogs;
 			p.warnParseLogs = argParse.warnParseLogs;
 			p.out = (argParse.out == null) ? System.out : argParse.out;
-			p.token_source.setDataPath(argParse.dataPath);
-			p.token_source.setLogs(argParse.showLogs);
+			p.token_source.dataPath = argParse.dataPath;
+			p.token_source.showLogs = argParse.showLogs;
+
+			if (argParse.inputPath != null) {
+				p.debugPrint("Parsing file " + colorify(argParse.inputPath.toString(), p.filePathColor));
+			}
 
 			for (Path incpath : argParse.includes) {
 				p.debugPrint("Including file " + colorify(incpath.toString(), p.filePathColor));
@@ -67,8 +73,8 @@ public class Preprocessor {
 				pinc.showParseLogs = argParse.showParseLogs;
 				pinc.warnParseLogs = argParse.warnParseLogs;
 				pinc.out = (argParse.out == null) ? System.out : argParse.out;
-				pinc.token_source.setDataPath(argParse.dataPath);
-				pinc.token_source.setLogs(argParse.showLogs);
+				pinc.token_source.dataPath = argParse.dataPath;
+				pinc.token_source.showLogs = argParse.showLogs;
 				pinc.parse();
 				p.addDefines(pinc.getDefines());
 			}
@@ -120,21 +126,10 @@ public class Preprocessor {
 PARSER_END(Preprocessor)
 
 TOKEN_MGR_DECLS : {
-	private boolean showLogs = false;
-	private Path dataPath;
 	private final Logger tL = Logger.getLogger("preprocessor.token");
-	
-	public void setLogs(boolean showLogs) {
-		this.showLogs = showLogs;
-	}
 
-	public void setDataPath(Path path) {
-		this.dataPath = path;
-	}
-
-	public Path getDataPath() {
-		return this.dataPath;
-	}
+	public boolean showLogs = false;
+	public Path dataPath;
 	
 	public void debugPrint(String s) {
 		if (showLogs) {
@@ -277,13 +272,17 @@ void expandPath() :
 		if (tok.image.startsWith(".")) {
 			p = Path.of(tok.image);
 		} else {
-			p = token_source.getDataPath().resolve(tok.image);
+			p = token_source.dataPath.resolve(tok.image);
 		}
 		
 		if (Files.exists(p)) {
 			debugPrint("Including file " + colorify(tok.image, filePathColor));
 			try {
 				Preprocessor p2 = new Preprocessor(Files.newInputStream(p));
+				p2.showParseLogs = showParseLogs;
+				p2.warnParseLogs = warnParseLogs;
+				p2.token_source.dataPath = token_source.dataPath;
+				p2.token_source.showLogs = token_source.showLogs;
 				p2.setOutput(this.out);
 				p2.parse();
 				addDefines(p2.getDefines());
