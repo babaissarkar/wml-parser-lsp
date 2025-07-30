@@ -20,9 +20,11 @@ public class Preprocessor {
 	private final Logger pL = Logger.getLogger("preprocessor.parse");
 	private boolean showParseLogs = false;
 	private boolean warnParseLogs = false;
+	
 	private Color tdColor = new Color(255, 221, 0);
 	private Color macroNameColor = new Color(0, 255, 128);
 	private Color lineNumColor = new Color(0, 153, 255);
+	private Color filePathColor = new Color(128, 192, 255);
 	
 	private PrintStream out = null;
 	private HashMap<String, Definition> defines = new HashMap<>();
@@ -58,6 +60,19 @@ public class Preprocessor {
 			p.out = (argParse.out == null) ? System.out : argParse.out;
 			p.token_source.setDataPath(argParse.dataPath);
 			p.token_source.setLogs(argParse.showLogs);
+
+			for (Path incpath : argParse.includes) {
+				p.debugPrint("Including file " + colorify(incpath.toString(), p.filePathColor));
+				Preprocessor pinc = new Preprocessor(Files.newInputStream(incpath));
+				pinc.showParseLogs = argParse.showParseLogs;
+				pinc.warnParseLogs = argParse.warnParseLogs;
+				pinc.out = (argParse.out == null) ? System.out : argParse.out;
+				pinc.token_source.setDataPath(argParse.dataPath);
+				pinc.token_source.setLogs(argParse.showLogs);
+				pinc.parse();
+				p.addDefines(pinc.getDefines());
+			}
+			
 			p.parse();
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -266,7 +281,7 @@ void expandPath() :
 		}
 		
 		if (Files.exists(p)) {
-			debugPrint(tok.image + " found, including");
+			debugPrint("Including file " + colorify(tok.image, filePathColor));
 			try {
 				Preprocessor p2 = new Preprocessor(Files.newInputStream(p));
 				p2.setOutput(this.out);
