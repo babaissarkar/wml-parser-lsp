@@ -16,6 +16,7 @@ public class PreprocessorTokenManager implements PreprocessorConstants {
 
         public boolean showLogs = false;
         public Path dataPath;
+        public Path userDataPath;
 
         public void debugPrint(String s) {
                 if (showLogs) {

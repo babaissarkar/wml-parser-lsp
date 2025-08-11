@@ -56,6 +56,7 @@ public class Preprocessor implements PreprocessorConstants {
                         p.warnParseLogs = argParse.warnParseLogs;
                         p.out = (argParse.out == null) ? System.out : argParse.out;
                         p.token_source.dataPath = argParse.dataPath;
+                        p.token_source.userDataPath = argParse.userDataPath;
                         p.token_source.showLogs = argParse.showLogs;
 
                         if (argParse.inputPath != null) {
@@ -63,15 +64,7 @@ public class Preprocessor implements PreprocessorConstants {
                         }
 
                         for (Path incpath : argParse.includes) {
-                                p.debugPrint("Including file " + colorify(incpath.toString(), p.filePathColor));
-                                Preprocessor pinc = new Preprocessor(Files.newInputStream(incpath));
-                                pinc.showParseLogs = argParse.showParseLogs;
-                                pinc.warnParseLogs = argParse.warnParseLogs;
-                                pinc.out = (argParse.out == null) ? System.out : argParse.out;
-                                pinc.token_source.dataPath = argParse.dataPath;
-                                pinc.token_source.showLogs = argParse.showLogs;
-                                pinc.parse();
-                                p.addDefines(pinc.getDefines());
+                                p.subparse(incpath);
                         }
 
                         p.parse();
@@ -80,7 +73,47 @@ public class Preprocessor implements PreprocessorConstants {
                 }
         }
 
-        // @Nullable
+        /**
+	 * Create a preprocessor subprocess, that inherits properties
+	 * from this one.
+	 */
+        private Preprocessor child(InputStream in) {
+                Preprocessor pinc = new Preprocessor(in);
+                pinc.showParseLogs = showParseLogs;
+                pinc.warnParseLogs = warnParseLogs;
+                pinc.out = (getOutput() == null) ? System.out : getOutput();
+                pinc.token_source.dataPath = token_source.dataPath;
+                pinc.token_source.userDataPath = token_source.userDataPath;
+                pinc.token_source.showLogs = token_source.showLogs;
+                return pinc;
+        }
+
+        private void subparse(Path p) throws IOException, ParseException {
+                Path path = p;
+                if (Files.isDirectory(path)) {
+                        Path p2 = path.resolve("./_main.cfg");
+                        if (!Files.exists(p2)) {
+                                File[] files = path.toFile().listFiles();
+                                try {
+                                        if (files == null) return;
+                                        for (File f : files) {
+                                                subparse(f.toPath());
+                                        }
+                                        return;
+                                } catch (IOException e) {
+                                        e.printStackTrace();
+                                }
+                        } else {
+                                path = p2;
+                        }
+                }
+
+                debugPrint("Including file " + colorify(path.toString(), filePathColor));
+                Preprocessor p2 = child(Files.newInputStream(path));
+                p2.parse();
+                addDefines(p2.getDefines());
+        }
+
         public PrintStream getOutput() {
                 return out;
         }
@@ -160,11 +193,11 @@ out.println();
     }
 }
 
-  final public String tag() throws ParseException {Token t, t2, body;
-        String macro;
+  final public String tag() throws ParseException {Token tstart, tend, body;
+        String macro, contents;
         StringBuilder sb = new StringBuilder();
-    t = jj_consume_token(STAG);
-debugPrint("Start tag: " + t.image); sb.append(t.image);
+    tstart = jj_consume_token(STAG);
+debugPrint("Start tag: " + tstart.image); sb.append(tstart.image);
     if (jj_2_12(3)) {
       jj_consume_token(EOL);
 sb.append("\n");
@@ -194,18 +227,23 @@ sb.append(macro);
           throw new ParseException();
         }
 sb.append(body.toString());
+      } else if (jj_2_21(3)) {
+        contents = tag();
+sb.append(contents);
       } else {
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_21(3)) {
+      if (jj_2_22(3)) {
         ;
       } else {
         break label_2;
       }
     }
-    t2 = jj_consume_token(ETAG);
-debugPrint("End tag: " + t2.image); sb.append(t2.image);
+    tend = jj_consume_token(ETAG);
+// TODO can check tag mismatch here
+                        debugPrint("End tag: " + tend.image);
+                        sb.append(tend.image);
 {if ("" != null) return sb.toString();}
     throw new Error("Missing return statement in function");
 }
@@ -227,7 +265,7 @@ debugPrint("Textdomain " + colorify(tok.image, tdColor));
     name = jj_consume_token(STRING);
     label_3:
     while (true) {
-      if (jj_2_22(3)) {
+      if (jj_2_23(3)) {
         ;
       } else {
         break label_3;
@@ -236,32 +274,32 @@ debugPrint("Textdomain " + colorify(tok.image, tdColor));
       arg = jj_consume_token(STRING);
 args.add(arg.toString());
     }
-    if (jj_2_23(3)) {
+    if (jj_2_24(3)) {
       jj_consume_token(EOL);
     } else {
       ;
     }
     label_4:
     while (true) {
-      if (jj_2_32(3)) {
+      if (jj_2_33(3)) {
         macro = expand(args);
 sb.append(macro);
-      } else if (jj_2_33(3)) {
-        if (jj_2_24(3)) {
+      } else if (jj_2_34(3)) {
+        if (jj_2_25(3)) {
           body = jj_consume_token(STRING);
-        } else if (jj_2_25(3)) {
-          body = jj_consume_token(LBR);
         } else if (jj_2_26(3)) {
-          body = jj_consume_token(RBR);
+          body = jj_consume_token(LBR);
         } else if (jj_2_27(3)) {
-          body = jj_consume_token(SPACE);
+          body = jj_consume_token(RBR);
         } else if (jj_2_28(3)) {
-          body = jj_consume_token(EOL);
+          body = jj_consume_token(SPACE);
         } else if (jj_2_29(3)) {
-          body = jj_consume_token(PATH);
+          body = jj_consume_token(EOL);
         } else if (jj_2_30(3)) {
-          body = jj_consume_token(STAG);
+          body = jj_consume_token(PATH);
         } else if (jj_2_31(3)) {
+          body = jj_consume_token(STAG);
+        } else if (jj_2_32(3)) {
           body = jj_consume_token(ETAG);
         } else {
           jj_consume_token(-1);
@@ -272,7 +310,7 @@ sb.append(body.toString());
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_34(3)) {
+      if (jj_2_35(3)) {
         ;
       } else {
         break label_4;
@@ -292,7 +330,7 @@ def = new Definition(name.toString(), sb.toString(), args);
 sb.append("{" + name.image);
     label_5:
     while (true) {
-      if (jj_2_35(3)) {
+      if (jj_2_36(3)) {
         ;
       } else {
         break label_5;
@@ -312,7 +350,7 @@ Definition def = defines.get(name.image);
                                 e.printStackTrace();
                                 {if ("" != null) return sb.toString();}
                         }
-                } else if(possibleArgs.contains(name.image)) {
+                } else if (possibleArgs.contains(name.image)) {
                         // FIXME: do nothing for now. may need checks later why this is happening.
                         {if ("" != null) return sb.toString();}
                 } else {
@@ -328,24 +366,27 @@ Definition def = defines.get(name.image);
     tok = jj_consume_token(PATH);
     jj_consume_token(RBR);
 Path p;
-
                 if (tok.image.startsWith(".")) {
                         p = Path.of(tok.image);
+                } else if (tok.image.startsWith("~")) {
+                        p = token_source.userDataPath.resolve(tok.image.substring(1));
                 } else {
                         p = token_source.dataPath.resolve(tok.image);
+                }
+
+                if (Files.isDirectory(p)) {
+                        Path p2 = p.resolve("./_main.cfg");
+                        if (!Files.exists(p2)) {
+                          //todo
+                        } else {
+                                p = p2;
+                        }
                 }
 
                 if (Files.exists(p)) {
                         debugPrint("Including file " + colorify(tok.image, filePathColor));
                         try {
-                                Preprocessor p2 = new Preprocessor(Files.newInputStream(p));
-                                p2.showParseLogs = showParseLogs;
-                                p2.warnParseLogs = warnParseLogs;
-                                p2.token_source.dataPath = token_source.dataPath;
-                                p2.token_source.showLogs = token_source.showLogs;
-                                p2.setOutput(this.out);
-                                p2.parse();
-                                addDefines(p2.getDefines());
+                                subparse(p);
                         } catch(IOException ioe) {
                                 debugPrint("Cannot parse " + tok.image);
                                 ioe.printStackTrace();
@@ -658,102 +699,12 @@ debugPrint("removing macro " + name.toString());
     finally { jj_save(34, xla); }
   }
 
-  private boolean jj_3R_undef_370_9_10()
+  private boolean jj_2_36(int xla)
  {
-    if (jj_scan_token(UNDEF)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_32()
- {
-    if (jj_3R_expand_286_9_8()) return true;
-    return false;
-  }
-
-  private boolean jj_3_34()
- {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_32()) {
-    jj_scanpos = xsp;
-    if (jj_3_33()) return true;
-    }
-    return false;
-  }
-
-  private boolean jj_3_22()
- {
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_23()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_ifdef_353_9_9()
- {
-    if (jj_scan_token(IFDEF)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_18()
- {
-    if (jj_scan_token(PATH)) return true;
-    return false;
-  }
-
-  private boolean jj_3_17()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_define_248_9_6()
- {
-    if (jj_scan_token(DEFINE)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_16()
- {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3_15()
- {
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_14()
- {
-    if (jj_scan_token(LBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_13()
- {
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_textdomain_236_9_12()
- {
-    if (jj_scan_token(TEXTDOMAIN)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_36()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(35, xla); }
   }
 
   private boolean jj_3_20()
@@ -781,18 +732,29 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_19()
  {
-    if (jj_3R_expand_286_9_8()) return true;
+    if (jj_3R_expand_326_9_8()) return true;
     return false;
   }
 
-  private boolean jj_3_21()
+  private boolean jj_3_22()
  {
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3_19()) {
     jj_scanpos = xsp;
-    if (jj_3_20()) return true;
+    if (jj_3_20()) {
+    jj_scanpos = xsp;
+    if (jj_3_21()) return true;
     }
+    }
+    return false;
+  }
+
+  private boolean jj_3R_expandPath_358_9_11()
+ {
+    if (jj_scan_token(LBR)) return true;
+    if (jj_scan_token(PATH)) return true;
+    if (jj_scan_token(RBR)) return true;
     return false;
   }
 
@@ -802,33 +764,43 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3R_expandPath_318_9_11()
- {
-    if (jj_scan_token(LBR)) return true;
-    if (jj_scan_token(PATH)) return true;
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_35()
+  private boolean jj_3_36()
  {
     if (jj_scan_token(SPACE)) return true;
     if (jj_scan_token(STRING)) return true;
     return false;
   }
 
-  private boolean jj_3R_tag_208_9_7()
+  private boolean jj_3R_tag_242_9_7()
  {
     if (jj_scan_token(STAG)) return true;
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3_12()) jj_scanpos = xsp;
-    if (jj_3_21()) return true;
+    if (jj_3_22()) return true;
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_21()) { jj_scanpos = xsp; break; }
+      if (jj_3_22()) { jj_scanpos = xsp; break; }
     }
     if (jj_scan_token(ETAG)) return true;
+    return false;
+  }
+
+  private boolean jj_3_32()
+ {
+    if (jj_scan_token(ETAG)) return true;
+    return false;
+  }
+
+  private boolean jj_3_31()
+ {
+    if (jj_scan_token(STAG)) return true;
+    return false;
+  }
+
+  private boolean jj_3_30()
+ {
+    if (jj_scan_token(PATH)) return true;
     return false;
   }
 
@@ -838,9 +810,21 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
+  private boolean jj_3_29()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
   private boolean jj_3_9()
  {
     if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_28()
+ {
+    if (jj_scan_token(SPACE)) return true;
     return false;
   }
 
@@ -850,81 +834,70 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_31()
- {
-    if (jj_scan_token(ETAG)) return true;
-    return false;
-  }
-
-  private boolean jj_3_7()
- {
-    if (jj_3R_textdomain_236_9_12()) return true;
-    return false;
-  }
-
-  private boolean jj_3_30()
- {
-    if (jj_scan_token(STAG)) return true;
-    return false;
-  }
-
-  private boolean jj_3_6()
- {
-    if (jj_3R_expandPath_318_9_11()) return true;
-    return false;
-  }
-
-  private boolean jj_3_29()
- {
-    if (jj_scan_token(PATH)) return true;
-    return false;
-  }
-
-  private boolean jj_3_5()
- {
-    if (jj_3R_undef_370_9_10()) return true;
-    return false;
-  }
-
-  private boolean jj_3_28()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3_4()
- {
-    if (jj_3R_ifdef_353_9_9()) return true;
-    return false;
-  }
-
   private boolean jj_3_27()
- {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3_3()
- {
-    if (jj_3R_expand_286_9_8()) return true;
-    return false;
-  }
-
-  private boolean jj_3_26()
  {
     if (jj_scan_token(RBR)) return true;
     return false;
   }
 
-  private boolean jj_3_2()
+  private boolean jj_3_26()
  {
-    if (jj_3R_tag_208_9_7()) return true;
+    if (jj_scan_token(LBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_7()
+ {
+    if (jj_3R_textdomain_276_9_12()) return true;
     return false;
   }
 
   private boolean jj_3_25()
  {
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_expand_326_9_8()
+ {
     if (jj_scan_token(LBR)) return true;
+    if (jj_scan_token(STRING)) return true;
+    Token xsp;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_36()) { jj_scanpos = xsp; break; }
+    }
+    if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_6()
+ {
+    if (jj_3R_expandPath_358_9_11()) return true;
+    return false;
+  }
+
+  private boolean jj_3_5()
+ {
+    if (jj_3R_undef_413_9_10()) return true;
+    return false;
+  }
+
+  private boolean jj_3_4()
+ {
+    if (jj_3R_ifdef_396_9_9()) return true;
+    return false;
+  }
+
+  private boolean jj_3_3()
+ {
+    if (jj_3R_expand_326_9_8()) return true;
+    return false;
+  }
+
+  private boolean jj_3_2()
+ {
+    if (jj_3R_tag_242_9_7()) return true;
     return false;
   }
 
@@ -965,35 +938,22 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_1()
  {
-    if (jj_3R_define_248_9_6()) return true;
+    if (jj_3R_define_288_9_6()) return true;
     return false;
   }
 
-  private boolean jj_3_24()
+  private boolean jj_3R_undef_413_9_10()
  {
+    if (jj_scan_token(UNDEF)) return true;
+    if (jj_scan_token(SPACE)) return true;
     if (jj_scan_token(STRING)) return true;
     return false;
   }
 
-  private boolean jj_3R_expand_286_9_8()
- {
-    if (jj_scan_token(LBR)) return true;
-    if (jj_scan_token(STRING)) return true;
-    Token xsp;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_35()) { jj_scanpos = xsp; break; }
-    }
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_33()
+  private boolean jj_3_34()
  {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_24()) {
-    jj_scanpos = xsp;
     if (jj_3_25()) {
     jj_scanpos = xsp;
     if (jj_3_26()) {
@@ -1006,7 +966,9 @@ debugPrint("removing macro " + name.toString());
     jj_scanpos = xsp;
     if (jj_3_30()) {
     jj_scanpos = xsp;
-    if (jj_3_31()) return true;
+    if (jj_3_31()) {
+    jj_scanpos = xsp;
+    if (jj_3_32()) return true;
     }
     }
     }
@@ -1014,6 +976,102 @@ debugPrint("removing macro " + name.toString());
     }
     }
     }
+    return false;
+  }
+
+  private boolean jj_3_33()
+ {
+    if (jj_3R_expand_326_9_8()) return true;
+    return false;
+  }
+
+  private boolean jj_3_35()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_33()) {
+    jj_scanpos = xsp;
+    if (jj_3_34()) return true;
+    }
+    return false;
+  }
+
+  private boolean jj_3_23()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3_24()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_ifdef_396_9_9()
+ {
+    if (jj_scan_token(IFDEF)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_define_288_9_6()
+ {
+    if (jj_scan_token(DEFINE)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3_18()
+ {
+    if (jj_scan_token(PATH)) return true;
+    return false;
+  }
+
+  private boolean jj_3_17()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_16()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_15()
+ {
+    if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_14()
+ {
+    if (jj_scan_token(LBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_13()
+ {
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3_21()
+ {
+    if (jj_3R_tag_242_9_7()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_textdomain_276_9_12()
+ {
+    if (jj_scan_token(TEXTDOMAIN)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
@@ -1036,7 +1094,7 @@ debugPrint("removing macro " + name.toString());
 	private static void jj_la1_init_0() {
 	   jj_la1_0 = new int[] {};
 	}
-  final private JJCalls[] jj_2_rtns = new JJCalls[35];
+  final private JJCalls[] jj_2_rtns = new JJCalls[36];
   private boolean jj_rescan = false;
   private int jj_gc = 0;
 
@@ -1290,7 +1348,7 @@ debugPrint("removing macro " + name.toString());
 
   private void jj_rescan_token() {
 	 jj_rescan = true;
-	 for (int i = 0; i < 35; i++) {
+	 for (int i = 0; i < 36; i++) {
 	   try {
 		 JJCalls p = jj_2_rtns[i];
 
@@ -1333,6 +1391,7 @@ debugPrint("removing macro " + name.toString());
 			   case 32: jj_3_33(); break;
 			   case 33: jj_3_34(); break;
 			   case 34: jj_3_35(); break;
+			   case 35: jj_3_36(); break;
 			 }
 		   }
 		   p = p.next;

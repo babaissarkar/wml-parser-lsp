@@ -65,6 +65,7 @@ public class Preprocessor {
 			p.warnParseLogs = argParse.warnParseLogs;
 			p.out = (argParse.out == null) ? System.out : argParse.out;
 			p.token_source.dataPath = argParse.dataPath;
+			p.token_source.userDataPath = argParse.userDataPath;
 			p.token_source.showLogs = argParse.showLogs;
 
 			if (argParse.inputPath != null) {
@@ -72,15 +73,7 @@ public class Preprocessor {
 			}
 
 			for (Path incpath : argParse.includes) {
-				p.debugPrint("Including file " + colorify(incpath.toString(), p.filePathColor));
-				Preprocessor pinc = new Preprocessor(Files.newInputStream(incpath));
-				pinc.showParseLogs = argParse.showParseLogs;
-				pinc.warnParseLogs = argParse.warnParseLogs;
-				pinc.out = (argParse.out == null) ? System.out : argParse.out;
-				pinc.token_source.dataPath = argParse.dataPath;
-				pinc.token_source.showLogs = argParse.showLogs;
-				pinc.parse();
-				p.addDefines(pinc.getDefines());
+				p.subparse(incpath);
 			}
 			
 			p.parse();
@@ -89,7 +82,47 @@ public class Preprocessor {
 		}
 	}
 
-	// @Nullable
+	/**
+	 * Create a preprocessor subprocess, that inherits properties
+	 * from this one.
+	 */
+	private Preprocessor child(InputStream in) {
+		Preprocessor pinc = new Preprocessor(in);
+		pinc.showParseLogs = showParseLogs;
+		pinc.warnParseLogs = warnParseLogs;
+		pinc.out = (getOutput() == null) ? System.out : getOutput();
+		pinc.token_source.dataPath = token_source.dataPath;
+		pinc.token_source.userDataPath = token_source.userDataPath;
+		pinc.token_source.showLogs = token_source.showLogs;
+		return pinc;
+	}
+
+	private void subparse(Path p) throws IOException, ParseException {
+		Path path = p;
+		if (Files.isDirectory(path)) {
+			Path p2 = path.resolve("./_main.cfg");
+			if (!Files.exists(p2)) {
+				File[] files = path.toFile().listFiles();
+				try {
+					if (files == null) return;
+					for (File f : files) {
+						subparse(f.toPath());
+					}
+					return;
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			} else {
+				path = p2;
+			}
+		}
+	
+		debugPrint("Including file " + colorify(path.toString(), filePathColor));
+		Preprocessor p2 = child(Files.newInputStream(path));
+		p2.parse();
+		addDefines(p2.getDefines());
+	}
+	
 	public PrintStream getOutput() {
 		return out;
 	}
@@ -134,6 +167,7 @@ TOKEN_MGR_DECLS : {
 
 	public boolean showLogs = false;
 	public Path dataPath;
+	public Path userDataPath;
 	
 	public void debugPrint(String s) {
 		if (showLogs) {
@@ -200,13 +234,13 @@ void parse() :
 
 String tag() :
 {
-	Token t, t2, body;
-	String macro;
+	Token tstart, tend, body;
+	String macro, contents;
 	StringBuilder sb = new StringBuilder();
 }
 {
 	(
-		(t=<STAG>) { debugPrint("Start tag: " + t.image); sb.append(t.image); }
+		(tstart=<STAG>) { debugPrint("Start tag: " + tstart.image); sb.append(tstart.image); }
 		(
 			(<EOL>) { sb.append("\n"); }
 		)?
@@ -223,8 +257,14 @@ String tag() :
 				| body=<EOL>
 				| body=<PATH>
 			) { sb.append(body.toString()); }
+			|
+			( contents=tag() { sb.append(contents); } )
 		)+
-		(t2=<ETAG>) { debugPrint("End tag: " + t2.image); sb.append(t2.image); }
+		(tend=<ETAG>) {
+			// TODO can check tag mismatch here
+			debugPrint("End tag: " + tend.image);
+			sb.append(tend.image);
+		}
 	) { return sb.toString(); }
 }
 
@@ -299,7 +339,7 @@ String expand(Vector<String> possibleArgs) :
 				e.printStackTrace();
 				return sb.toString();
 			}
-		} else if(possibleArgs.contains(name.image)) {
+		} else if (possibleArgs.contains(name.image)) {
 			// FIXME: do nothing for now. may need checks later why this is happening.
 			return sb.toString();
 		} else {
@@ -317,24 +357,27 @@ void expandPath() :
 {
 	(<LBR> (tok=<PATH>) <RBR>) {
 		Path p;
-		
 		if (tok.image.startsWith(".")) {
 			p = Path.of(tok.image);
+		} else if (tok.image.startsWith("~")) {
+			p = token_source.userDataPath.resolve(tok.image.substring(1));
 		} else {
 			p = token_source.dataPath.resolve(tok.image);
+		}
+		
+		if (Files.isDirectory(p)) {
+			Path p2 = p.resolve("./_main.cfg");
+			if (!Files.exists(p2)) {
+			  //todo
+			} else {
+				p = p2;
+			}
 		}
 		
 		if (Files.exists(p)) {
 			debugPrint("Including file " + colorify(tok.image, filePathColor));
 			try {
-				Preprocessor p2 = new Preprocessor(Files.newInputStream(p));
-				p2.showParseLogs = showParseLogs;
-				p2.warnParseLogs = warnParseLogs;
-				p2.token_source.dataPath = token_source.dataPath;
-				p2.token_source.showLogs = token_source.showLogs;
-				p2.setOutput(this.out);
-				p2.parse();
-				addDefines(p2.getDefines());
+				subparse(p);
 			} catch(IOException ioe) {
 				debugPrint("Cannot parse " + tok.image);
 				ioe.printStackTrace();
