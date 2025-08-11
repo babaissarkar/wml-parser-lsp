@@ -29,6 +29,7 @@ public class Preprocessor {
 	private Color macroNameColor = new Color(0, 255, 128);
 	private Color lineNumColor = new Color(0, 153, 255);
 	private Color filePathColor = new Color(128, 192, 255);
+	private Color tagColor = Color.decode("#00CED1");
 	
 	private PrintStream out;
 	private HashMap<String, Definition> defines = new HashMap<>();
@@ -106,6 +107,7 @@ public class Preprocessor {
 				try {
 					if (files == null) return;
 					for (File f : files) {
+						if (!f.isDirectory() && !f.getName().endsWith(".cfg")) return;
 						subparse(f.toPath());
 					}
 					return;
@@ -240,7 +242,7 @@ String tag() :
 }
 {
 	(
-		(tstart=<STAG>) { debugPrint("Start tag: " + tstart.image); sb.append(tstart.image); }
+		(tstart=<STAG>) { sb.append(tstart.image); }
 		(
 			(<EOL>) { sb.append("\n"); }
 		)?
@@ -262,7 +264,7 @@ String tag() :
 		)+
 		(tend=<ETAG>) {
 			// TODO can check tag mismatch here
-			debugPrint("End tag: " + tend.image);
+			debugPrint("Tag found: " + colorify(tstart.image, tagColor));
 			sb.append(tend.image);
 		}
 	) { return sb.toString(); }
@@ -360,22 +362,17 @@ void expandPath() :
 		if (tok.image.startsWith(".")) {
 			p = Path.of(tok.image);
 		} else if (tok.image.startsWith("~")) {
-			p = token_source.userDataPath.resolve(tok.image.substring(1));
+			p = token_source.userDataPath.resolve(tok.image.substring(2));
 		} else {
 			p = token_source.dataPath.resolve(tok.image);
 		}
+
+		debugPrint("Trying to include: " + colorify(p.toString(), filePathColor));
 		
-		if (Files.isDirectory(p)) {
-			Path p2 = p.resolve("./_main.cfg");
-			if (!Files.exists(p2)) {
-			  //todo
-			} else {
-				p = p2;
-			}
-		}
-		
+		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return;
+
 		if (Files.exists(p)) {
-			debugPrint("Including file " + colorify(tok.image, filePathColor));
+			debugPrint("Including: " + colorify(p.toString(), filePathColor));
 			try {
 				subparse(p);
 			} catch(IOException ioe) {
