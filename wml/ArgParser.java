@@ -27,7 +27,7 @@ public class ArgParser {
 				                       Can be used multiple times to include multiple files before the main input.
 				-input/-i filename     Preprocess the main input file
 				-output/-o filename    Write output to the given file
-				-help/-?/-h               Print this help""";
+				-help/-?/-h            Print this help""";
 	
 	public void parseArgs(String[] args) {		
 		for (int i = 0; i < args.length; i++) {
