@@ -360,7 +360,7 @@ private int jjMoveNfa_0(int startState, int curPos)
                      jjstateSet[jjnewStateCnt++] = 3;
                   break;
                case 18:
-                  if ((0xffff7f8600000000L & l) != 0L)
+                  if ((0x3ff000000000000L & l) != 0L)
                      { jjCheckNAddTwoStates(16, 17); }
                   else if (curChar == 47)
                      { jjCheckNAdd(19); }
@@ -430,11 +430,11 @@ private int jjMoveNfa_0(int startState, int curPos)
                      { jjCheckNAddStates(8, 10); }
                   break;
                case 16:
-                  if ((0xffff7f8600000000L & l) != 0L)
+                  if ((0x3ff000000000000L & l) != 0L)
                      { jjCheckNAddTwoStates(16, 17); }
                   break;
                case 19:
-                  if ((0xffff7f8600000000L & l) != 0L)
+                  if ((0x3ff000000000000L & l) != 0L)
                      { jjCheckNAddTwoStates(19, 20); }
                   break;
                case 21:
@@ -529,7 +529,7 @@ private int jjMoveNfa_0(int startState, int curPos)
                   break;
                case 18:
                case 16:
-                  if ((0x47fffffec7fffffeL & l) != 0L)
+                  if ((0x7fffffe80000000L & l) != 0L)
                      { jjCheckNAddTwoStates(16, 17); }
                   break;
                case 1:
@@ -548,7 +548,7 @@ private int jjMoveNfa_0(int startState, int curPos)
                      kind = 15;
                   break;
                case 19:
-                  if ((0x47fffffec7fffffeL & l) != 0L)
+                  if ((0x7fffffe80000000L & l) != 0L)
                      { jjAddStates(11, 12); }
                   break;
                case 20:
@@ -806,11 +806,11 @@ void TokenLexicalActions(Token matchedToken)
          break;
       case 15 :
         image.append(input_stream.GetSuffix(jjimageLen + (lengthOfMatch = jjmatchedPos + 1)));
-                                               debugPrint("Start tag");
+                                                            debugPrint("Start tag");
          break;
       case 16 :
         image.append(input_stream.GetSuffix(jjimageLen + (lengthOfMatch = jjmatchedPos + 1)));
-                                                       debugPrint("End tag");
+                                                                    debugPrint("End tag");
          break;
       case 17 :
         image.append(input_stream.GetSuffix(jjimageLen + (lengthOfMatch = jjmatchedPos + 1)));

@@ -211,10 +211,10 @@ sb.append("\n");
     }
     label_2:
     while (true) {
-      if (jj_2_19(3)) {
+      if (jj_2_21(3)) {
         macro = expand(new Vector<String>());
 sb.append(macro);
-      } else if (jj_2_20(3)) {
+      } else if (jj_2_22(3)) {
         if (jj_2_13(3)) {
           body = jj_consume_token(STRING);
         } else if (jj_2_14(3)) {
@@ -222,24 +222,28 @@ sb.append(macro);
         } else if (jj_2_15(3)) {
           body = jj_consume_token(RBR);
         } else if (jj_2_16(3)) {
-          body = jj_consume_token(SPACE);
+          body = jj_consume_token(LSB);
         } else if (jj_2_17(3)) {
-          body = jj_consume_token(EOL);
+          body = jj_consume_token(RSB);
         } else if (jj_2_18(3)) {
+          body = jj_consume_token(SPACE);
+        } else if (jj_2_19(3)) {
+          body = jj_consume_token(EOL);
+        } else if (jj_2_20(3)) {
           body = jj_consume_token(PATH);
         } else {
           jj_consume_token(-1);
           throw new ParseException();
         }
 sb.append(body.toString());
-      } else if (jj_2_21(3)) {
+      } else if (jj_2_23(3)) {
         contents = tag();
 sb.append(contents);
       } else {
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_22(3)) {
+      if (jj_2_24(3)) {
         ;
       } else {
         break label_2;
@@ -270,7 +274,7 @@ debugPrint("Textdomain " + colorify(tok.image, tdColor));
     name = jj_consume_token(STRING);
     label_3:
     while (true) {
-      if (jj_2_23(3)) {
+      if (jj_2_25(3)) {
         ;
       } else {
         break label_3;
@@ -279,32 +283,32 @@ debugPrint("Textdomain " + colorify(tok.image, tdColor));
       arg = jj_consume_token(STRING);
 args.add(arg.toString());
     }
-    if (jj_2_24(3)) {
+    if (jj_2_26(3)) {
       jj_consume_token(EOL);
     } else {
       ;
     }
     label_4:
     while (true) {
-      if (jj_2_33(3)) {
+      if (jj_2_35(3)) {
         macro = expand(args);
 sb.append(macro);
-      } else if (jj_2_34(3)) {
-        if (jj_2_25(3)) {
+      } else if (jj_2_36(3)) {
+        if (jj_2_27(3)) {
           body = jj_consume_token(STRING);
-        } else if (jj_2_26(3)) {
-          body = jj_consume_token(LBR);
-        } else if (jj_2_27(3)) {
-          body = jj_consume_token(RBR);
         } else if (jj_2_28(3)) {
-          body = jj_consume_token(SPACE);
+          body = jj_consume_token(LBR);
         } else if (jj_2_29(3)) {
-          body = jj_consume_token(EOL);
+          body = jj_consume_token(RBR);
         } else if (jj_2_30(3)) {
-          body = jj_consume_token(PATH);
+          body = jj_consume_token(SPACE);
         } else if (jj_2_31(3)) {
-          body = jj_consume_token(STAG);
+          body = jj_consume_token(EOL);
         } else if (jj_2_32(3)) {
+          body = jj_consume_token(PATH);
+        } else if (jj_2_33(3)) {
+          body = jj_consume_token(STAG);
+        } else if (jj_2_34(3)) {
           body = jj_consume_token(ETAG);
         } else {
           jj_consume_token(-1);
@@ -315,7 +319,7 @@ sb.append(body.toString());
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_35(3)) {
+      if (jj_2_37(3)) {
         ;
       } else {
         break label_4;
@@ -334,7 +338,7 @@ def = new Definition(name.toString(), sb.toString(), args);
     jj_consume_token(LBR);
     label_5:
     while (true) {
-      if (jj_2_36(3)) {
+      if (jj_2_38(3)) {
         ;
       } else {
         break label_5;
@@ -345,19 +349,19 @@ def = new Definition(name.toString(), sb.toString(), args);
 sb.append("{" + name.image);
     label_6:
     while (true) {
-      if (jj_2_37(3)) {
+      if (jj_2_39(3)) {
         ;
       } else {
         break label_6;
       }
       jj_consume_token(SPACE);
-      if (jj_2_40(3)) {
+      if (jj_2_42(3)) {
         macro = expand(new Vector<>());
 sb.append(macro); args.add(macro);
-      } else if (jj_2_41(3)) {
-        if (jj_2_38(3)) {
+      } else if (jj_2_43(3)) {
+        if (jj_2_40(3)) {
           arg = jj_consume_token(STRING);
-        } else if (jj_2_39(3)) {
+        } else if (jj_2_41(3)) {
           arg = jj_consume_token(PATH);
         } else {
           jj_consume_token(-1);
@@ -371,7 +375,7 @@ sb.append(" " + arg.image); args.add(arg.toString());
     }
     label_7:
     while (true) {
-      if (jj_2_42(3)) {
+      if (jj_2_44(3)) {
         ;
       } else {
         break label_7;
@@ -794,7 +798,23 @@ debugPrint("removing macro " + name.toString());
     finally { jj_save(41, xla); }
   }
 
-  private boolean jj_3R_expandPath_368_9_13()
+  private boolean jj_2_43(int xla)
+ {
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_43()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(42, xla); }
+  }
+
+  private boolean jj_2_44(int xla)
+ {
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_44()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(43, xla); }
+  }
+
+  private boolean jj_3R_expandPath_370_9_13()
  {
     if (jj_scan_token(LBR)) return true;
     if (jj_scan_token(PATH)) return true;
@@ -802,7 +822,7 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_20()
+  private boolean jj_3_22()
  {
     Token xsp;
     xsp = jj_scanpos;
@@ -816,67 +836,49 @@ debugPrint("removing macro " + name.toString());
     jj_scanpos = xsp;
     if (jj_3_17()) {
     jj_scanpos = xsp;
-    if (jj_3_18()) return true;
-    }
-    }
-    }
-    }
-    }
-    return false;
-  }
-
-  private boolean jj_3_19()
- {
-    if (jj_3R_expand_332_9_10()) return true;
-    return false;
-  }
-
-  private boolean jj_3_22()
- {
-    Token xsp;
-    xsp = jj_scanpos;
+    if (jj_3_18()) {
+    jj_scanpos = xsp;
     if (jj_3_19()) {
     jj_scanpos = xsp;
-    if (jj_3_20()) {
-    jj_scanpos = xsp;
-    if (jj_3_21()) return true;
+    if (jj_3_20()) return true;
     }
     }
-    return false;
-  }
-
-  private boolean jj_3_38()
- {
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_41()
- {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_38()) {
-    jj_scanpos = xsp;
-    if (jj_3_39()) return true;
     }
-    return false;
-  }
-
-  private boolean jj_3_12()
- {
-    if (jj_scan_token(EOL)) return true;
+    }
+    }
+    }
+    }
     return false;
   }
 
   private boolean jj_3_40()
  {
-    if (jj_3R_expand_332_9_10()) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
-  private boolean jj_3_37()
+  private boolean jj_3_21()
  {
-    if (jj_scan_token(SPACE)) return true;
+    if (jj_3R_expand_334_9_10()) return true;
+    return false;
+  }
+
+  private boolean jj_3_24()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_21()) {
+    jj_scanpos = xsp;
+    if (jj_3_22()) {
+    jj_scanpos = xsp;
+    if (jj_3_23()) return true;
+    }
+    }
+    return false;
+  }
+
+  private boolean jj_3_43()
+ {
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3_40()) {
@@ -886,13 +888,37 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_36()
+  private boolean jj_3_42()
+ {
+    if (jj_3R_expand_334_9_10()) return true;
+    return false;
+  }
+
+  private boolean jj_3_12()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_39()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_42()) {
+    jj_scanpos = xsp;
+    if (jj_3_43()) return true;
+    }
+    return false;
+  }
+
+  private boolean jj_3_38()
  {
     if (jj_scan_token(SPACE)) return true;
     return false;
   }
 
-  private boolean jj_3_42()
+  private boolean jj_3_44()
  {
     if (jj_scan_token(SPACE)) return true;
     return false;
@@ -904,24 +930,36 @@ debugPrint("removing macro " + name.toString());
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3_12()) jj_scanpos = xsp;
-    if (jj_3_22()) return true;
+    if (jj_3_24()) return true;
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_22()) { jj_scanpos = xsp; break; }
+      if (jj_3_24()) { jj_scanpos = xsp; break; }
     }
     if (jj_scan_token(ETAG)) return true;
     return false;
   }
 
-  private boolean jj_3_32()
+  private boolean jj_3_34()
  {
     if (jj_scan_token(ETAG)) return true;
     return false;
   }
 
-  private boolean jj_3_31()
+  private boolean jj_3_33()
  {
     if (jj_scan_token(STAG)) return true;
+    return false;
+  }
+
+  private boolean jj_3_32()
+ {
+    if (jj_scan_token(PATH)) return true;
+    return false;
+  }
+
+  private boolean jj_3_31()
+ {
+    if (jj_scan_token(EOL)) return true;
     return false;
   }
 
@@ -933,7 +971,7 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_30()
  {
-    if (jj_scan_token(PATH)) return true;
+    if (jj_scan_token(SPACE)) return true;
     return false;
   }
 
@@ -945,7 +983,7 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_29()
  {
-    if (jj_scan_token(EOL)) return true;
+    if (jj_scan_token(RBR)) return true;
     return false;
   }
 
@@ -957,84 +995,72 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_28()
  {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3_27()
- {
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_7()
- {
-    if (jj_3R_textdomain_281_9_14()) return true;
-    return false;
-  }
-
-  private boolean jj_3_26()
- {
     if (jj_scan_token(LBR)) return true;
     return false;
   }
 
-  private boolean jj_3R_expand_332_9_10()
+  private boolean jj_3R_expand_334_9_10()
  {
     if (jj_scan_token(LBR)) return true;
     Token xsp;
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_36()) { jj_scanpos = xsp; break; }
+      if (jj_3_38()) { jj_scanpos = xsp; break; }
     }
     if (jj_scan_token(STRING)) return true;
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_37()) { jj_scanpos = xsp; break; }
+      if (jj_3_39()) { jj_scanpos = xsp; break; }
     }
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_42()) { jj_scanpos = xsp; break; }
+      if (jj_3_44()) { jj_scanpos = xsp; break; }
     }
     if (jj_scan_token(RBR)) return true;
     return false;
   }
 
-  private boolean jj_3_6()
+  private boolean jj_3_27()
  {
-    if (jj_3R_expandPath_368_9_13()) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
-  private boolean jj_3_25()
+  private boolean jj_3_7()
  {
-    if (jj_scan_token(STRING)) return true;
+    if (jj_3R_textdomain_283_9_14()) return true;
+    return false;
+  }
+
+  private boolean jj_3_6()
+ {
+    if (jj_3R_expandPath_370_9_13()) return true;
     return false;
   }
 
   private boolean jj_3_5()
  {
-    if (jj_3R_undef_423_9_12()) return true;
+    if (jj_3R_undef_425_9_12()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_undef_425_9_12()
+ {
+    if (jj_scan_token(UNDEF)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
   private boolean jj_3_4()
  {
-    if (jj_3R_ifdef_406_9_11()) return true;
+    if (jj_3R_ifdef_408_9_11()) return true;
     return false;
   }
 
   private boolean jj_3_3()
  {
-    if (jj_3R_expand_332_9_10()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_undef_423_9_12()
- {
-    if (jj_scan_token(UNDEF)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
+    if (jj_3R_expand_334_9_10()) return true;
     return false;
   }
 
@@ -1081,18 +1107,14 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_1()
  {
-    if (jj_3R_define_293_9_8()) return true;
+    if (jj_3R_define_295_9_8()) return true;
     return false;
   }
 
-  private boolean jj_3_34()
+  private boolean jj_3_36()
  {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_25()) {
-    jj_scanpos = xsp;
-    if (jj_3_26()) {
-    jj_scanpos = xsp;
     if (jj_3_27()) {
     jj_scanpos = xsp;
     if (jj_3_28()) {
@@ -1103,7 +1125,11 @@ debugPrint("removing macro " + name.toString());
     jj_scanpos = xsp;
     if (jj_3_31()) {
     jj_scanpos = xsp;
-    if (jj_3_32()) return true;
+    if (jj_3_32()) {
+    jj_scanpos = xsp;
+    if (jj_3_33()) {
+    jj_scanpos = xsp;
+    if (jj_3_34()) return true;
     }
     }
     }
@@ -1114,31 +1140,31 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_33()
+  private boolean jj_3_37()
  {
-    if (jj_3R_expand_332_9_10()) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_35()) {
+    jj_scanpos = xsp;
+    if (jj_3_36()) return true;
+    }
     return false;
   }
 
   private boolean jj_3_35()
  {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_33()) {
-    jj_scanpos = xsp;
-    if (jj_3_34()) return true;
-    }
+    if (jj_3R_expand_334_9_10()) return true;
     return false;
   }
 
-  private boolean jj_3_23()
+  private boolean jj_3_25()
  {
     if (jj_scan_token(SPACE)) return true;
     if (jj_scan_token(STRING)) return true;
     return false;
   }
 
-  private boolean jj_3R_ifdef_406_9_11()
+  private boolean jj_3R_ifdef_408_9_11()
  {
     if (jj_scan_token(IFDEF)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -1146,13 +1172,13 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_24()
+  private boolean jj_3_26()
  {
     if (jj_scan_token(EOL)) return true;
     return false;
   }
 
-  private boolean jj_3R_define_293_9_8()
+  private boolean jj_3R_define_295_9_8()
  {
     if (jj_scan_token(DEFINE)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -1160,21 +1186,33 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_18()
+  private boolean jj_3_20()
  {
     if (jj_scan_token(PATH)) return true;
     return false;
   }
 
-  private boolean jj_3_17()
+  private boolean jj_3_19()
  {
     if (jj_scan_token(EOL)) return true;
     return false;
   }
 
-  private boolean jj_3_16()
+  private boolean jj_3_18()
  {
     if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_17()
+ {
+    if (jj_scan_token(RSB)) return true;
+    return false;
+  }
+
+  private boolean jj_3_16()
+ {
+    if (jj_scan_token(LSB)) return true;
     return false;
   }
 
@@ -1196,13 +1234,13 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_21()
+  private boolean jj_3_23()
  {
     if (jj_3R_tag_247_9_9()) return true;
     return false;
   }
 
-  private boolean jj_3R_textdomain_281_9_14()
+  private boolean jj_3R_textdomain_283_9_14()
  {
     if (jj_scan_token(TEXTDOMAIN)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -1210,7 +1248,7 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_39()
+  private boolean jj_3_41()
  {
     if (jj_scan_token(PATH)) return true;
     return false;
@@ -1235,7 +1273,7 @@ debugPrint("removing macro " + name.toString());
 	private static void jj_la1_init_0() {
 	   jj_la1_0 = new int[] {};
 	}
-  final private JJCalls[] jj_2_rtns = new JJCalls[42];
+  final private JJCalls[] jj_2_rtns = new JJCalls[44];
   private boolean jj_rescan = false;
   private int jj_gc = 0;
 
@@ -1489,7 +1527,7 @@ debugPrint("removing macro " + name.toString());
 
   private void jj_rescan_token() {
 	 jj_rescan = true;
-	 for (int i = 0; i < 42; i++) {
+	 for (int i = 0; i < 44; i++) {
 	   try {
 		 JJCalls p = jj_2_rtns[i];
 
@@ -1539,6 +1577,8 @@ debugPrint("removing macro " + name.toString());
 			   case 39: jj_3_40(); break;
 			   case 40: jj_3_41(); break;
 			   case 41: jj_3_42(); break;
+			   case 42: jj_3_43(); break;
+			   case 43: jj_3_44(); break;
 			 }
 		   }
 		   p = p.next;

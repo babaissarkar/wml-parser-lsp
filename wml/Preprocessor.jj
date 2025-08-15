@@ -199,8 +199,8 @@ TOKEN : {
 |	< EQL    : "=" >		{ debugPrint("Equals"); }
 |	< SLASH  : "/" >		{ debugPrint("Slash"); }
 |	< SPACE  : " "|"\t" >	{ debugPrint("Space"); }
-|	< STAG   : <LSB> (<STRING>)+ <RSB> > { debugPrint("Start tag"); }
-|	< ETAG   : <LSB> <SLASH> (<STRING>)+ <RSB> > { debugPrint("End tag"); }
+|	< STAG   : <LSB> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
+|	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag"); }
 |	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
 |	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING"); }
 |	< NUMBER : (<DIGIT>)+ ("." (<DIGIT>)+)? >				{ debugPrint("NUMBER"); }
@@ -258,6 +258,8 @@ String tag() :
 				  body=<STRING>
 				| body=<LBR>
 				| body=<RBR>
+				| body=<LSB>
+				| body=<RSB>
 				| body=<SPACE>
 				| body=<EOL>
 				| body=<PATH>
