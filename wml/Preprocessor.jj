@@ -326,13 +326,18 @@ String expand(Vector<String> possibleArgs) :
 	Token name, arg;
 	Vector<String> args = new Vector<>();
 	StringBuilder sb = new StringBuilder();
+	String macro;
 }
 {
 	(
-		(<LBR>) (name=<STRING>) { sb.append("{" + name.image); }
+		(<LBR>) (<SPACE>)* (name=<STRING>) { sb.append("{" + name.image); }
 		(
-			<SPACE> (arg=<STRING>) { sb.append(" " + arg.image); args.add(arg.toString()); }
+			<SPACE> (
+				macro=expand(new Vector<>()) { sb.append(macro); args.add(macro); }
+			|	(arg=<STRING>|arg=<PATH>) { sb.append(" " + arg.image); args.add(arg.toString()); }
+			)
 		)*
+		(<SPACE>)*
 		(<RBR>) { sb.append("}"); }
 	) {
 		Definition def = defines.get(name.image);
