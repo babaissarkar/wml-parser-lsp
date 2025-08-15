@@ -70,14 +70,14 @@ public class Preprocessor {
 			p.token_source.showLogs = argParse.showLogs;
 
 			if (argParse.inputPath != null) {
-				p.debugPrint("Parsing file " + colorify(argParse.inputPath.toString(), p.filePathColor));
+				p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), p.filePathColor));
 			}
 
 			for (Path incpath : argParse.includes) {
 				p.subparse(incpath);
 			}
-			
-			p.parse();
+
+			p.subparse(argParse.inputPath);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -98,6 +98,10 @@ public class Preprocessor {
 		return pinc;
 	}
 
+	/**
+	 * Recursively parse the given Path p
+	 * Note: JavaCC doesn't support lambdas or :: yet!
+	 */
 	private void subparse(Path p) throws IOException, ParseException {
 		Path path = p;
 		if (Files.isDirectory(path)) {
@@ -118,8 +122,8 @@ public class Preprocessor {
 				path = p2;
 			}
 		}
-	
-		debugPrint("Including file " + colorify(path.toString(), filePathColor));
+
+		debugPrint("Including: " + colorify(path.toString(), filePathColor));
 		Preprocessor p2 = child(Files.newInputStream(path));
 		p2.parse();
 		addDefines(p2.getDefines());
@@ -226,7 +230,6 @@ void parse() :
 		| tok=<SPACE>   { out.print(tok.image); }
 		| tok=<EOL>     { out.print(tok.image); }
 		| <EOF> {
-			out.println();
 			debugPrint(defines.size() + " defines found.");
 			out.close();
 			return;
@@ -362,7 +365,12 @@ void expandPath() :
 		if (tok.image.startsWith(".")) {
 			p = Path.of(tok.image);
 		} else if (tok.image.startsWith("~")) {
-			p = token_source.userDataPath.resolve(tok.image.substring(2));
+			// Supports both ~add-ons and ~/add-ons
+			String relpath = tok.image.substring(1);
+			if (relpath.startsWith("/")) {
+				relpath = relpath.substring(1);
+			}
+			p = token_source.userDataPath.resolve(relpath);
 		} else {
 			p = token_source.dataPath.resolve(tok.image);
 		}
