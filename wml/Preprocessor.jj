@@ -182,8 +182,6 @@ TOKEN_MGR_DECLS : {
 	}
 }
 
-SKIP : { < ("# "|"#!"|"##"|"#\n"|"#\r") (~["\n","\r"])* ("\n"|"\r"|"\r\n") > }
-
 TOKEN : {
 	< DEFINE : "#define" >	{ debugPrint("DEFINE"); }
 |	< ENDDEF : "#enddef" >	{ debugPrint("ENDDEF"); }
@@ -191,27 +189,32 @@ TOKEN : {
 |	< ENDIF  : "#endif" >	{ debugPrint("ENDIF"); }
 |	< UNDEF  : "#undef" >	{ debugPrint("UNDEF"); }
 |	< TEXTDOMAIN : "#textdomain" > { debugPrint("TEXTDOMAIN"); }
-//|	< COMMENT: "#" (~["\n","\r"])* ("\n"|"\r"|"\r\n") > { debugPrint("Comment"); }
 |	< LBR    : "{" >		{ debugPrint("Left Brace"); }
 |	< RBR    : "}" >		{ debugPrint("Right Brace"); }
 |	< LSB    : "[" >		{ debugPrint("Left Sq Bkt"); }
 |	< RSB    : "]" >		{ debugPrint("Right Sq Bkt"); }
+|	< LPAR   : "(" >		{ debugPrint("Left Par"); }
+|	< RPAR   : ")" >		{ debugPrint("Right Par"); }
 |	< EQL    : "=" >		{ debugPrint("Equals"); }
 |	< SLASH  : "/" >		{ debugPrint("Slash"); }
 |	< SPACE  : " "|"\t" >	{ debugPrint("Space"); }
+|	< INBLK  : <LPAR> (~[")"])+ <RPAR> >
 |	< STAG   : <LSB> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
 |	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag"); }
 |	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
 |	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING"); }
+|	< MARG   : (<LETTER>|<DIGIT>|<LSB>|<RSB>|<SLASH>)+ >	{ debugPrint("STRING"); } // yes, macro arguments can have newline!
 |	< NUMBER : (<DIGIT>)+ ("." (<DIGIT>)+)? >				{ debugPrint("NUMBER"); }
 |	< LETTER :
-		["A"-"Z"]|["a"-"z"]|<EQL>|"?"|"!"|":"|";"|"."|","
-		|"_"|"-"|"\""|"'"|"+"|">"|"<"|"("|")"|"~"|"*"|"^"|"\""
+		["A"-"Z"]|["a"-"z"]|<EQL>|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"
+		|"_"|"-"|"\""|"'"|"+"|">"|"<"|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
 	>
 	{ debugPrint("LETTER"); }
 |	< DIGIT  : ["0"-"9"] >					{ debugPrint("DIGIT"); }
 |	< EOL    : "\n"|"\r"|"\r\n" >			{ debugPrint("EOL"); }
 }
+
+SKIP : { < ("# "|"#\t"|"#!"|"##"|"#\n"|"#\r") (~["\n","\r"])* ("\n"|"\r"|"\r\n") > }
 
 void parse() :
 {
@@ -256,6 +259,7 @@ String tag() :
 			|
 			(
 				  body=<STRING>
+				| body=<MARG>
 				| body=<LBR>
 				| body=<RBR>
 				| body=<LSB>
@@ -306,8 +310,11 @@ void define() :
 			|
 			(
 				  body=<STRING>
+				| body=<MARG>
 				| body=<LBR>
 				| body=<RBR>
+				| body=<LSB>
+				| body=<RSB>
 				| body=<SPACE>
 				| body=<EOL>
 				| body=<PATH>
@@ -335,8 +342,12 @@ String expand(Vector<String> possibleArgs) :
 		(<LBR>) (<SPACE>)* (name=<STRING>) { sb.append("{" + name.image); }
 		(
 			<SPACE> (
-				macro=expand(new Vector<>()) { sb.append(macro); args.add(macro); }
-			|	(arg=<STRING>|arg=<PATH>) { sb.append(" " + arg.image); args.add(arg.toString()); }
+				macro=expand(new Vector<>()) { sb.append(" " + macro); args.add(macro); }
+			|	(arg=<STRING>|arg=<MARG>|arg=<PATH>) { sb.append(" " + arg.image); args.add(arg.toString()); }
+			|	(arg=<INBLK>) {
+				sb.append(" " + arg.image);
+				args.add(arg.image.substring(1, arg.image.length()-1));
+			} // fix for parens
 			)
 		)*
 		(<SPACE>)*

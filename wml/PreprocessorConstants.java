@@ -11,47 +11,55 @@ public interface PreprocessorConstants {
   /** End of File. */
   int EOF = 0;
   /** RegularExpression Id. */
-  int DEFINE = 2;
+  int DEFINE = 1;
   /** RegularExpression Id. */
-  int ENDDEF = 3;
+  int ENDDEF = 2;
   /** RegularExpression Id. */
-  int IFDEF = 4;
+  int IFDEF = 3;
   /** RegularExpression Id. */
-  int ENDIF = 5;
+  int ENDIF = 4;
   /** RegularExpression Id. */
-  int UNDEF = 6;
+  int UNDEF = 5;
   /** RegularExpression Id. */
-  int TEXTDOMAIN = 7;
+  int TEXTDOMAIN = 6;
   /** RegularExpression Id. */
-  int LBR = 8;
+  int LBR = 7;
   /** RegularExpression Id. */
-  int RBR = 9;
+  int RBR = 8;
   /** RegularExpression Id. */
-  int LSB = 10;
+  int LSB = 9;
   /** RegularExpression Id. */
-  int RSB = 11;
+  int RSB = 10;
   /** RegularExpression Id. */
-  int EQL = 12;
+  int LPAR = 11;
   /** RegularExpression Id. */
-  int SLASH = 13;
+  int RPAR = 12;
   /** RegularExpression Id. */
-  int SPACE = 14;
+  int EQL = 13;
   /** RegularExpression Id. */
-  int STAG = 15;
+  int SLASH = 14;
   /** RegularExpression Id. */
-  int ETAG = 16;
+  int SPACE = 15;
   /** RegularExpression Id. */
-  int PATH = 17;
+  int INBLK = 16;
   /** RegularExpression Id. */
-  int STRING = 18;
+  int STAG = 17;
   /** RegularExpression Id. */
-  int NUMBER = 19;
+  int ETAG = 18;
   /** RegularExpression Id. */
-  int LETTER = 20;
+  int PATH = 19;
   /** RegularExpression Id. */
-  int DIGIT = 21;
+  int STRING = 20;
   /** RegularExpression Id. */
-  int EOL = 22;
+  int MARG = 21;
+  /** RegularExpression Id. */
+  int NUMBER = 22;
+  /** RegularExpression Id. */
+  int LETTER = 23;
+  /** RegularExpression Id. */
+  int DIGIT = 24;
+  /** RegularExpression Id. */
+  int EOL = 25;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -59,7 +67,6 @@ public interface PreprocessorConstants {
   /** Literal token values. */
   String[] tokenImage = {
     "<EOF>",
-    "<token of kind 1>",
     "\"#define\"",
     "\"#enddef\"",
     "\"#ifdef\"",
@@ -70,17 +77,22 @@ public interface PreprocessorConstants {
     "\"}\"",
     "\"[\"",
     "\"]\"",
+    "\"(\"",
+    "\")\"",
     "\"=\"",
     "\"/\"",
     "<SPACE>",
+    "<INBLK>",
     "<STAG>",
     "<ETAG>",
     "<PATH>",
     "<STRING>",
+    "<MARG>",
     "<NUMBER>",
     "<LETTER>",
     "<DIGIT>",
     "<EOL>",
+    "<token of kind 26>",
   };
 
 }
