@@ -1,0 +1,11 @@
+--- TokenMgrError.java	2025-08-16 18:44:16.477353671 +0530
++++ TokenMgrError2.java	2025-08-16 18:44:09.385289948 +0530
+@@ -106,7 +106,7 @@
+     return("Lexical error at line " + //
+           errorLine + ", column " + //
+           errorColumn + ".  Encountered: " + //
+-          (EOFSeen ? "<EOF>" : ("'" + addEscapes(String.valueOf(curChar)) + "' (" + curChar + "),")) + //
++          (EOFSeen ? "<EOF>" : ("'" + addEscapes(String.valueOf(curChar)) + "' (" + (char) curChar + "),")) + //
+           (errorAfter == null || errorAfter.length() == 0 ? "" : " after prefix \"" + addEscapes(errorAfter) + "\"")) + //
+           (lexState == 0 ? "" : " (in lexical state " + lexState + ")");
+   }
