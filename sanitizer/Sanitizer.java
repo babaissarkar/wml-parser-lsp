@@ -10,6 +10,10 @@ public class Sanitizer {
         "enddef",
         "define",
         "undef",
+        "ifhave",
+        "ifver",
+        "arg",
+        "endarg",
         "textdomain"
     };
     
