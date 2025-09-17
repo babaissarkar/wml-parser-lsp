@@ -132,83 +132,14 @@ public class Preprocessor {
 	/**
 	 * Handwritten macro exapansion method
 	 */
-	// public final String expandMacroCall(Vector<String> possibleArgs) throws ParseException {
-	// 	Token name = null;
-	// 	Vector<String> args = new Vector<>();
-
-	// 	StringBuffer sb = new StringBuffer();
-	// 	sb.append(token.image);
-	// 	if (token.kind == LBR) {
-	// 		skipWhitespace();
-	// 		sb.append(" ");
-
-	// 		// macro name
-	// 		if (token.kind == STRING) {
-	// 			name = token;
-	// 			sb.append(token.image);
-	// 		} else {
-	// 			// there must be a macro name
-	// 			generateParseException();
-	// 		}
-
-	// 		// arguments to macro call
-	// 		while (token.kind != RBR) {
-	// 			skipWhitespace();
-	// 			sb.append(" ");
-
-	// 			if (token.kind == LBR) {
-	// 				// macro arg is a nested macro call
-	// 				sb.append(expandMacroCall(new Vector<>()));
-	// 			} else if (token.kind == EOF) {
-	// 				generateParseException();
-	// 			} else {
-	// 				sb.append(token.image);
-	// 				if (token.kind == INBLK) {
-	// 					args.add(token.image.substring(1, token.image.length()-1));
-	// 				} else {
-	// 					args.add(token.image);
-	// 				}
-	// 				token = getNextToken();
-	// 			}
-	// 		}
-
-	// 		// the ending brace
-	// 		sb.append("}");
-	// 		token = getNextToken();
-
-	// 		// parsed name all args successfully, attempt expansion
-	// 		Definition def = defines.get(name.image);
-	// 		if (def != null) {
-	// 			debugPrint("expanding macro " + name.image);
-	// 			try {
-	// 				return def.expand(args);
-	// 			} catch(IllegalArgumentException e) {
-	// 				e.printStackTrace();
-	// 				return sb.toString();
-	// 			}
-	// 		} else if (possibleArgs.contains(name.image)) {
-	// 			// FIXME: do nothing for now. may need checks later why this is happening.
-	// 			return sb.toString();
-	// 		} else {
-	// 			warningPrint(position(name) + " undefined macro " + name.image);
-	// 			return sb.toString();
-	// 		}
-	// 	}
-
-	// 	return sb.toString();
-	// }
-
-	public final String expandMacroCall(Vector<String> possibleArgs) throws ParseException {
+	private final String expandMacroCall(Vector<String> possibleArgs) throws ParseException {
 		Token name = null;
 		Vector<String> args = new Vector<>();
 
 		StringBuffer sb = new StringBuffer();
 		sb.append(token.image);
-		System.out.println("[expandMacroCall] Starting with token: " + token.image + " (kind=" + token.kind + ")");
 
 		if (token.kind == LBR) {
-			System.out.println("[expandMacroCall] Found LBR (begin macro call)");
-
 			token = getNextToken();
 			if (skipWhitespace()) {
 				sb.append(" ");
@@ -219,9 +150,7 @@ public class Preprocessor {
 				name = token;
 				sb.append(token.image);
 				token = getNextToken();
-				System.out.println("[expandMacroCall] Macro name: " + name.image);
 			} else {
-				System.out.println("[expandMacroCall] ERROR: Expected macro name (STRING), got kind=" + token.kind);
 				generateParseException();
 			}
 
@@ -232,54 +161,47 @@ public class Preprocessor {
 				}
 
 				if (token.kind == LBR) {
-					System.out.println("[expandMacroCall] Found nested macro call");
-					sb.append(expandMacroCall(new Vector<>()));
+					String macroOutput = expandMacroCall(possibleArgs);
+					sb.append(macroOutput);
+					args.add(macroOutput);
 				} else if (token.kind == EOF) {
-					System.out.println("[expandMacroCall] ERROR: Unexpected EOF inside macro call");
 					generateParseException();
 				} else {
-					System.out.println("[expandMacroCall] Found argument token: " + token.image + " (kind=" + token.kind + ")");
 					sb.append(token.image);
 					if (token.kind == INBLK) {
 						args.add(token.image.substring(1, token.image.length() - 1));
-						System.out.println("[expandMacroCall] Added INBLK arg: " + args.lastElement());
 					} else {
 						args.add(token.image);
-						System.out.println("[expandMacroCall] Added arg: " + args.lastElement());
 					}
 					token = getNextToken();
-					System.out.println("[expandMacroCall] Next token: " + token.image + " (kind=" + token.kind + ")");
 				}
 			}
 
 			// the ending brace
-			System.out.println("[expandMacroCall] Found RBR (end macro call)");
 			sb.append("}");
 			token = getNextToken();
-			System.out.println("[expandMacroCall] Next token after RBR: " + token.image + " (kind=" + token.kind + ")");
 
 			// parsed name + args successfully, attempt expansion
 			Definition def = defines.get(name.image);
 			if (def != null) {
-				System.out.println("[expandMacroCall] Expanding macro: " + name.image + " with args=" + args);
+				debugPrint(
+					"Trying to expand macro " + colorify(def.name(), macroNameColor)
+					+ " with values: " + colorify(args.toString(), macroNameColor));
 				try {
 					return def.expand(args);
 				} catch (IllegalArgumentException e) {
-					System.out.println("[expandMacroCall] ERROR expanding macro: " + e.getMessage());
 					e.printStackTrace();
 					return sb.toString();
 				}
 			} else if (possibleArgs.contains(name.image)) {
-				System.out.println("[expandMacroCall] Macro name " + name.image + " found in possibleArgs, returning raw");
+				// FIXME: do nothing for now. may need checks later.
 				return sb.toString();
 			} else {
-				System.out.println("[expandMacroCall] WARNING: Undefined macro " + name.image);
 				warningPrint(position(name) + " undefined macro " + name.image);
 				return sb.toString();
 			}
 		}
 
-		System.out.println("[expandMacroCall] Not a macro call (no LBR), returning raw: " + sb.toString());
 		return sb.toString();
 	}
 
@@ -418,29 +340,45 @@ String tag() :
 		(
 			(<EOL>) { sb.append("\n"); }
 		)?
-		(
-			(
-				macro=expand(new Vector<String>())
-			) { sb.append(macro); }
-			|
-			(
-				  body=<STRING>
-				| body=<MARG>
-				| body=<RBR>
-				| body=<LSB>
-				| body=<RSB>
-				| body=<SPACE>
-				| body=<EOL>
-				| body=<PATH>
-				| body=<INBLK>
-			) { sb.append(body.toString()); }
-			|
-			( contents=tag() { sb.append(contents); } )
-		)+
-		(tend=<ETAG>) {
+		// (
+		// 	(
+		// 		macro=expand(new Vector<String>())
+		// 	) { sb.append(macro); }
+		// 	|
+		// 	(
+		// 		  body=<STRING>
+		// 		| body=<MARG>
+		// 		| body=<RBR>
+		// 		| body=<LSB>
+		// 		| body=<RSB>
+		// 		| body=<SPACE>
+		// 		| body=<EOL>
+		// 		| body=<PATH>
+		// 		| body=<INBLK>
+		// 	) { sb.append(body.toString()); }
+		// 	|
+		// 	( contents=tag() { sb.append(contents); } )
+		// )+
+		// (tend=<ETAG>)
+		{
 			// TODO can check tag mismatch here
+			while (token.kind != ETAG) {
+				// System.out.println("Token: " + token.image + " at " + position(token) + " kind: " + token.kind);
+				if (token.kind == LBR) {
+					// nested macro call
+					sb.append(expandMacroCall(new Vector<String>()));
+				} else if (getToken(1).kind == STAG) {
+					// nested tag
+					sb.append(tag());
+				} else {
+					// anything else is just appended as string to result
+					sb.append(token.image);
+					token = getNextToken();
+				}
+			}
+
 			debugPrint("Tag found: " + colorify(tstart.image, tagColor));
-			sb.append(tend.image);
+			sb.append(token.image);
 		}
 	) { return sb.toString(); }
 }
@@ -469,41 +407,20 @@ void define() :
 			<SPACE> (arg=<STRING>) { args.add(arg.toString()); }
 		)*
 		(<EOL>)?
-		// (
-		// 	(
-		// 		macro=expandMacroCall(args)
-		// 	) { sb.append(macro); }
-		// 	|
-		// 	(
-		// 		  body=<STRING>
-		// 		| body=<MARG>
-		// 		| body=<LBR>
-		// 		| body=<RBR>
-		// 		| body=<LSB>
-		// 		| body=<RSB>
-		// 		| body=<SPACE>
-		// 		| body=<EOL>
-		// 		| body=<PATH>
-		// 		| body=<STAG>
-		// 		| body=<ETAG>
-		// 	) { sb.append(body.toString()); }
-		// )+
-		// <ENDDEF>
 	) {
-		System.out.println("Define body");
-		System.out.println("tok:" + token.image);
 		while (token.kind != ENDDEF) {
-			System.out.println("Consuming token: (" + token.image + ")");
 			if (token.kind == LBR) {
+				// nested macro call
 				sb.append(expandMacroCall(args));
 			} else {
+				// anything else is just appended as string to result
 				sb.append(token.image);
 				token = getNextToken();
 			}
 		}
 
 		def = new Definition(name.toString(), sb.toString(), args);
-		debugPrint("defining macro " + colorify(name.toString(), macroNameColor));
+		debugPrint("defining macro " + colorify(def.name(), macroNameColor));
 		defines.put(name.toString(), def);
 	}
 }
@@ -533,7 +450,7 @@ String expand(Vector<String> possibleArgs) :
 	) {
 		Definition def = defines.get(name.image);
 		if (def != null) {
-			debugPrint("expanding macro " + name.image);
+			debugPrint("expanding macro " + def.name());
 			try {
 				return def.expand(args);
 			} catch(IllegalArgumentException e) {
