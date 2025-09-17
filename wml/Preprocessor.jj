@@ -276,12 +276,12 @@ TOKEN_MGR_DECLS : {
 }
 
 TOKEN : {
-	< DEFINE : "#define" >	{ debugPrint("DEFINE"); }
-|	< ENDDEF : "#enddef" >	{ debugPrint("ENDDEF"); }
-|	< IFDEF  : "#ifdef" >	{ debugPrint("IFDEF"); }
-|	< ENDIF  : "#endif" >	{ debugPrint("ENDIF"); }
-|	< UNDEF  : "#undef" >	{ debugPrint("UNDEF"); }
-|	< TEXTDOMAIN : "#textdomain" > { debugPrint("TEXTDOMAIN"); }
+	< DEFINE : "define" >	{ debugPrint("DEFINE"); }
+|	< ENDDEF : "enddef" >	{ debugPrint("ENDDEF"); }
+|	< IFDEF  : "ifdef" >	{ debugPrint("IFDEF"); }
+|	< ENDIF  : "endif" >	{ debugPrint("ENDIF"); }
+|	< UNDEF  : "undef" >	{ debugPrint("UNDEF"); }
+|	< TEXTDOMAIN : "textdomain" > { debugPrint("TEXTDOMAIN"); }
 |	< LBR    : "{" >		{ debugPrint("Left Brace"); }
 |	< RBR    : "}" >		{ debugPrint("Right Brace"); }
 |	< LSB    : "[" >		{ debugPrint("Left Sq Bkt"); }
@@ -290,6 +290,7 @@ TOKEN : {
 |	< RPAR   : ")" >		{ debugPrint("Right Par"); }
 |	< EQL    : "=" >		{ debugPrint("Equals"); }
 |	< SLASH  : "/" >		{ debugPrint("Slash"); }
+|	< HASH   : "#" >
 |	< SPACE  : " "|"\t" >	{ debugPrint("Space"); }
 |	< INBLK  : <LPAR> (~[")"])+ <RPAR> >
 |	< STAG   : <LSB> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
@@ -308,7 +309,6 @@ TOKEN : {
 |	< EOL    : "\n"|"\r"|"\r\n" >			{ debugPrint("EOL"); }
 }
 
-SKIP : { < ("# "|"#\t"|"#!"|"##"|"#\n"|"#\r") (~["\n","\r"])* ("\n"|"\r"|"\r\n") > }
 
 void parse() :
 {
@@ -316,16 +316,33 @@ void parse() :
 }
 {
 	(
-		  define()
-		| content=tag() { out.print(content); }
+		content=tag() { out.print(content); }
 		| exp=expand(new Vector<String>()) { out.print(exp); }
-		| ifdef()
-		| undef()
 		| expandPath()
-		| textdomain()
-//		| <COMMENT>
 		| tok=<SPACE>   { out.print(tok.image); }
 		| tok=<EOL>     { out.print(tok.image); }
+		| <HASH> {
+			Token t = getToken(1);
+			switch (t.kind) {
+			case DEFINE:
+				define();
+				break;
+			case IFDEF:
+				ifdef();
+				break;
+			case UNDEF:
+				undef();
+				break;
+			case TEXTDOMAIN:
+				textdomain();
+				break;
+			default:
+				while (token.kind != EOL) {
+					token = getNextToken();
+				}
+				break;
+			}
+		}
 		| <EOF> {
 			out.println();
 			debugPrint(defines.size() + " defines found.");

@@ -253,28 +253,42 @@ public class Preprocessor implements PreprocessorConstants {
     label_1:
     while (true) {
       if (jj_2_1(3)) {
-        define();
-      } else if (jj_2_2(3)) {
         content = tag();
 out.print(content);
-      } else if (jj_2_3(3)) {
+      } else if (jj_2_2(3)) {
         exp = expand(new Vector<String>());
 out.print(exp);
-      } else if (jj_2_4(3)) {
-        ifdef();
-      } else if (jj_2_5(3)) {
-        undef();
-      } else if (jj_2_6(3)) {
+      } else if (jj_2_3(3)) {
         expandPath();
-      } else if (jj_2_7(3)) {
-        textdomain();
-      } else if (jj_2_8(3)) {
+      } else if (jj_2_4(3)) {
         tok = jj_consume_token(SPACE);
 out.print(tok.image);
-      } else if (jj_2_9(3)) {
+      } else if (jj_2_5(3)) {
         tok = jj_consume_token(EOL);
 out.print(tok.image);
-      } else if (jj_2_10(3)) {
+      } else if (jj_2_6(3)) {
+        jj_consume_token(HASH);
+Token t = getToken(1);
+                        switch (t.kind) {
+                        case DEFINE:
+                                define();
+                                break;
+                        case IFDEF:
+                                ifdef();
+                                break;
+                        case UNDEF:
+                                undef();
+                                break;
+                        case TEXTDOMAIN:
+                                textdomain();
+                                break;
+                        default:
+                                while (token.kind != EOL) {
+                                        token = getNextToken();
+                                }
+                                break;
+                        }
+      } else if (jj_2_7(3)) {
         jj_consume_token(0);
 out.println();
                         debugPrint(defines.size() + " defines found.");
@@ -284,7 +298,7 @@ out.println();
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_11(3)) {
+      if (jj_2_8(3)) {
         ;
       } else {
         break label_1;
@@ -297,7 +311,7 @@ out.println();
         StringBuilder sb = new StringBuilder();
     tstart = jj_consume_token(STAG);
 sb.append(tstart.image);
-    if (jj_2_12(3)) {
+    if (jj_2_9(3)) {
       jj_consume_token(EOL);
     } else {
       ;
@@ -341,7 +355,7 @@ debugPrint("Textdomain " + colorify(tok.image, tdColor));
     name = jj_consume_token(STRING);
     label_2:
     while (true) {
-      if (jj_2_13(3)) {
+      if (jj_2_10(3)) {
         ;
       } else {
         break label_2;
@@ -350,7 +364,7 @@ debugPrint("Textdomain " + colorify(tok.image, tdColor));
       arg = jj_consume_token(STRING);
 args.add(arg.toString());
     }
-    if (jj_2_14(3)) {
+    if (jj_2_11(3)) {
       jj_consume_token(EOL);
     } else {
       ;
@@ -378,7 +392,7 @@ while (token.kind != ENDDEF) {
     jj_consume_token(LBR);
     label_3:
     while (true) {
-      if (jj_2_15(3)) {
+      if (jj_2_12(3)) {
         ;
       } else {
         break label_3;
@@ -389,28 +403,28 @@ while (token.kind != ENDDEF) {
 sb.append("{" + name.image);
     label_4:
     while (true) {
-      if (jj_2_16(3)) {
+      if (jj_2_13(3)) {
         ;
       } else {
         break label_4;
       }
       jj_consume_token(SPACE);
-      if (jj_2_20(3)) {
+      if (jj_2_17(3)) {
         macro = expand(new Vector<>());
 sb.append(" " + macro); args.add(macro);
-      } else if (jj_2_21(3)) {
-        if (jj_2_17(3)) {
+      } else if (jj_2_18(3)) {
+        if (jj_2_14(3)) {
           arg = jj_consume_token(STRING);
-        } else if (jj_2_18(3)) {
+        } else if (jj_2_15(3)) {
           arg = jj_consume_token(MARG);
-        } else if (jj_2_19(3)) {
+        } else if (jj_2_16(3)) {
           arg = jj_consume_token(PATH);
         } else {
           jj_consume_token(-1);
           throw new ParseException();
         }
 sb.append(" " + arg.image); args.add(arg.toString());
-      } else if (jj_2_22(3)) {
+      } else if (jj_2_19(3)) {
         arg = jj_consume_token(INBLK);
 sb.append(" " + arg.image);
                                 args.add(arg.image.substring(1, arg.image.length()-1));
@@ -421,7 +435,7 @@ sb.append(" " + arg.image);
     }
     label_5:
     while (true) {
-      if (jj_2_23(3)) {
+      if (jj_2_20(3)) {
         ;
       } else {
         break label_5;
@@ -674,59 +688,15 @@ debugPrint("removing macro " + name.toString());
     finally { jj_save(19, xla); }
   }
 
-  private boolean jj_2_21(int xla)
+  private boolean jj_3_20()
  {
-    jj_la = xla; jj_lastpos = jj_scanpos = token;
-    try { return (!jj_3_21()); }
-    catch(LookaheadSuccess ls) { return true; }
-    finally { jj_save(20, xla); }
-  }
-
-  private boolean jj_2_22(int xla)
- {
-    jj_la = xla; jj_lastpos = jj_scanpos = token;
-    try { return (!jj_3_22()); }
-    catch(LookaheadSuccess ls) { return true; }
-    finally { jj_save(21, xla); }
-  }
-
-  private boolean jj_2_23(int xla)
- {
-    jj_la = xla; jj_lastpos = jj_scanpos = token;
-    try { return (!jj_3_23()); }
-    catch(LookaheadSuccess ls) { return true; }
-    finally { jj_save(22, xla); }
-  }
-
-  private boolean jj_3R_ifdef_505_9_9()
- {
-    if (jj_scan_token(IFDEF)) return true;
     if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
   private boolean jj_3_13()
  {
     if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_22()
- {
-    if (jj_scan_token(INBLK)) return true;
-    return false;
-  }
-
-  private boolean jj_3_17()
- {
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_21()
- {
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3_17()) {
@@ -739,81 +709,16 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_12()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3_14()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3_20()
- {
-    if (jj_3R_expand_421_9_8()) return true;
-    return false;
-  }
-
-  private boolean jj_3_23()
- {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3_16()
- {
-    if (jj_scan_token(SPACE)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_20()) {
-    jj_scanpos = xsp;
-    if (jj_3_21()) {
-    jj_scanpos = xsp;
-    if (jj_3_22()) return true;
-    }
-    }
-    return false;
-  }
-
-  private boolean jj_3R_tag_345_9_7()
+  private boolean jj_3R_tag_362_9_6()
  {
     if (jj_scan_token(STAG)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_12()) jj_scanpos = xsp;
+    if (jj_3_9()) jj_scanpos = xsp;
     return false;
   }
 
-  private boolean jj_3_15()
- {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_define_388_9_6()
- {
-    if (jj_scan_token(DEFINE)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_10()
- {
-    if (jj_scan_token(0)) return true;
-    return false;
-  }
-
-  private boolean jj_3_9()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3_8()
+  private boolean jj_3_12()
  {
     if (jj_scan_token(SPACE)) return true;
     return false;
@@ -821,69 +726,95 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_7()
  {
-    if (jj_3R_textdomain_376_9_12()) return true;
+    if (jj_scan_token(0)) return true;
     return false;
   }
 
-  private boolean jj_3R_undef_522_9_10()
- {
-    if (jj_scan_token(UNDEF)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_19()
+  private boolean jj_3_16()
  {
     if (jj_scan_token(PATH)) return true;
     return false;
   }
 
+  private boolean jj_3R_expand_438_9_7()
+ {
+    if (jj_scan_token(LBR)) return true;
+    Token xsp;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_12()) { jj_scanpos = xsp; break; }
+    }
+    if (jj_scan_token(STRING)) return true;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_13()) { jj_scanpos = xsp; break; }
+    }
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_20()) { jj_scanpos = xsp; break; }
+    }
+    if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_15()
+ {
+    if (jj_scan_token(MARG)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_expandPath_478_9_8()
+ {
+    if (jj_scan_token(LBR)) return true;
+    if (jj_scan_token(PATH)) return true;
+    if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
   private boolean jj_3_6()
  {
-    if (jj_3R_expandPath_461_9_11()) return true;
+    if (jj_scan_token(HASH)) return true;
     return false;
   }
 
   private boolean jj_3_5()
  {
-    if (jj_3R_undef_522_9_10()) return true;
+    if (jj_scan_token(EOL)) return true;
     return false;
   }
 
   private boolean jj_3_4()
  {
-    if (jj_3R_ifdef_505_9_9()) return true;
+    if (jj_scan_token(SPACE)) return true;
     return false;
   }
 
   private boolean jj_3_3()
  {
-    if (jj_3R_expand_421_9_8()) return true;
+    if (jj_3R_expandPath_478_9_8()) return true;
     return false;
   }
 
-  private boolean jj_3_2()
+  private boolean jj_3_10()
  {
-    if (jj_3R_tag_345_9_7()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_textdomain_376_9_12()
- {
-    if (jj_scan_token(TEXTDOMAIN)) return true;
     if (jj_scan_token(SPACE)) return true;
     if (jj_scan_token(STRING)) return true;
     return false;
   }
 
-  private boolean jj_3_1()
+  private boolean jj_3_2()
  {
-    if (jj_3R_define_388_9_6()) return true;
+    if (jj_3R_expand_438_9_7()) return true;
     return false;
   }
 
-  private boolean jj_3_11()
+  private boolean jj_3_19()
+ {
+    if (jj_scan_token(INBLK)) return true;
+    return false;
+  }
+
+  private boolean jj_3_8()
  {
     Token xsp;
     xsp = jj_scanpos;
@@ -899,16 +830,7 @@ debugPrint("removing macro " + name.toString());
     jj_scanpos = xsp;
     if (jj_3_6()) {
     jj_scanpos = xsp;
-    if (jj_3_7()) {
-    jj_scanpos = xsp;
-    if (jj_3_8()) {
-    jj_scanpos = xsp;
-    if (jj_3_9()) {
-    jj_scanpos = xsp;
-    if (jj_3_10()) return true;
-    }
-    }
-    }
+    if (jj_3_7()) return true;
     }
     }
     }
@@ -918,38 +840,47 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3R_expand_421_9_8()
+  private boolean jj_3_1()
  {
-    if (jj_scan_token(LBR)) return true;
-    Token xsp;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_15()) { jj_scanpos = xsp; break; }
-    }
+    if (jj_3R_tag_362_9_6()) return true;
+    return false;
+  }
+
+  private boolean jj_3_14()
+ {
     if (jj_scan_token(STRING)) return true;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_16()) { jj_scanpos = xsp; break; }
-    }
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_23()) { jj_scanpos = xsp; break; }
-    }
-    if (jj_scan_token(RBR)) return true;
     return false;
   }
 
   private boolean jj_3_18()
  {
-    if (jj_scan_token(MARG)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_14()) {
+    jj_scanpos = xsp;
+    if (jj_3_15()) {
+    jj_scanpos = xsp;
+    if (jj_3_16()) return true;
+    }
+    }
     return false;
   }
 
-  private boolean jj_3R_expandPath_461_9_11()
+  private boolean jj_3_9()
  {
-    if (jj_scan_token(LBR)) return true;
-    if (jj_scan_token(PATH)) return true;
-    if (jj_scan_token(RBR)) return true;
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_11()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_17()
+ {
+    if (jj_3R_expand_438_9_7()) return true;
     return false;
   }
 
@@ -972,7 +903,7 @@ debugPrint("removing macro " + name.toString());
 	private static void jj_la1_init_0() {
 	   jj_la1_0 = new int[] {};
 	}
-  final private JJCalls[] jj_2_rtns = new JJCalls[23];
+  final private JJCalls[] jj_2_rtns = new JJCalls[20];
   private boolean jj_rescan = false;
   private int jj_gc = 0;
 
@@ -1226,7 +1157,7 @@ debugPrint("removing macro " + name.toString());
 
   private void jj_rescan_token() {
 	 jj_rescan = true;
-	 for (int i = 0; i < 23; i++) {
+	 for (int i = 0; i < 20; i++) {
 	   try {
 		 JJCalls p = jj_2_rtns[i];
 
@@ -1254,9 +1185,6 @@ debugPrint("removing macro " + name.toString());
 			   case 17: jj_3_18(); break;
 			   case 18: jj_3_19(); break;
 			   case 19: jj_3_20(); break;
-			   case 20: jj_3_21(); break;
-			   case 21: jj_3_22(); break;
-			   case 22: jj_3_23(); break;
 			 }
 		   }
 		   p = p.next;

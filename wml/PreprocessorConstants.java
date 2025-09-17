@@ -39,27 +39,29 @@ public interface PreprocessorConstants {
   /** RegularExpression Id. */
   int SLASH = 14;
   /** RegularExpression Id. */
-  int SPACE = 15;
+  int HASH = 15;
   /** RegularExpression Id. */
-  int INBLK = 16;
+  int SPACE = 16;
   /** RegularExpression Id. */
-  int STAG = 17;
+  int INBLK = 17;
   /** RegularExpression Id. */
-  int ETAG = 18;
+  int STAG = 18;
   /** RegularExpression Id. */
-  int PATH = 19;
+  int ETAG = 19;
   /** RegularExpression Id. */
-  int STRING = 20;
+  int PATH = 20;
   /** RegularExpression Id. */
-  int MARG = 21;
+  int STRING = 21;
   /** RegularExpression Id. */
-  int NUMBER = 22;
+  int MARG = 22;
   /** RegularExpression Id. */
-  int LETTER = 23;
+  int NUMBER = 23;
   /** RegularExpression Id. */
-  int DIGIT = 24;
+  int LETTER = 24;
   /** RegularExpression Id. */
-  int EOL = 25;
+  int DIGIT = 25;
+  /** RegularExpression Id. */
+  int EOL = 26;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -67,12 +69,12 @@ public interface PreprocessorConstants {
   /** Literal token values. */
   String[] tokenImage = {
     "<EOF>",
-    "\"#define\"",
-    "\"#enddef\"",
-    "\"#ifdef\"",
-    "\"#endif\"",
-    "\"#undef\"",
-    "\"#textdomain\"",
+    "\"define\"",
+    "\"enddef\"",
+    "\"ifdef\"",
+    "\"endif\"",
+    "\"undef\"",
+    "\"textdomain\"",
     "\"{\"",
     "\"}\"",
     "\"[\"",
@@ -81,6 +83,7 @@ public interface PreprocessorConstants {
     "\")\"",
     "\"=\"",
     "\"/\"",
+    "\"#\"",
     "<SPACE>",
     "<INBLK>",
     "<STAG>",
@@ -92,7 +95,6 @@ public interface PreprocessorConstants {
     "<LETTER>",
     "<DIGIT>",
     "<EOL>",
-    "<token of kind 26>",
   };
 
 }
