@@ -31,8 +31,14 @@ public class Preprocessor {
 	private Color filePathColor = new Color(128, 192, 255);
 	private Color tagColor = Color.decode("#00CED1");
 
+	private Path currentPath = Path.of(".");
 	private PrintStream out;
 	private HashMap<String, Definition> defines = new HashMap<>();
+
+	public Preprocessor(Path filePath) throws IOException {
+		this(Files.newInputStream(filePath));
+		this.currentPath = filePath;
+	}
 
 	public static void main(String[] args) {
 		ArgParser argParse = new ArgParser();
@@ -59,7 +65,7 @@ public class Preprocessor {
 		try {
 			Preprocessor p = new Preprocessor(System.in);
 			if (argParse.inputPath != null) {
-				p = new Preprocessor(Files.newInputStream(argParse.inputPath));
+				p = new Preprocessor(argParse.inputPath);
 			}
 
 			p.showParseLogs = argParse.showParseLogs;
@@ -87,8 +93,8 @@ public class Preprocessor {
 	 * Create a preprocessor subprocess, that inherits properties
 	 * from this one.
 	 */
-	private Preprocessor child(InputStream in) {
-		Preprocessor pinc = new Preprocessor(in);
+	private Preprocessor child(Path inpath) throws IOException {
+		Preprocessor pinc = new Preprocessor(inpath);
 		pinc.showParseLogs = showParseLogs;
 		pinc.warnParseLogs = warnParseLogs;
 		pinc.out = (getOutput() == null) ? System.out : getOutput();
@@ -124,9 +130,9 @@ public class Preprocessor {
 		}
 
 		debugPrint("Including: " + colorify(path.toString(), filePathColor));
-		Preprocessor p2 = child(Files.newInputStream(path));
-		p2.parse();
-		addDefines(p2.getDefines());
+		Preprocessor pp = child(path);
+		pp.parse();
+		addDefines(pp.getDefines());
 	}
 
 	/**
@@ -476,7 +482,11 @@ void expandPath() :
 	(<LBR> (tok=<PATH>) <RBR>) {
 		Path p;
 		if (tok.image.startsWith(".")) {
-			p = Path.of(tok.image);
+			if (Files.isDirectory(currentPath)) {
+				p = currentPath.resolve(tok.image);
+			} else {
+				p = currentPath.getParent().resolve(tok.image);
+			}
 		} else if (tok.image.startsWith("~")) {
 			// Supports both ~add-ons and ~/add-ons
 			String relpath = tok.image.substring(1);
