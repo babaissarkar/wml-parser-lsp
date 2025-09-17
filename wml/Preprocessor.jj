@@ -327,6 +327,7 @@ void parse() :
 		| tok=<SPACE>   { out.print(tok.image); }
 		| tok=<EOL>     { out.print(tok.image); }
 		| <EOF> {
+			out.println();
 			debugPrint(defines.size() + " defines found.");
 			out.close();
 			return;
@@ -343,39 +344,17 @@ String tag() :
 {
 	(
 		(tstart=<STAG>) { sb.append(tstart.image); }
-		(
-			(<EOL>) { sb.append("\n"); }
-		)?
-		// (
-		// 	(
-		// 		macro=expand(new Vector<String>())
-		// 	) { sb.append(macro); }
-		// 	|
-		// 	(
-		// 		  body=<STRING>
-		// 		| body=<MARG>
-		// 		| body=<RBR>
-		// 		| body=<LSB>
-		// 		| body=<RSB>
-		// 		| body=<SPACE>
-		// 		| body=<EOL>
-		// 		| body=<PATH>
-		// 		| body=<INBLK>
-		// 	) { sb.append(body.toString()); }
-		// 	|
-		// 	( contents=tag() { sb.append(contents); } )
-		// )+
-		// (tend=<ETAG>)
+		(<EOL>)?
 		{
 			// TODO can check tag mismatch here
 			while (token.kind != ETAG) {
-				// System.out.println("Token: " + token.image + " at " + position(token) + " kind: " + token.kind);
 				if (token.kind == LBR) {
 					// nested macro call
 					sb.append(expandMacroCall(new Vector<String>()));
 				} else if (getToken(1).kind == STAG) {
 					// nested tag
-					sb.append(tag());
+					sb.append("\t" + tag());
+					token = getNextToken();
 				} else {
 					// anything else is just appended as string to result
 					sb.append(token.image);
@@ -488,6 +467,7 @@ void expandPath() :
 				p = currentPath.getParent().resolve(tok.image);
 			}
 		} else if (tok.image.startsWith("~")) {
+			// TODO should throw warning if userdatapath is null
 			// Supports both ~add-ons and ~/add-ons
 			String relpath = tok.image.substring(1);
 			if (relpath.startsWith("/")) {
@@ -495,6 +475,7 @@ void expandPath() :
 			}
 			p = token_source.userDataPath.resolve(relpath);
 		} else {
+			// TODO should throw warning if datapath is null
 			p = token_source.dataPath.resolve(tok.image);
 		}
 

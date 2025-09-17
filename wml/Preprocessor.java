@@ -276,7 +276,8 @@ out.print(tok.image);
 out.print(tok.image);
       } else if (jj_2_10(3)) {
         jj_consume_token(0);
-debugPrint(defines.size() + " defines found.");
+out.println();
+                        debugPrint(defines.size() + " defines found.");
                         out.close();
                         {if ("" != null) return;}
       } else {
@@ -298,19 +299,18 @@ debugPrint(defines.size() + " defines found.");
 sb.append(tstart.image);
     if (jj_2_12(3)) {
       jj_consume_token(EOL);
-sb.append("\n");
     } else {
       ;
     }
 // TODO can check tag mismatch here
                         while (token.kind != ETAG) {
-                                // System.out.println("Token: " + token.image + " at " + position(token) + " kind: " + token.kind);
                                 if (token.kind == LBR) {
                                         // nested macro call
                                         sb.append(expandMacroCall(new Vector<String>()));
                                 } else if (getToken(1).kind == STAG) {
                                         // nested tag
-                                        sb.append(tag());
+                                        sb.append("\t" + tag());
+                                        token = getNextToken();
                                 } else {
                                         // anything else is just appended as string to result
                                         sb.append(token.image);
@@ -462,6 +462,7 @@ Path p;
                                 p = currentPath.getParent().resolve(tok.image);
                         }
                 } else if (tok.image.startsWith("~")) {
+                        // TODO should throw warning if userdatapath is null
                         // Supports both ~add-ons and ~/add-ons
                         String relpath = tok.image.substring(1);
                         if (relpath.startsWith("/")) {
@@ -469,6 +470,7 @@ Path p;
                         }
                         p = token_source.userDataPath.resolve(relpath);
                 } else {
+                        // TODO should throw warning if datapath is null
                         p = token_source.dataPath.resolve(tok.image);
                 }
 
@@ -696,111 +698,7 @@ debugPrint("removing macro " + name.toString());
     finally { jj_save(22, xla); }
   }
 
-  private boolean jj_3_15()
- {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3_12()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_define_409_9_6()
- {
-    if (jj_scan_token(DEFINE)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3_19()
- {
-    if (jj_scan_token(PATH)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_undef_541_9_10()
- {
-    if (jj_scan_token(UNDEF)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_textdomain_397_9_12()
- {
-    if (jj_scan_token(TEXTDOMAIN)) return true;
-    if (jj_scan_token(SPACE)) return true;
-    if (jj_scan_token(STRING)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_expand_442_9_8()
- {
-    if (jj_scan_token(LBR)) return true;
-    Token xsp;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_15()) { jj_scanpos = xsp; break; }
-    }
-    if (jj_scan_token(STRING)) return true;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_16()) { jj_scanpos = xsp; break; }
-    }
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_23()) { jj_scanpos = xsp; break; }
-    }
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_tag_344_9_7()
- {
-    if (jj_scan_token(STAG)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_12()) jj_scanpos = xsp;
-    return false;
-  }
-
-  private boolean jj_3_18()
- {
-    if (jj_scan_token(MARG)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_expandPath_482_9_11()
- {
-    if (jj_scan_token(LBR)) return true;
-    if (jj_scan_token(PATH)) return true;
-    if (jj_scan_token(RBR)) return true;
-    return false;
-  }
-
-  private boolean jj_3_10()
- {
-    if (jj_scan_token(0)) return true;
-    return false;
-  }
-
-  private boolean jj_3_9()
- {
-    if (jj_scan_token(EOL)) return true;
-    return false;
-  }
-
-  private boolean jj_3_8()
- {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_ifdef_524_9_9()
+  private boolean jj_3R_ifdef_505_9_9()
  {
     if (jj_scan_token(IFDEF)) return true;
     if (jj_scan_token(SPACE)) return true;
@@ -815,39 +713,9 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_7()
- {
-    if (jj_3R_textdomain_397_9_12()) return true;
-    return false;
-  }
-
-  private boolean jj_3_6()
- {
-    if (jj_3R_expandPath_482_9_11()) return true;
-    return false;
-  }
-
-  private boolean jj_3_5()
- {
-    if (jj_3R_undef_541_9_10()) return true;
-    return false;
-  }
-
-  private boolean jj_3_4()
- {
-    if (jj_3R_ifdef_524_9_9()) return true;
-    return false;
-  }
-
   private boolean jj_3_22()
  {
     if (jj_scan_token(INBLK)) return true;
-    return false;
-  }
-
-  private boolean jj_3_3()
- {
-    if (jj_3R_expand_442_9_8()) return true;
     return false;
   }
 
@@ -871,9 +739,9 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_2()
+  private boolean jj_3_12()
  {
-    if (jj_3R_tag_344_9_7()) return true;
+    if (jj_scan_token(EOL)) return true;
     return false;
   }
 
@@ -885,13 +753,133 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_20()
  {
-    if (jj_3R_expand_442_9_8()) return true;
+    if (jj_3R_expand_421_9_8()) return true;
+    return false;
+  }
+
+  private boolean jj_3_23()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_16()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_20()) {
+    jj_scanpos = xsp;
+    if (jj_3_21()) {
+    jj_scanpos = xsp;
+    if (jj_3_22()) return true;
+    }
+    }
+    return false;
+  }
+
+  private boolean jj_3R_tag_345_9_7()
+ {
+    if (jj_scan_token(STAG)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_12()) jj_scanpos = xsp;
+    return false;
+  }
+
+  private boolean jj_3_15()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_define_388_9_6()
+ {
+    if (jj_scan_token(DEFINE)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3_10()
+ {
+    if (jj_scan_token(0)) return true;
+    return false;
+  }
+
+  private boolean jj_3_9()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_8()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_7()
+ {
+    if (jj_3R_textdomain_376_9_12()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_undef_522_9_10()
+ {
+    if (jj_scan_token(UNDEF)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3_19()
+ {
+    if (jj_scan_token(PATH)) return true;
+    return false;
+  }
+
+  private boolean jj_3_6()
+ {
+    if (jj_3R_expandPath_461_9_11()) return true;
+    return false;
+  }
+
+  private boolean jj_3_5()
+ {
+    if (jj_3R_undef_522_9_10()) return true;
+    return false;
+  }
+
+  private boolean jj_3_4()
+ {
+    if (jj_3R_ifdef_505_9_9()) return true;
+    return false;
+  }
+
+  private boolean jj_3_3()
+ {
+    if (jj_3R_expand_421_9_8()) return true;
+    return false;
+  }
+
+  private boolean jj_3_2()
+ {
+    if (jj_3R_tag_345_9_7()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_textdomain_376_9_12()
+ {
+    if (jj_scan_token(TEXTDOMAIN)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
   private boolean jj_3_1()
  {
-    if (jj_3R_define_409_9_6()) return true;
+    if (jj_3R_define_388_9_6()) return true;
     return false;
   }
 
@@ -930,24 +918,38 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_23()
+  private boolean jj_3R_expand_421_9_8()
  {
-    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(LBR)) return true;
+    Token xsp;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_15()) { jj_scanpos = xsp; break; }
+    }
+    if (jj_scan_token(STRING)) return true;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_16()) { jj_scanpos = xsp; break; }
+    }
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_23()) { jj_scanpos = xsp; break; }
+    }
+    if (jj_scan_token(RBR)) return true;
     return false;
   }
 
-  private boolean jj_3_16()
+  private boolean jj_3_18()
  {
-    if (jj_scan_token(SPACE)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_20()) {
-    jj_scanpos = xsp;
-    if (jj_3_21()) {
-    jj_scanpos = xsp;
-    if (jj_3_22()) return true;
-    }
-    }
+    if (jj_scan_token(MARG)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_expandPath_461_9_11()
+ {
+    if (jj_scan_token(LBR)) return true;
+    if (jj_scan_token(PATH)) return true;
+    if (jj_scan_token(RBR)) return true;
     return false;
   }
 
