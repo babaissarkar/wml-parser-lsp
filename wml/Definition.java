@@ -48,9 +48,9 @@ public class Definition {
 		String unparsed = this.value;
 		if (values.size() != args.size()) {
 			throw new IllegalArgumentException(
-				"Wrong number of arguments supplied to macro '" + this.name + "'. " +
-				"Expected " + values.size() + " but got " + args.size() +
-				". Supplied args: " + args
+				"Wrong number of arguments supplied to macro '" + name() + "'. " +
+				"Expected " + args.size() + " but got " + values.size() +
+				"."
 			);
 		}
 
@@ -76,7 +76,7 @@ public class Definition {
 
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("#define");
+		sb.append("#define ");
 		sb.append(name);
 		for (var arg : args) {
 			sb.append(" " + arg);
@@ -85,6 +85,10 @@ public class Definition {
 		sb.append(value);
 		sb.append("#enddef");
 		return sb.toString();
+	}
+
+	public String name() {
+		return name + "" + args;
 	}
 
 }
