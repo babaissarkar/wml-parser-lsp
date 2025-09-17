@@ -222,6 +222,29 @@ public class Preprocessor {
 		return skipped;
 	}
 
+	private final void handleDirectiveOrComment() throws ParseException {
+		Token t = getToken(1);
+		switch (t.kind) {
+		case DEFINE:
+			define();
+			break;
+		case IFDEF:
+			ifdef();
+			break;
+		case UNDEF:
+			undef();
+			break;
+		case TEXTDOMAIN:
+			textdomain();
+			break;
+		default:
+			while (token.kind != EOL) {
+				token = getNextToken();
+			}
+			break;
+		}
+	}
+
 	public PrintStream getOutput() {
 		return out;
 	}
@@ -321,28 +344,7 @@ void parse() :
 		| expandPath()
 		| tok=<SPACE>   { out.print(tok.image); }
 		| tok=<EOL>     { out.print(tok.image); }
-		| <HASH> {
-			Token t = getToken(1);
-			switch (t.kind) {
-			case DEFINE:
-				define();
-				break;
-			case IFDEF:
-				ifdef();
-				break;
-			case UNDEF:
-				undef();
-				break;
-			case TEXTDOMAIN:
-				textdomain();
-				break;
-			default:
-				while (token.kind != EOL) {
-					token = getNextToken();
-				}
-				break;
-			}
-		}
+		| <HASH> { handleDirectiveOrComment(); }
 		| <EOF> {
 			out.println();
 			debugPrint(defines.size() + " defines found.");
@@ -373,7 +375,7 @@ String tag() :
 					sb.append("\t" + tag());
 					token = getNextToken();
 				} else {
-					// anything else is just appended as string to result
+					// anything else except comments is just appended as string to result
 					sb.append(token.image);
 					token = getNextToken();
 				}
