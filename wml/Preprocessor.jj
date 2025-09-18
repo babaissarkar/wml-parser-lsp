@@ -410,7 +410,7 @@ void define() :
 		(
 			<SPACE> (arg=<STRING>) { args.add(arg.toString()); }
 		)*
-		(<EOL>)?
+		(<EOL>)*
 	) {
 		while (token.kind != ENDDEF) {
 			if (token.kind == LBR) {
