@@ -11,64 +11,79 @@ public interface PreprocessorConstants {
   /** End of File. */
   int EOF = 0;
   /** RegularExpression Id. */
-  int DEFINE = 1;
+  int ANGLE_OPEN = 1;
   /** RegularExpression Id. */
-  int ENDDEF = 2;
+  int ANGLE_CLOSE = 3;
   /** RegularExpression Id. */
-  int IFDEF = 3;
+  int DEFINE = 4;
   /** RegularExpression Id. */
-  int ENDIF = 4;
+  int ENDDEF = 5;
   /** RegularExpression Id. */
-  int UNDEF = 5;
+  int IFDEF = 6;
   /** RegularExpression Id. */
-  int TEXTDOMAIN = 6;
+  int ENDIF = 7;
   /** RegularExpression Id. */
-  int LBR = 7;
+  int UNDEF = 8;
   /** RegularExpression Id. */
-  int RBR = 8;
+  int TEXTDOMAIN = 9;
   /** RegularExpression Id. */
-  int LSB = 9;
+  int LBR = 10;
   /** RegularExpression Id. */
-  int RSB = 10;
+  int RBR = 11;
   /** RegularExpression Id. */
-  int LPAR = 11;
+  int LSB = 12;
   /** RegularExpression Id. */
-  int RPAR = 12;
+  int RSB = 13;
   /** RegularExpression Id. */
-  int EQL = 13;
+  int LPAR = 14;
   /** RegularExpression Id. */
-  int SLASH = 14;
+  int RPAR = 15;
   /** RegularExpression Id. */
-  int HASH = 15;
+  int LANGLE = 16;
   /** RegularExpression Id. */
-  int SPACE = 16;
+  int RANGLE = 17;
   /** RegularExpression Id. */
-  int INBLK = 17;
+  int EQL = 18;
   /** RegularExpression Id. */
-  int STAG = 18;
+  int SLASH = 19;
   /** RegularExpression Id. */
-  int ETAG = 19;
+  int HASH = 20;
   /** RegularExpression Id. */
-  int PATH = 20;
+  int SPACE = 21;
   /** RegularExpression Id. */
-  int STRING = 21;
+  int QUOTED_STRING = 22;
   /** RegularExpression Id. */
-  int MARG = 22;
+  int INBLK = 23;
   /** RegularExpression Id. */
-  int NUMBER = 23;
+  int STAG = 24;
   /** RegularExpression Id. */
-  int LETTER = 24;
+  int ETAG = 25;
   /** RegularExpression Id. */
-  int DIGIT = 25;
+  int PATH = 26;
   /** RegularExpression Id. */
-  int EOL = 26;
+  int STRING = 27;
+  /** RegularExpression Id. */
+  int MARG = 28;
+  /** RegularExpression Id. */
+  int NUMBER = 29;
+  /** RegularExpression Id. */
+  int LETTER = 30;
+  /** RegularExpression Id. */
+  int DIGIT = 31;
+  /** RegularExpression Id. */
+  int EOL = 32;
 
   /** Lexical state. */
   int DEFAULT = 0;
+  /** Lexical state. */
+  int ANGLE = 1;
 
   /** Literal token values. */
   String[] tokenImage = {
     "<EOF>",
+    "\"<<\"",
+    "<token of kind 2>",
+    "\">>\"",
     "\"define\"",
     "\"enddef\"",
     "\"ifdef\"",
@@ -81,10 +96,13 @@ public interface PreprocessorConstants {
     "\"]\"",
     "\"(\"",
     "\")\"",
+    "\"<\"",
+    "\">\"",
     "\"=\"",
     "\"/\"",
     "\"#\"",
     "<SPACE>",
+    "<QUOTED_STRING>",
     "<INBLK>",
     "<STAG>",
     "<ETAG>",

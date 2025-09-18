@@ -151,34 +151,46 @@ public class Preprocessor {
 				sb.append(" ");
 			}
 
-			// macro name
+			// macro name. must be uppercase + digits.
 			if (token.kind == STRING) {
-				name = token;
-				sb.append(token.image);
+				String tokName = token.image;
+				if (tokName.equals(tokName.toUpperCase())) {
+					name = token;
+				}
+			} else if (token.kind == RBR) {
+				//case {<whitespace>}, the ending brace
+				sb.append("}");
 				token = getNextToken();
-			} else {
-				generateParseException();
+				return sb.toString();
 			}
+
+			sb.append(token.image);
+			token = getNextToken();
 
 			// arguments to macro call
 			while (token.kind != RBR) {
+				System.out.println(position(token) + " " + sb);
+
 				if (skipWhitespace()) {
 					sb.append(" ");
 				}
 
-				if (token.kind == LBR) {
+				if (token.kind == LBR && name != null) {
 					String macroOutput = expandMacroCall(possibleArgs);
 					sb.append(macroOutput);
 					args.add(macroOutput);
 				} else if (token.kind == EOF) {
 					generateParseException();
 				} else {
-					sb.append(token.image);
-					if (token.kind == INBLK) {
-						args.add(token.image.substring(1, token.image.length() - 1));
-					} else {
-						args.add(token.image);
+					if (name != null) {
+						if (token.kind == INBLK) {
+							args.add(token.image.substring(1, token.image.length() - 1));
+						} else {
+							args.add(token.image);
+						}
 					}
+
+					sb.append(token.image);
 					token = getNextToken();
 				}
 			}
@@ -186,6 +198,10 @@ public class Preprocessor {
 			// the ending brace
 			sb.append("}");
 			token = getNextToken();
+
+			if (name == null) {
+				return sb.toString();
+			}
 
 			// parsed name + args successfully, attempt expansion
 			Definition def = defines.get(name.image);
@@ -298,6 +314,19 @@ TOKEN_MGR_DECLS : {
 	}
 }
 
+<DEFAULT> TOKEN : {
+    < ANGLE_OPEN: "<<" > { SwitchTo(ANGLE); }
+}
+
+<ANGLE> MORE : { < ~[] > }   // gobbles characters, appends to token
+
+<ANGLE> TOKEN : {
+    < ANGLE_CLOSE: ">>" > {
+        matchedToken.kind = STRING;
+        SwitchTo(DEFAULT);
+    }
+}
+
 TOKEN : {
 	< DEFINE : "define" >	{ debugPrint("DEFINE"); }
 |	< ENDDEF : "enddef" >	{ debugPrint("ENDDEF"); }
@@ -311,10 +340,13 @@ TOKEN : {
 |	< RSB    : "]" >		{ debugPrint("Right Sq Bkt"); }
 |	< LPAR   : "(" >		{ debugPrint("Left Par"); }
 |	< RPAR   : ")" >		{ debugPrint("Right Par"); }
+|	< LANGLE : "<" >		{ debugPrint("Left Angle"); }
+|	< RANGLE : ">" >		{ debugPrint("Right Angle"); }
 |	< EQL    : "=" >		{ debugPrint("Equals"); }
 |	< SLASH  : "/" >		{ debugPrint("Slash"); }
-|	< HASH   : "#" >
+|	< HASH   : "#" >		{ debugPrint("Hash"); }
 |	< SPACE  : " "|"\t" >	{ debugPrint("Space"); }
+|	< QUOTED_STRING: "\"" (~["\""])* "\"" > { debugPrint("quoted string"); }
 |	< INBLK  : <LPAR> (~[")"])+ <RPAR> >
 |	< STAG   : <LSB> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
 |	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag"); }
@@ -323,8 +355,8 @@ TOKEN : {
 |	< MARG   : (<LETTER>|<DIGIT>|<LSB>|<RSB>|<SLASH>)+ >	{ debugPrint("STRING"); } // yes, macro arguments can have newline!
 |	< NUMBER : (<DIGIT>)+ ("." (<DIGIT>)+)? >				{ debugPrint("NUMBER"); }
 |	< LETTER :
-		["A"-"Z"]|["a"-"z"]|<EQL>|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"
-		|"_"|"-"|"'"|"+"|">"|"<"|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
+		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"
+		|"_"|"-"|"'"|"+"|<LANGLE>|<RANGLE>|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
 		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"
 	>
 	{ debugPrint("LETTER"); }
@@ -370,6 +402,9 @@ String tag() :
 				if (token.kind == LBR) {
 					// nested macro call
 					sb.append(expandMacroCall(new Vector<String>()));
+				} else if (token.kind == HASH) {
+					// handleDirectiveOrComment(); // FIXME faulty
+					token = getNextToken();
 				} else if (getToken(1).kind == STAG) {
 					// nested tag
 					sb.append("\t" + tag());
@@ -416,6 +451,9 @@ void define() :
 			if (token.kind == LBR) {
 				// nested macro call
 				sb.append(expandMacroCall(args));
+			} else if (token.kind == HASH) {
+				// handleDirectiveOrComment(); // FIXME faulty
+				token = getNextToken();
 			} else {
 				// anything else is just appended as string to result
 				sb.append(token.image);
