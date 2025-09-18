@@ -345,7 +345,7 @@ TOKEN : {
 |	< EQL    : "=" >		{ debugPrint("Equals"); }
 |	< SLASH  : "/" >		{ debugPrint("Slash"); }
 |	< HASH   : "#" >		{ debugPrint("Hash"); }
-|	< SPACE  : " "|"\t" >	{ debugPrint("Space"); }
+|	< SPACE  : (" "|"\t")+ >	{ debugPrint("Space"); }
 |	< QUOTED_STRING: "\"" (~["\""])* "\"" > { debugPrint("quoted string"); }
 |	< INBLK  : <LPAR> (~[")"])+ <RPAR> >
 |	< STAG   : <LSB> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }

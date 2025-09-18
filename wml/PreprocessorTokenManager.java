@@ -166,7 +166,7 @@ private int jjMoveStringLiteralDfa0_0(){
       case 125:
          return jjStopAtPos(0, 11);
       default :
-         return jjMoveNfa_0(0, 0);
+         return jjMoveNfa_0(1, 0);
    }
 }
 private int jjMoveStringLiteralDfa1_0(long active0){
@@ -392,7 +392,7 @@ private int jjMoveNfa_0(int startState, int curPos)
          {
             switch(jjstateSet[--i])
             {
-               case 0:
+               case 1:
                   if ((0xdfffffb600000000L & l) != 0L)
                   {
                      if (kind > 28)
@@ -408,6 +408,7 @@ private int jjMoveNfa_0(int startState, int curPos)
                   {
                      if (kind > 21)
                         kind = 21;
+                     { jjCheckNAdd(0); }
                   }
                   if ((0xdfff7fb600000000L & l) != 0L)
                   {
@@ -483,9 +484,12 @@ private int jjMoveNfa_0(int startState, int curPos)
                   if ((0xdfff7fb600000000L & l) != 0L)
                      { jjCheckNAddTwoStates(19, 20); }
                   break;
-               case 1:
-                  if (curChar == 34)
-                     { jjCheckNAddTwoStates(2, 3); }
+               case 0:
+                  if ((0x100000200L & l) == 0L)
+                     break;
+                  if (kind > 21)
+                     kind = 21;
+                  { jjCheckNAdd(0); }
                   break;
                case 2:
                   if ((0xfffffffbffffffffL & l) != 0L)
@@ -603,7 +607,7 @@ private int jjMoveNfa_0(int startState, int curPos)
          {
             switch(jjstateSet[--i])
             {
-               case 0:
+               case 1:
                   if ((0x57fffffeffffffffL & l) != 0L)
                   {
                      if (kind > 28)
@@ -744,7 +748,7 @@ private int jjMoveNfa_0(int startState, int curPos)
          {
             switch(jjstateSet[--i])
             {
-               case 0:
+               case 1:
                   if (jjCanMove_1(hiByte, i1, i2, l1, l2))
                   {
                      if (kind > 28)
@@ -1153,7 +1157,7 @@ void TokenLexicalActions(Token matchedToken)
          break;
       case 21 :
         image.append(input_stream.GetSuffix(jjimageLen + (lengthOfMatch = jjmatchedPos + 1)));
-                                  debugPrint("Space");
+                                          debugPrint("Space");
          break;
       case 22 :
         image.append(input_stream.GetSuffix(jjimageLen + (lengthOfMatch = jjmatchedPos + 1)));
