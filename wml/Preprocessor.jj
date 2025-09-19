@@ -221,8 +221,8 @@ public class Preprocessor {
 				debugPrint(
 					"Expanding macro " + colorify(def.name(), macroNameColor)
 					+ (!argsAsString.isEmpty()
-						? " with values: " + colorify(argsAsString, macroNameColor)
-						: "");
+						? (" with values: " + colorify(argsAsString, macroNameColor))
+						: ""));
 				try {
 					return def.expand(args, defArgs);
 				} catch (IllegalArgumentException e) {
@@ -376,7 +376,7 @@ TOKEN : {
 |	< LETTER :
 		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"
 		|"_"|"-"|"'"|"+"|<LANGLE>|<RANGLE>|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
-		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"
+		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"|"✘"|"✔"
 	>
 	{ debugPrint("LETTER"); }
 |	< DIGIT  : ["0"-"9"] >					{ debugPrint("DIGIT"); }
@@ -391,10 +391,9 @@ void parse() :
 {
 	(
 		content=tag() { out.print(content); }
-		| <LBR> { out.print(expandMacroCall(new Vector<>())); }
 		| expandPath()
-		| tok=<SPACE>   { out.print(tok.image); }
-		| tok=<EOL>     { out.print(tok.image); }
+		| <LBR> { out.print(expandMacroCall(new Vector<>())); }
+		| (tok=<SPACE>|tok=<EOL>)   { out.print(tok.image); }
 		| <HASH> { handleDirectiveOrComment(); }
 		| <EOF> {
 			out.println();
