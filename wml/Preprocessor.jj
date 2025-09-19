@@ -140,9 +140,10 @@ public class Preprocessor {
 	 */
 	private final String expandMacroCall(Vector<String> possibleArgs) throws ParseException {
 		Token name = null;
-		Vector<String> args = new Vector<>();
+		var args = new Vector<String>();
+		var defArgs = new HashMap<String, String>();
 
-		StringBuffer sb = new StringBuffer();
+		var sb = new StringBuffer();
 		sb.append(token.image);
 
 		if (token.kind == LBR) {
@@ -169,34 +170,44 @@ public class Preprocessor {
 
 			// arguments to macro call
 			while (token.kind != RBR) {
-				System.out.println(position(token) + " " + sb);
-
 				if (skipWhitespace()) {
 					sb.append(" ");
 				}
-
+				
+				// keyword argument handling
+				String key = null, val = null;
+				if (token.kind == STRING && getToken(1).kind == EQL) {
+					key = token.image;
+					// skip this and next token
+					token = getNextToken();
+					token = getNextToken();
+				}
+				
 				if (token.kind == LBR && name != null) {
-					String macroOutput = expandMacroCall(possibleArgs);
-					sb.append(macroOutput);
-					args.add(macroOutput);
+					val = expandMacroCall(possibleArgs);
+					sb.append(val);
 				} else if (token.kind == EOF) {
 					generateParseException();
 				} else {
 					if (name != null) {
-						if (token.kind == INBLK) {
-							args.add(token.image.substring(1, token.image.length() - 1));
-						} else {
-							args.add(token.image);
-						}
+						val = token.kind == INBLK
+							? token.image.substring(1, token.image.length() - 1)
+							: token.image;
 					}
 
 					sb.append(token.image);
 					token = getNextToken();
 				}
+				
+				if (key != null) {
+					defArgs.put(key, val);
+				} else {
+					args.add(val);
+				}
 			}
 
 			// the ending brace
-			sb.append("}");
+			sb.append(token.image);
 			token = getNextToken();
 
 			if (name == null) {
@@ -206,11 +217,14 @@ public class Preprocessor {
 			// parsed name + args successfully, attempt expansion
 			Definition def = defines.get(name.image);
 			if (def != null) {
+				String argsAsString = Definition.argsAsString(args, defArgs);
 				debugPrint(
-					"Trying to expand macro " + colorify(def.name(), macroNameColor)
-					+ " with values: " + colorify(args.toString(), macroNameColor));
+					"Expanding macro " + colorify(def.name(), macroNameColor)
+					+ (!argsAsString.isEmpty()
+						? " with values: " + colorify(argsAsString, macroNameColor)
+						: "");
 				try {
-					return def.expand(args);
+					return def.expand(args, defArgs);
 				} catch (IllegalArgumentException e) {
 					e.printStackTrace();
 					return sb.toString();
@@ -328,6 +342,11 @@ TOKEN_MGR_DECLS : {
 }
 
 TOKEN : {
+	< ARG    : "#arg"   >
+|	< ENDARG : "#endarg" >
+}
+
+TOKEN : {
 	< DEFINE : "define" >	{ debugPrint("DEFINE"); }
 |	< ENDDEF : "enddef" >	{ debugPrint("ENDDEF"); }
 |	< IFDEF  : "ifdef" >	{ debugPrint("IFDEF"); }
@@ -372,7 +391,7 @@ void parse() :
 {
 	(
 		content=tag() { out.print(content); }
-		| exp=expand(new Vector<String>()) { out.print(exp); }
+		| <LBR> { out.print(expandMacroCall(new Vector<>())); }
 		| expandPath()
 		| tok=<SPACE>   { out.print(tok.image); }
 		| tok=<EOL>     { out.print(tok.image); }
@@ -432,11 +451,14 @@ void textdomain() :
 
 void define() :
 {
-	Token name, body, arg;
+	Token name, arg;
+	Token key, val;
 	StringBuilder sb = new StringBuilder();
 	Definition def;
 	String macro;
-	Vector<String> args = new Vector<>();
+	var args = new Vector<String>();
+	var defArgs = new HashMap<String, String>();
+	Map.Entry<String, String> defArg;
 }
 {
 	(
@@ -446,6 +468,12 @@ void define() :
 			<SPACE> (arg=<STRING>) { args.add(arg.toString()); }
 		)*
 		(<EOL>)*
+		(
+			(<SPACE>)? (defArg=defaultArg(args)) {
+				defArgs.put(defArg.getKey(), defArg.getValue());
+			}
+			(<EOL>)*
+		)*
 	) {
 		while (token.kind != ENDDEF) {
 			if (token.kind == LBR) {
@@ -461,9 +489,37 @@ void define() :
 			}
 		}
 
-		def = new Definition(name.toString(), sb.toString(), args);
+		def = new Definition(name.toString(), sb.toString(), args, defArgs);
 		debugPrint("defining macro " + colorify(def.name(), macroNameColor));
 		defines.put(name.toString(), def);
+	}
+}
+
+Map.Entry defaultArg(Vector<String> args) :
+{
+	Token argName, argBody;
+}
+{
+	<ARG> <SPACE> argName=<STRING>
+	(<SPACE>|<EOL>)+ {
+		var sb = new StringBuffer();
+		while (token.kind != ENDARG) {
+			if (token.kind == LBR) {
+				// nested macro call
+				sb.append(expandMacroCall(args));
+			} else if (token.kind == HASH) {
+				// handleDirectiveOrComment(); // FIXME faulty
+				token = getNextToken();
+			} else {
+				// anything else is just appended as string to result
+				sb.append(token.image);
+				token = getNextToken();
+			}
+		}
+		if (sb.toString().startsWith("\n")) {
+			sb.deleteCharAt(0);
+		}
+		return Map.entry(argName.image, sb.toString());
 	}
 }
 

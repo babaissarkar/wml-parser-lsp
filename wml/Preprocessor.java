@@ -131,9 +131,10 @@ public class Preprocessor implements PreprocessorConstants {
 	 */
         private final String expandMacroCall(Vector<String> possibleArgs) throws ParseException {
                 Token name = null;
-                Vector<String> args = new Vector<>();
+                var args = new Vector<String>();
+                var defArgs = new HashMap<String, String>();
 
-                StringBuffer sb = new StringBuffer();
+                var sb = new StringBuffer();
                 sb.append(token.image);
 
                 if (token.kind == LBR) {
@@ -160,34 +161,44 @@ public class Preprocessor implements PreprocessorConstants {
 
                         // arguments to macro call
                         while (token.kind != RBR) {
-                                System.out.println(position(token) + " " + sb);
-
                                 if (skipWhitespace()) {
                                         sb.append(" ");
                                 }
 
+                                // keyword argument handling
+                                String key = null, val = null;
+                                if (token.kind == STRING && getToken(1).kind == EQL) {
+                                        key = token.image;
+                                        // skip this and next token
+                                        token = getNextToken();
+                                        token = getNextToken();
+                                }
+
                                 if (token.kind == LBR && name != null) {
-                                        String macroOutput = expandMacroCall(possibleArgs);
-                                        sb.append(macroOutput);
-                                        args.add(macroOutput);
+                                        val = expandMacroCall(possibleArgs);
+                                        sb.append(val);
                                 } else if (token.kind == EOF) {
                                         generateParseException();
                                 } else {
                                         if (name != null) {
-                                                if (token.kind == INBLK) {
-                                                        args.add(token.image.substring(1, token.image.length() - 1));
-                                                } else {
-                                                        args.add(token.image);
-                                                }
+                                                val = token.kind == INBLK
+                                                        ? token.image.substring(1, token.image.length() - 1)
+                                                        : token.image;
                                         }
 
                                         sb.append(token.image);
                                         token = getNextToken();
                                 }
+
+                                if (key != null) {
+                                        defArgs.put(key, val);
+                                } else {
+                                        args.add(val);
+                                }
                         }
 
                         // the ending brace
-                        sb.append("}");
+                        sb.append(token.image);
                         token = getNextToken();
 
                         if (name == null) {
@@ -199,9 +210,10 @@ public class Preprocessor implements PreprocessorConstants {
                         if (def != null) {
                                 debugPrint(
                                         "Trying to expand macro " + colorify(def.name(), macroNameColor)
-                                        + " with values: " + colorify(args.toString(), macroNameColor));
+                                        + " with values: "
+                                        + colorify(Definition.argsAsString(args, defArgs), macroNameColor));
                                 try {
-                                        return def.expand(args);
+                                        return def.expand(args, defArgs);
                                 } catch (IllegalArgumentException e) {
                                         e.printStackTrace();
                                         return sb.toString();
@@ -295,8 +307,8 @@ public class Preprocessor implements PreprocessorConstants {
         content = tag();
 out.print(content);
       } else if (jj_2_2(3)) {
-        exp = expand(new Vector<String>());
-out.print(exp);
+        jj_consume_token(LBR);
+out.print(expandMacroCall(new Vector<>()));
       } else if (jj_2_3(3)) {
         expandPath();
       } else if (jj_2_4(3)) {
@@ -368,11 +380,14 @@ sb.append(tstart.image);
 debugPrint("Textdomain " + colorify(tok.image, tdColor));
 }
 
-  final public void define() throws ParseException {Token name, body, arg;
+  final public void define() throws ParseException {Token name, arg;
+        Token key, val;
         StringBuilder sb = new StringBuilder();
         Definition def;
         String macro;
-        Vector<String> args = new Vector<>();
+        var args = new Vector<String>();
+        var defArgs = new HashMap<String, String>();
+        Map.Entry<String, String> defArg;
     jj_consume_token(DEFINE);
     jj_consume_token(SPACE);
     name = jj_consume_token(STRING);
@@ -396,6 +411,30 @@ args.add(arg.toString());
       }
       jj_consume_token(EOL);
     }
+    label_4:
+    while (true) {
+      if (jj_2_12(3)) {
+        ;
+      } else {
+        break label_4;
+      }
+      if (jj_2_13(3)) {
+        jj_consume_token(SPACE);
+      } else {
+        ;
+      }
+      defArg = defaultArg(args);
+defArgs.put(defArg.getKey(), defArg.getValue());
+      label_5:
+      while (true) {
+        if (jj_2_14(3)) {
+          ;
+        } else {
+          break label_5;
+        }
+        jj_consume_token(EOL);
+      }
+    }
 while (token.kind != ENDDEF) {
                         if (token.kind == LBR) {
                                 // nested macro call
@@ -410,9 +449,50 @@ while (token.kind != ENDDEF) {
                         }
                 }
 
-                def = new Definition(name.toString(), sb.toString(), args);
+                def = new Definition(name.toString(), sb.toString(), args, defArgs);
                 debugPrint("defining macro " + colorify(def.name(), macroNameColor));
                 defines.put(name.toString(), def);
+}
+
+  final public Map.Entry defaultArg(Vector<String> args) throws ParseException {Token argName, argBody;
+    jj_consume_token(ARG);
+    jj_consume_token(SPACE);
+    argName = jj_consume_token(STRING);
+    label_6:
+    while (true) {
+      if (jj_2_15(3)) {
+        jj_consume_token(SPACE);
+      } else if (jj_2_16(3)) {
+        jj_consume_token(EOL);
+      } else {
+        jj_consume_token(-1);
+        throw new ParseException();
+      }
+      if (jj_2_17(3)) {
+        ;
+      } else {
+        break label_6;
+      }
+    }
+var sb = new StringBuffer();
+                while (token.kind != ENDARG) {
+                        if (token.kind == LBR) {
+                                // nested macro call
+                                sb.append(expandMacroCall(args));
+                        } else if (token.kind == HASH) {
+                                // handleDirectiveOrComment(); // FIXME faulty
+                                token = getNextToken();
+                        } else {
+                                // anything else is just appended as string to result
+                                sb.append(token.image);
+                                token = getNextToken();
+                        }
+                }
+                if (sb.toString().startsWith("\n")) {
+                        sb.deleteCharAt(0);
+                }
+                {if ("" != null) return Map.entry(argName.image, sb.toString());}
+    throw new Error("Missing return statement in function");
 }
 
   final public String expand(Vector<String> possibleArgs) throws ParseException {Token name, arg;
@@ -420,41 +500,41 @@ while (token.kind != ENDDEF) {
         StringBuilder sb = new StringBuilder();
         String macro;
     jj_consume_token(LBR);
-    label_4:
+    label_7:
     while (true) {
-      if (jj_2_12(3)) {
+      if (jj_2_18(3)) {
         ;
       } else {
-        break label_4;
+        break label_7;
       }
       jj_consume_token(SPACE);
     }
     name = jj_consume_token(STRING);
 sb.append("{" + name.image);
-    label_5:
+    label_8:
     while (true) {
-      if (jj_2_13(3)) {
+      if (jj_2_19(3)) {
         ;
       } else {
-        break label_5;
+        break label_8;
       }
       jj_consume_token(SPACE);
-      if (jj_2_17(3)) {
+      if (jj_2_23(3)) {
         macro = expand(new Vector<>());
 sb.append(" " + macro); args.add(macro);
-      } else if (jj_2_18(3)) {
-        if (jj_2_14(3)) {
+      } else if (jj_2_24(3)) {
+        if (jj_2_20(3)) {
           arg = jj_consume_token(STRING);
-        } else if (jj_2_15(3)) {
+        } else if (jj_2_21(3)) {
           arg = jj_consume_token(MARG);
-        } else if (jj_2_16(3)) {
+        } else if (jj_2_22(3)) {
           arg = jj_consume_token(PATH);
         } else {
           jj_consume_token(-1);
           throw new ParseException();
         }
 sb.append(" " + arg.image); args.add(arg.toString());
-      } else if (jj_2_19(3)) {
+      } else if (jj_2_25(3)) {
         arg = jj_consume_token(INBLK);
 sb.append(" " + arg.image);
                                 args.add(arg.image.substring(1, arg.image.length()-1));
@@ -463,12 +543,12 @@ sb.append(" " + arg.image);
         throw new ParseException();
       }
     }
-    label_6:
+    label_9:
     while (true) {
-      if (jj_2_20(3)) {
+      if (jj_2_26(3)) {
         ;
       } else {
-        break label_6;
+        break label_9;
       }
       jj_consume_token(SPACE);
     }
@@ -718,66 +798,55 @@ debugPrint("removing macro " + name.toString());
     finally { jj_save(19, xla); }
   }
 
-  private boolean jj_3_18()
+  private boolean jj_2_21(int xla)
  {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_14()) {
-    jj_scanpos = xsp;
-    if (jj_3_15()) {
-    jj_scanpos = xsp;
-    if (jj_3_16()) return true;
-    }
-    }
-    return false;
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_21()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(20, xla); }
   }
 
-  private boolean jj_3_17()
+  private boolean jj_2_22(int xla)
  {
-    if (jj_3R_expand_478_9_8()) return true;
-    return false;
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_22()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(21, xla); }
   }
 
-  private boolean jj_3_11()
+  private boolean jj_2_23(int xla)
  {
-    if (jj_scan_token(EOL)) return true;
-    return false;
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_23()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(22, xla); }
   }
 
-  private boolean jj_3_9()
+  private boolean jj_2_24(int xla)
  {
-    if (jj_scan_token(EOL)) return true;
-    return false;
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_24()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(23, xla); }
   }
 
-  private boolean jj_3_20()
+  private boolean jj_2_25(int xla)
  {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_25()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(24, xla); }
   }
 
-  private boolean jj_3_13()
+  private boolean jj_2_26(int xla)
  {
-    if (jj_scan_token(SPACE)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_17()) {
-    jj_scanpos = xsp;
-    if (jj_3_18()) {
-    jj_scanpos = xsp;
-    if (jj_3_19()) return true;
-    }
-    }
-    return false;
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return (!jj_3_26()); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(25, xla); }
   }
 
-  private boolean jj_3_12()
- {
-    if (jj_scan_token(SPACE)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_tag_396_9_7()
+  private boolean jj_3R_tag_413_9_10()
  {
     if (jj_scan_token(STAG)) return true;
     Token xsp;
@@ -786,9 +855,55 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_16()
+  private boolean jj_3_26()
  {
-    if (jj_scan_token(PATH)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_19()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_23()) {
+    jj_scanpos = xsp;
+    if (jj_3_24()) {
+    jj_scanpos = xsp;
+    if (jj_3_25()) return true;
+    }
+    }
+    return false;
+  }
+
+  private boolean jj_3_18()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_15()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_17()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_15()) {
+    jj_scanpos = xsp;
+    if (jj_3_16()) return true;
+    }
+    return false;
+  }
+
+  private boolean jj_3R_defaultArg_501_9_12()
+ {
+    if (jj_scan_token(ARG)) return true;
+    if (jj_scan_token(SPACE)) return true;
+    if (jj_scan_token(STRING)) return true;
     return false;
   }
 
@@ -818,34 +933,13 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_3()
  {
-    if (jj_3R_expandPath_518_9_9()) return true;
+    if (jj_3R_expandPath_572_9_11()) return true;
     return false;
   }
 
   private boolean jj_3_2()
  {
-    if (jj_3R_expand_478_9_8()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_expand_478_9_8()
- {
     if (jj_scan_token(LBR)) return true;
-    Token xsp;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_12()) { jj_scanpos = xsp; break; }
-    }
-    if (jj_scan_token(STRING)) return true;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_13()) { jj_scanpos = xsp; break; }
-    }
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_20()) { jj_scanpos = xsp; break; }
-    }
-    if (jj_scan_token(RBR)) return true;
     return false;
   }
 
@@ -877,20 +971,54 @@ debugPrint("removing macro " + name.toString());
 
   private boolean jj_3_1()
  {
-    if (jj_3R_tag_396_9_7()) return true;
+    if (jj_3R_tag_413_9_10()) return true;
     return false;
   }
 
-  private boolean jj_3_15()
+  private boolean jj_3_22()
  {
-    if (jj_scan_token(MARG)) return true;
+    if (jj_scan_token(PATH)) return true;
     return false;
   }
 
-  private boolean jj_3R_expandPath_518_9_9()
+  private boolean jj_3_14()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_13()
+ {
+    if (jj_scan_token(SPACE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_12()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_13()) jj_scanpos = xsp;
+    if (jj_3R_defaultArg_501_9_12()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_expand_532_9_13()
  {
     if (jj_scan_token(LBR)) return true;
-    if (jj_scan_token(PATH)) return true;
+    Token xsp;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_18()) { jj_scanpos = xsp; break; }
+    }
+    if (jj_scan_token(STRING)) return true;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_19()) { jj_scanpos = xsp; break; }
+    }
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_26()) { jj_scanpos = xsp; break; }
+    }
     if (jj_scan_token(RBR)) return true;
     return false;
   }
@@ -902,15 +1030,67 @@ debugPrint("removing macro " + name.toString());
     return false;
   }
 
-  private boolean jj_3_19()
+  private boolean jj_3_21()
+ {
+    if (jj_scan_token(MARG)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_expandPath_572_9_11()
+ {
+    if (jj_scan_token(LBR)) return true;
+    if (jj_scan_token(PATH)) return true;
+    if (jj_scan_token(RBR)) return true;
+    return false;
+  }
+
+  private boolean jj_3_11()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_9()
+ {
+    if (jj_scan_token(EOL)) return true;
+    return false;
+  }
+
+  private boolean jj_3_25()
  {
     if (jj_scan_token(INBLK)) return true;
     return false;
   }
 
-  private boolean jj_3_14()
+  private boolean jj_3_20()
  {
     if (jj_scan_token(STRING)) return true;
+    return false;
+  }
+
+  private boolean jj_3_24()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_20()) {
+    jj_scanpos = xsp;
+    if (jj_3_21()) {
+    jj_scanpos = xsp;
+    if (jj_3_22()) return true;
+    }
+    }
+    return false;
+  }
+
+  private boolean jj_3_23()
+ {
+    if (jj_3R_expand_532_9_13()) return true;
+    return false;
+  }
+
+  private boolean jj_3_16()
+ {
+    if (jj_scan_token(EOL)) return true;
     return false;
   }
 
@@ -938,7 +1118,7 @@ debugPrint("removing macro " + name.toString());
 	private static void jj_la1_init_1() {
 	   jj_la1_1 = new int[] {};
 	}
-  final private JJCalls[] jj_2_rtns = new JJCalls[20];
+  final private JJCalls[] jj_2_rtns = new JJCalls[26];
   private boolean jj_rescan = false;
   private int jj_gc = 0;
 
@@ -1144,7 +1324,7 @@ debugPrint("removing macro " + name.toString());
   /** Generate ParseException. */
   public ParseException generateParseException() {
 	 jj_expentries.clear();
-	 boolean[] la1tokens = new boolean[33];
+	 boolean[] la1tokens = new boolean[35];
 	 if (jj_kind >= 0) {
 	   la1tokens[jj_kind] = true;
 	   jj_kind = -1;
@@ -1161,7 +1341,7 @@ debugPrint("removing macro " + name.toString());
 		 }
 	   }
 	 }
-	 for (int i = 0; i < 33; i++) {
+	 for (int i = 0; i < 35; i++) {
 	   if (la1tokens[i]) {
 		 jj_expentry = new int[1];
 		 jj_expentry[0] = i;
@@ -1195,7 +1375,7 @@ debugPrint("removing macro " + name.toString());
 
   private void jj_rescan_token() {
 	 jj_rescan = true;
-	 for (int i = 0; i < 20; i++) {
+	 for (int i = 0; i < 26; i++) {
 	   try {
 		 JJCalls p = jj_2_rtns[i];
 
@@ -1223,6 +1403,12 @@ debugPrint("removing macro " + name.toString());
 			   case 17: jj_3_18(); break;
 			   case 18: jj_3_19(); break;
 			   case 19: jj_3_20(); break;
+			   case 20: jj_3_21(); break;
+			   case 21: jj_3_22(); break;
+			   case 22: jj_3_23(); break;
+			   case 23: jj_3_24(); break;
+			   case 24: jj_3_25(); break;
+			   case 25: jj_3_26(); break;
 			 }
 		   }
 		   p = p.next;
