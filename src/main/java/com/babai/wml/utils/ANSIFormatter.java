@@ -1,4 +1,4 @@
-package wml;
+package com.babai.wml.utils;
 
 import java.awt.Color;
 

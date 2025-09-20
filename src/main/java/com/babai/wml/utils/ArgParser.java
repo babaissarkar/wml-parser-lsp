@@ -1,4 +1,4 @@
-package wml;
+package com.babai.wml.utils;
 
 import java.io.PrintStream;
 import java.nio.file.Files;

@@ -1,4 +1,4 @@
-package wml;
+package com.babai.wml.core;
 
 public abstract class ConfigAttributeBase {
 	

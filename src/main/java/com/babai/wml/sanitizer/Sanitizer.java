@@ -1,4 +1,4 @@
-package sanitizer;
+package com.babai.wml.sanitizer;
 
 import java.io.IOException;
 import java.nio.file.*;

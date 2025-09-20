@@ -9,7 +9,7 @@ options
 }
 
 PARSER_BEGIN(Preprocessor)
-package wml;
+package com.babai.wml.preprocessor;
 
 import java.awt.Color;
 import java.util.*;
@@ -18,7 +18,10 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static wml.ANSIFormatter.*;
+import com.babai.wml.core.*;
+import com.babai.wml.utils.ArgParser;
+
+import static com.babai.wml.utils.ANSIFormatter.*;
 
 public class Preprocessor {
 	private final Logger pL = Logger.getLogger("preprocessor.parse");
