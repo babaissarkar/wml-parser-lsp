@@ -141,6 +141,7 @@ public class Preprocessor {
 					sb.append(val);
 				} else if (token.kind == EOF) {
 					generateParseException();
+					return sb.toString();
 				} else {
 					if (name != null) {
 						val = token.kind == INBLK
@@ -353,7 +354,8 @@ void parse() :
 	(
 		content=tag() { out.print(content); }
 		| expandPath()
-		| <LBR> { out.print(expandMacroCall(new Vector<>())); }
+//		| <LBR> { out.print(expandMacroCall(new Vector<>())); }
+		| content=expand(new Vector<>()) { out.print(content); }
 		| (tok=<SPACE>|tok=<EOL>)   { out.print(tok.image); }
 		| <HASH> { handleDirectiveOrComment(); }
 		| <EOF> {
@@ -485,23 +487,32 @@ Map.Entry<String, String> defaultArg(Vector<String> args) :
 
 String expand(Vector<String> possibleArgs) :
 {
-	Token name, arg;
+	Token name, arg, defarg = null;
+	String val;
+	var defArgs = new HashMap<String, String>();
 	Vector<String> args = new Vector<>();
 	StringBuilder sb = new StringBuilder();
-	String macro;
 }
 {
 	(
 		(<LBR>) (<SPACE>)* (name=<STRING>) { sb.append("{" + name.image); }
 		(
-			<SPACE> (
-				macro=expand(new Vector<>()) { sb.append(" " + macro); args.add(macro); }
-			|	(arg=<STRING>|arg=<MARG>|arg=<PATH>) { sb.append(" " + arg.image); args.add(arg.toString()); }
+			<SPACE>
+			(defarg=<STRING> <EQL>)?
+			(
+				val=expand(possibleArgs)
+			|	(arg=<STRING>|arg=<MARG>|arg=<PATH>) { val = arg.image; }
 			|	(arg=<INBLK>) {
-				sb.append(" " + arg.image);
-				args.add(arg.image.substring(1, arg.image.length()-1));
-			} // fix for parens
-			)
+					val = arg.image.substring(1, arg.image.length()-1);
+				} // fix for parens
+			) {
+				sb.append(" " + val);
+				if (defarg == null) {
+					args.add(val);
+				} else {
+					defArgs.put(defarg.image, val);
+				}
+			}
 		)*
 		(<SPACE>)*
 		(<RBR>) { sb.append("}"); }
@@ -510,7 +521,7 @@ String expand(Vector<String> possibleArgs) :
 		if (def != null) {
 			debugPrint("expanding macro " + def.name());
 			try {
-				return def.expand(args);
+				return def.expand(args, defArgs);
 			} catch(IllegalArgumentException e) {
 				e.printStackTrace();
 				return sb.toString();
