@@ -497,7 +497,7 @@ void define() :
 	}
 }
 
-Map.Entry defaultArg(Vector<String> args) :
+Map.Entry<String, String> defaultArg(Vector<String> args) :
 {
 	Token argName, argBody;
 }
