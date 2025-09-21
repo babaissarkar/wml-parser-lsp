@@ -13,13 +13,12 @@ package com.babai.wml.preprocessor;
 
 import java.awt.Color;
 import java.util.*;
-import java.util.logging.*;
+import java.util.logging.Logger;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.babai.wml.core.*;
-import com.babai.wml.utils.ArgParser;
 
 import static com.babai.wml.utils.ANSIFormatter.*;
 
@@ -28,11 +27,11 @@ public class Preprocessor {
 	private boolean showParseLogs = false;
 	private boolean warnParseLogs = false;
 
-	private Color tdColor = new Color(255, 221, 0);
-	private Color macroNameColor = new Color(0, 255, 128);
-	private Color lineNumColor = new Color(0, 153, 255);
-	private Color filePathColor = new Color(128, 192, 255);
-	private Color tagColor = Color.decode("#00CED1");
+	public final Color tdColor = new Color(255, 221, 0);
+	public final Color macroNameColor = new Color(0, 255, 128);
+	public final Color lineNumColor = new Color(0, 153, 255);
+	public final Color filePathColor = new Color(128, 192, 255);
+	public final Color tagColor = Color.decode("#00CED1");
 
 	private Path currentPath = Path.of(".");
 	private PrintStream out;
@@ -41,55 +40,6 @@ public class Preprocessor {
 	public Preprocessor(Path filePath) throws IOException {
 		this(Files.newInputStream(filePath));
 		this.currentPath = filePath;
-	}
-
-	public static void main(String[] args) {
-		ArgParser argParse = new ArgParser();
-		argParse.parseArgs(args);
-
-		for (Handler handler : Logger.getLogger("").getHandlers()) {
-			handler.setFormatter(new java.util.logging.Formatter() {
-				@Override
-				public String format(LogRecord r) {
-					// Customize Message for separators between Level and Message
-					Level l = r.getLevel();
-					String lvlStr = "[" + l + "]";
-					if (l == Level.WARNING) {
-						lvlStr = colorify(lvlStr, Color.RED);
-					} else if (l == Level.INFO) {
-						lvlStr = colorify(lvlStr, Color.CYAN);
-					}
-
-					return lvlStr + " " + r.getMessage() + "\n";
-				}
-			});
-		}
-
-		try {
-			Preprocessor p = new Preprocessor(System.in);
-			if (argParse.inputPath != null) {
-				p = new Preprocessor(argParse.inputPath);
-			}
-
-			p.showParseLogs = argParse.showParseLogs;
-			p.warnParseLogs = argParse.warnParseLogs;
-			p.out = (argParse.out == null) ? System.out : argParse.out;
-			p.token_source.dataPath = argParse.dataPath;
-			p.token_source.userDataPath = argParse.userDataPath;
-			p.token_source.showLogs = argParse.showLogs;
-
-			if (argParse.inputPath != null) {
-				p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), p.filePathColor));
-			}
-
-			for (Path incpath : argParse.includes) {
-				p.subparse(incpath);
-			}
-
-			p.subparse(argParse.inputPath);
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
@@ -111,7 +61,7 @@ public class Preprocessor {
 	 * Recursively parse the given Path p
 	 * Note: JavaCC doesn't support lambdas or :: yet!
 	 */
-	private void subparse(Path p) throws IOException, ParseException {
+	public void subparse(Path p) throws IOException, ParseException {
 		Path path = p;
 		if (Files.isDirectory(path)) {
 			Path p2 = path.resolve("./_main.cfg");
@@ -292,6 +242,14 @@ public class Preprocessor {
 
 	public void addDefines(HashMap<String, Definition> newDefines) {
 		this.defines.putAll(newDefines);
+	}
+	
+	public void showParseLogs(boolean showParseLogs) {
+		this.showParseLogs = showParseLogs;
+	}
+	
+	public void showWarnLogs(boolean showWarnLogs) {
+		this.warnParseLogs = showWarnLogs;
 	}
 
 	public void debugPrint(String s) {

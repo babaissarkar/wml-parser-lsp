@@ -4,13 +4,78 @@ import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.services.*;
 
+import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.utils.ArgParser;
+
+import java.awt.Color;
+import java.util.logging.*;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
+
+import static com.babai.wml.utils.ANSIFormatter.*;
 
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 public class Main {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
+		var argParse = new ArgParser();
+		argParse.parseArgs(args);
+
+		setLoggingFormat();
+
+		if (argParse.startLSPServer) {
+			initServer();
+		} else {
+			try {
+				var p = new Preprocessor(System.in);
+				if (argParse.inputPath != null) {
+					p = new Preprocessor(argParse.inputPath);
+				}
+
+				p.showParseLogs(argParse.showParseLogs);
+				p.showWarnLogs(argParse.warnParseLogs);
+				p.setOutput(argParse.out == null ? System.out : argParse.out);
+				p.token_source.dataPath = argParse.dataPath;
+				p.token_source.userDataPath = argParse.userDataPath;
+				p.token_source.showLogs = argParse.showLogs;
+
+				if (argParse.inputPath != null) {
+					p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), p.filePathColor));
+				}
+
+				for (Path incpath : argParse.includes) {
+					p.subparse(incpath);
+				}
+
+				p.subparse(argParse.inputPath);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private static void setLoggingFormat() {
+		for (var handler : Logger.getLogger("").getHandlers()) {
+			handler.setFormatter(new java.util.logging.Formatter() {
+				@Override
+				public String format(LogRecord r) {
+					// Customize Message for separators between Level and Message
+					Level l = r.getLevel();
+					String lvlStr = "[" + l + "]";
+					if (l == Level.WARNING) {
+						lvlStr = colorify(lvlStr, Color.RED);
+					} else if (l == Level.INFO) {
+						lvlStr = colorify(lvlStr, Color.CYAN);
+					}
+
+					return lvlStr + " " + r.getMessage() + "\n";
+				}
+			});
+		}
+	}
+
+	private static void initServer() {
 		var server = new WMLLanguageServer();
 
 		// Initialize a simple JSON-RPC connection over stdin/stdout
@@ -23,10 +88,10 @@ public class Main {
 
 	public static class WMLLanguageServer implements LanguageServer, LanguageClientAware {
 
-		private LanguageClient client;
-
+		// private LanguageClient client;
+		//
 		public void connect(LanguageClient client) {
-			this.client = client;
+			// this.client = client;
 		}
 
 		@Override
