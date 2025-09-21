@@ -3,16 +3,16 @@ package com.babai.wml.core;
 public class ConfigAttribute<T> extends ConfigAttributeBase {
 	private String key;
 	private T value;
-	
+
 	public ConfigAttribute(String key, T value) {
 		this.key = key;
 		this.value = value;
 	}
-	
+
 	public String getKey() {
 		return key;
 	}
-	
+
 	@Override
 	public boolean boolValue() {
 		if (value instanceof Boolean) {
@@ -21,7 +21,7 @@ public class ConfigAttribute<T> extends ConfigAttributeBase {
 			throw new IllegalArgumentException(value.getClass().getName() + " found, boolean expected!");
 		}
 	}
-	
+
 	@Override
 	public int intValue() {
 		if (value instanceof Integer) {
@@ -35,13 +35,9 @@ public class ConfigAttribute<T> extends ConfigAttributeBase {
 	public String stringValue() {
 		return value.toString();
 	}
-	
+
 	public String write(int indentLevel) {
-		return "\t".repeat(indentLevel)
-				+ key
-				+ "="
-				+ (value instanceof String ? "\"" : "")
-				+ value
+		return "\t".repeat(indentLevel) + key + "=" + (value instanceof String ? "\"" : "") + value
 				+ (value instanceof String ? "\"" : "");
 	}
 }

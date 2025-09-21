@@ -4,16 +4,16 @@ import java.awt.Color;
 
 /**
  * ANSI escape code utility for coloring terminal output using true RGB color.
- * 
- * Works on terminals that support 24-bit ("true color") ANSI codes.
- * Examples include modern Linux terminals, macOS Terminal, iTerm2, Windows Terminal, etc.
+ * Works on terminals that support 24-bit ("true color") ANSI codes. Examples
+ * include modern Linux terminals, macOS Terminal, iTerm2, Windows Terminal,
+ * etc.
  */
 public interface ANSIFormatter {
-	
+
 	public static String colorify(String text, Color c) {
 		return fg(c) + text + RESET;
 	}
-	
+
 	public static String fg(Color c) {
 		return fg(c.getRed(), c.getGreen(), c.getBlue());
 	}
@@ -24,6 +24,7 @@ public interface ANSIFormatter {
 	 * @param r Red component (0–255)
 	 * @param g Green component (0–255)
 	 * @param b Blue component (0–255)
+	 *
 	 * @return ANSI escape sequence for the given RGB foreground color
 	 */
 	public static String fg(int r, int g, int b) {
@@ -36,6 +37,7 @@ public interface ANSIFormatter {
 	 * @param r Red component (0–255)
 	 * @param g Green component (0–255)
 	 * @param b Blue component (0–255)
+	 *
 	 * @return ANSI escape sequence for the given RGB background color
 	 */
 	public static String bg(int r, int g, int b) {
@@ -47,4 +49,3 @@ public interface ANSIFormatter {
 	 */
 	public static final String RESET = "\033[0m";
 }
-

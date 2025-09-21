@@ -12,11 +12,11 @@ public class Main {
 
 	public static void main(String[] args) throws Exception {
 		var server = new WMLLanguageServer();
-		
+
 		// Initialize a simple JSON-RPC connection over stdin/stdout
 		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);
 		LanguageClient client = launcher.getRemoteProxy();
-		
+
 		server.connect(client);
 		launcher.startListening();
 	}
@@ -57,13 +57,16 @@ public class Main {
 				}
 
 				@Override
-				public void didChange(DidChangeTextDocumentParams params) {}
+				public void didChange(DidChangeTextDocumentParams params) {
+				}
 
 				@Override
-				public void didClose(DidCloseTextDocumentParams params) {}
+				public void didClose(DidCloseTextDocumentParams params) {
+				}
 
 				@Override
-				public void didSave(DidSaveTextDocumentParams params) {}
+				public void didSave(DidSaveTextDocumentParams params) {
+				}
 			};
 		}
 
@@ -71,10 +74,12 @@ public class Main {
 		public WorkspaceService getWorkspaceService() {
 			return new WorkspaceService() {
 				@Override
-				public void didChangeConfiguration(DidChangeConfigurationParams params) {}
+				public void didChangeConfiguration(DidChangeConfigurationParams params) {
+				}
 
 				@Override
-				public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {}
+				public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {
+				}
 			};
 		}
 	}

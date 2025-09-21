@@ -49,11 +49,8 @@ public class Definition {
 	public String expand(Vector<String> values, HashMap<String, String> keyVals) {
 		String unparsed = this.value;
 		if (values.size() != args.size()) {
-			throw new IllegalArgumentException(
-				"Wrong number of arguments supplied to macro '" + name() + "'. " +
-				"Expected " + args.size() + " but got " + values.size() +
-				"."
-			);
+			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
+					+ "Expected " + args.size() + " but got " + values.size() + ".");
 		}
 
 		int i = 0;
@@ -69,14 +66,14 @@ public class Definition {
 			}
 			unparsed = unparsed.replace("{" + entry.getKey() + "}", val);
 		}
-		
+
 		return unparsed;
 	}
 
 	public String expand(Vector<String> values) {
 		return expand(values, new HashMap<>());
 	}
-	
+
 	public String expand() {
 		return expand(new Vector<>(), new HashMap<>());
 	}
@@ -98,15 +95,12 @@ public class Definition {
 		String argsAsString = argsAsString(args, defArgs);
 		return name + (!argsAsString.isEmpty() ? "[" + argsAsString + "]" : "");
 	}
-	
-	public static String argsAsString(Vector<String> args, Map<String, String> defArgs) {
-		var keyValsStrings = defArgs.entrySet().stream()
-			.map(Map.Entry::toString)
-			.collect(Collectors.toList());
 
-		return String.join(", ", args) 
-			+ (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
-			+ String.join(", ", keyValsStrings);
+	public static String argsAsString(Vector<String> args, Map<String, String> defArgs) {
+		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
+
+		return String.join(", ", args) + (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
+				+ String.join(", ", keyValsStrings);
 	}
 
 }
