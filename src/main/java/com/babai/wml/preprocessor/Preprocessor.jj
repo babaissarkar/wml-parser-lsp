@@ -380,9 +380,9 @@ String tag() :
 		{
 			// TODO can check tag mismatch here
 			while (token.kind != ETAG) {
-				if (token.kind == LBR) {
+				if (getToken(1).kind == LBR) {
 					// nested macro call
-					sb.append(expandMacroCall(new Vector<String>()));
+					sb.append(expand(new Vector<String>()));
 				} else if (token.kind == HASH) {
 					// handleDirectiveOrComment(); // FIXME faulty
 					token = getNextToken();
@@ -438,9 +438,9 @@ void define() :
 		)*
 	) {
 		while (token.kind != ENDDEF) {
-			if (token.kind == LBR) {
+			if (getToken(1).kind == LBR) {
 				// nested macro call
-				sb.append(expandMacroCall(args));
+				sb.append(expand(args));
 			} else if (token.kind == HASH) {
 				// handleDirectiveOrComment(); // FIXME faulty
 				token = getNextToken();
@@ -466,9 +466,9 @@ Map.Entry<String, String> defaultArg(Vector<String> args) :
 	(<SPACE>|<EOL>)+ {
 		var sb = new StringBuffer();
 		while (token.kind != ENDARG) {
-			if (token.kind == LBR) {
+			if (getToken(1).kind == LBR) {
 				// nested macro call
-				sb.append(expandMacroCall(args));
+				sb.append(expand(args));
 			} else if (token.kind == HASH) {
 				// handleDirectiveOrComment(); // FIXME faulty
 				token = getNextToken();
@@ -501,7 +501,7 @@ String expand(Vector<String> possibleArgs) :
 			(defarg=<STRING> <EQL>)?
 			(
 				val=expand(possibleArgs)
-			|	(arg=<STRING>|arg=<MARG>|arg=<PATH>) { val = arg.image; }
+			|	(arg=<STRING>|arg=<MARG>|arg=<PATH>|arg=<QUOTED_STRING>) { val = arg.image; }
 			|	(arg=<INBLK>) {
 					val = arg.image.substring(1, arg.image.length()-1);
 				} // fix for parens
