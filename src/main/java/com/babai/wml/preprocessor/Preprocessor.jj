@@ -432,11 +432,11 @@ void define() :
 		<DEFINE> <SPACE>
 		(name=<STRING>)
 		(
-			<SPACE> (arg=<STRING>) { args.add(arg.toString()); }
+			(<SPACE>|<EOL>)+ (arg=<STRING>) { args.add(arg.toString()); }
+			(<EOL>)*
 		)*
-		(<EOL>)*
 		(
-			(<SPACE>)? (defArg=defaultArg(args)) {
+			(<SPACE>|<EOL>)+ (defArg=defaultArg(args)) {
 				defArgs.put(defArg.getKey(), defArg.getValue());
 			}
 			(<EOL>)*
@@ -502,7 +502,7 @@ String expand(Vector<String> possibleArgs) :
 	(
 		(<LBR>) (<SPACE>)* (name=<STRING>) { sb.append("{" + name.image); }
 		(
-			<SPACE>
+			(<SPACE>|<EOL>)+
 			(defarg=<STRING> <EQL>)?
 			(
 				val=expand(possibleArgs)
@@ -519,7 +519,7 @@ String expand(Vector<String> possibleArgs) :
 				}
 			}
 		)*
-		(<SPACE>)*
+		(<SPACE>|<EOL>)*
 		(<RBR>) { sb.append("}"); }
 	) {
 		Definition def = defines.get(name.image);
