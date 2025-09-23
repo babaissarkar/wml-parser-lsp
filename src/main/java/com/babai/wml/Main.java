@@ -36,6 +36,7 @@ public class Main {
 				p.showParseLogs(argParse.showParseLogs);
 				p.showWarnLogs(argParse.warnParseLogs);
 				p.setOutput(argParse.out == null ? System.out : argParse.out);
+				p.setDefinesMap(argParse.predefines);
 				p.token_source.dataPath = argParse.dataPath;
 				p.token_source.userDataPath = argParse.userDataPath;
 				p.token_source.showLogs = argParse.showLogs;

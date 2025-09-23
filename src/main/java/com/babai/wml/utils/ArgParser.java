@@ -3,7 +3,10 @@ package com.babai.wml.utils;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Vector;
+
+import com.babai.wml.core.Definition;
 
 public class ArgParser {
 	public boolean showLogs = false;
@@ -11,6 +14,7 @@ public class ArgParser {
 	public boolean warnParseLogs = false;
 	public boolean startLSPServer = false;
 	public Vector<Path> includes = new Vector<>();
+	public HashMap<String, Definition> predefines = new HashMap<>();
 	public Path dataPath, userDataPath, inputPath, outputPath;
 	public PrintStream out = null;
 
@@ -19,16 +23,18 @@ public class ArgParser {
 			Usage: Preprocessor [-datadir|-userdatadir|-log|-log-t[oken]|-log-p[arse]|-warn-p[arse]|-s[erver]|-i[nput] filename|-o[utput] filename|-include file|-h[elp]|-?]
 			Options:
 				-server/-s             Start as WML LSP server
-				-datadir               Absolute Path to Wesnoth's data directory
-				-userdatadir           Absolute Path to Wesnoth's userdata directory
+				-datadir [path]        Absolute Path to Wesnoth's data directory
+				-userdatadir [path]        Absolute Path to Wesnoth's userdata directory
 				-log                   Print all logs (parser and tokenizer)
 				-log-parse/-log-p      Print all parser logs
 				-log-token/-log-t      Print all tokenizer logs
 				-warn-parse/-warn-p    Print parser warnings only
-				-include file          Preprocess the given file beforehand and collect macro definitions from it.
+				-include [path]        Preprocess the given file/folder beforehand and collect macro definitions from it.
 				                       Can be used multiple times to include multiple files before the main input.
-				-input/-i filename     Preprocess the main input file
-				-output/-o filename    Write output to the given file
+				-define/-d [macroname] [body]
+				                       Define this macro before parsing 
+				-input/-i [path]       Preprocess the main input file
+				-output/-o [path]      Write output to the given file
 				-help/-?/-h            Print this help""";
 
 	public void parseArgs(String[] args) {
@@ -40,6 +46,7 @@ public class ArgParser {
 				arg = arg.substring(1, arg.length());
 			}
 
+			// TODO needs error checking
 			switch (arg) {
 			case "datadir" -> {
 				dataPath = Path.of(args[++i]);
@@ -73,6 +80,11 @@ public class ArgParser {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+			}
+			case "define", "d" -> {
+				String name = args[++i];
+				String value = args[++i];
+				predefines.put(name, new Definition(name, value));
 			}
 			case "log" -> {
 				showLogs = true;
