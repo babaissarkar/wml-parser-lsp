@@ -47,8 +47,9 @@ public class Main {
 				for (Path incpath : argParse.includes) {
 					p.subparse(incpath);
 				}
-
 				p.subparse(argParse.inputPath);
+
+				p.debugPrint("Total " + p.getDefines().size() + " macros defined.");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

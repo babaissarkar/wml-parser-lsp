@@ -5,7 +5,7 @@ options
 	// Enable these to print verbose javacc logs
 	DEBUG_PARSER = false;
 	DEBUG_LOOKAHEAD = false;
-	DEBUG_TOKEN_MANAGER = false;
+	DEBUG_TOKEN_MANAGER = true;
 }
 
 PARSER_BEGIN(Preprocessor)
@@ -47,13 +47,14 @@ public class Preprocessor {
 	 * from this one.
 	 */
 	private Preprocessor child(Path inpath) throws IOException {
-		Preprocessor pinc = new Preprocessor(inpath);
+		var pinc = new Preprocessor(inpath);
 		pinc.showParseLogs = showParseLogs;
 		pinc.warnParseLogs = warnParseLogs;
 		pinc.out = (getOutput() == null) ? System.out : getOutput();
 		pinc.token_source.dataPath = token_source.dataPath;
 		pinc.token_source.userDataPath = token_source.userDataPath;
 		pinc.token_source.showLogs = token_source.showLogs;
+		pinc.setDefinesMap(this.defines);
 		return pinc;
 	}
 
@@ -66,7 +67,8 @@ public class Preprocessor {
 		if (Files.isDirectory(path)) {
 			Path p2 = path.resolve("./_main.cfg");
 			if (!Files.exists(p2)) {
-				File[] files = path.toFile().listFiles();
+				List<File> files = Arrays.asList(path.toFile().listFiles());
+				Collections.sort(files);
 				try {
 					if (files == null) return;
 					for (File f : files) {
@@ -85,7 +87,7 @@ public class Preprocessor {
 		debugPrint("Including: " + colorify(path.toString(), filePathColor));
 		Preprocessor pp = child(path);
 		pp.parse();
-		addDefines(pp.getDefines());
+		setDefinesMap(pp.getDefines());
 	}
 
 	/**
@@ -195,7 +197,6 @@ public class Preprocessor {
 		return sb.toString();
 	}
 
-
 	// skip whitespace tokens
 	private final boolean skipWhitespace() {
 		boolean skipped = false;
@@ -245,6 +246,10 @@ public class Preprocessor {
 		this.defines.putAll(newDefines);
 	}
 	
+	public void setDefinesMap(HashMap<String, Definition> defines) {
+		this.defines = defines;
+	}
+	
 	public void showParseLogs(boolean showParseLogs) {
 		this.showParseLogs = showParseLogs;
 	}
@@ -290,24 +295,27 @@ TOKEN_MGR_DECLS : {
 	}
 }
 
+// Angle bracket handling
 <DEFAULT> TOKEN : {
-    < ANGLE_OPEN: "<<" > { SwitchTo(ANGLE); }
+	< ANGLE_OPEN: "<<" > { SwitchTo(ANGLE); }
 }
 
-<ANGLE> MORE : { < ~[] > }   // gobbles characters, appends to token
+<ANGLE> MORE : { < ~[] > }   // gobbles characters, appends to token ANGLE_OPEN
 
 <ANGLE> TOKEN : {
-    < ANGLE_CLOSE: ">>" > {
-        matchedToken.kind = STRING;
-        SwitchTo(DEFAULT);
-    }
+	< ANGLE_CLOSE: ">>" > {
+		matchedToken.kind = STRING;
+		SwitchTo(DEFAULT);
+	}
 }
 
+// Default args
 TOKEN : {
 	< ARG    : "#arg"   >
 |	< ENDARG : "#endarg" >
 }
 
+// Other tokens
 TOKEN : {
 	< DEFINE : "define" >	{ debugPrint("DEFINE"); }
 |	< ENDDEF : "enddef" >	{ debugPrint("ENDDEF"); }
@@ -315,6 +323,7 @@ TOKEN : {
 |	< ENDIF  : "endif" >	{ debugPrint("ENDIF"); }
 |	< UNDEF  : "undef" >	{ debugPrint("UNDEF"); }
 |	< TEXTDOMAIN : "textdomain" > { debugPrint("TEXTDOMAIN"); }
+
 |	< LBR    : "{" >		{ debugPrint("Left Brace"); }
 |	< RBR    : "}" >		{ debugPrint("Right Brace"); }
 |	< LSB    : "[" >		{ debugPrint("Left Sq Bkt"); }
@@ -327,44 +336,40 @@ TOKEN : {
 |	< SLASH  : "/" >		{ debugPrint("Slash"); }
 |	< HASH   : "#" >		{ debugPrint("Hash"); }
 |	< SPACE  : (" "|"\t")+ >	{ debugPrint("Space"); }
+
 |	< QUOTED_STRING: "\"" (~["\""])* "\"" > { debugPrint("quoted string"); }
 |	< INBLK  : <LPAR> (~[")"])+ <RPAR> >
+
 |	< STAG   : <LSB> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
 |	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag"); }
+
 |	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
 |	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING"); }
-|	< MARG   : (<LETTER>|<DIGIT>|<LSB>|<RSB>|<SLASH>)+ >	{ debugPrint("STRING"); } // yes, macro arguments can have newline!
-|	< NUMBER : (<DIGIT>)+ ("." (<DIGIT>)+)? >				{ debugPrint("NUMBER"); }
-|	< LETTER :
+
+|	< #LETTER :
 		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"
 		|"_"|"-"|"'"|"+"|<LANGLE>|<RANGLE>|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
 		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"|"✘"|"✔"
 	>
-	{ debugPrint("LETTER"); }
-|	< DIGIT  : ["0"-"9"] >					{ debugPrint("DIGIT"); }
-|	< EOL    : "\n"|"\r"|"\r\n" >			{ debugPrint("EOL"); }
+|	< #DIGIT  : ["0"-"9"] >
+|	< EOL     : ("\n"|"\r")+ >			{ debugPrint("EOL"); }
 }
 
 
 void parse() :
 {
-	Token tok; String content, exp;
+	Token tok; String content = "";
 }
 {
 	(
-		content=tag() { out.print(content); }
-		| expandPath()
-//		| <LBR> { out.print(expandMacroCall(new Vector<>())); }
-		| content=expand(new Vector<>()) { out.print(content); }
-		| (tok=<SPACE>|tok=<EOL>)   { out.print(tok.image); }
-		| <HASH> { handleDirectiveOrComment(); }
-		| <EOF> {
-			out.println();
-			debugPrint(defines.size() + " defines found.");
-			out.close();
-			return;
-		}
-	)+
+		(
+			content=tag()
+			| expandPath()
+			| content=expand(new Vector<>())
+			| <HASH> { handleDirectiveOrComment(); }
+			| (tok=<SPACE>|tok=<EOL>) { content = tok.image; }
+		) { out.print(content); }
+	)* <EOF>
 }
 
 String tag() :
@@ -501,7 +506,7 @@ String expand(Vector<String> possibleArgs) :
 			(defarg=<STRING> <EQL>)?
 			(
 				val=expand(possibleArgs)
-			|	(arg=<STRING>|arg=<MARG>|arg=<PATH>|arg=<QUOTED_STRING>) { val = arg.image; }
+			|	(arg=<STRING>|arg=<PATH>|arg=<QUOTED_STRING>) { val = arg.image; }
 			|	(arg=<INBLK>) {
 					val = arg.image.substring(1, arg.image.length()-1);
 				} // fix for parens
