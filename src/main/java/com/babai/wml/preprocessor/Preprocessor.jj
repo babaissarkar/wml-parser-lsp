@@ -90,113 +90,6 @@ public class Preprocessor {
 		setDefinesMap(pp.getDefines());
 	}
 
-	/**
-	 * Handwritten macro exapansion method
-	 */
-	private final String expandMacroCall(Vector<String> possibleArgs) throws ParseException {
-		Token name = null;
-		var args = new Vector<String>();
-		var defArgs = new HashMap<String, String>();
-
-		var sb = new StringBuffer();
-		sb.append(token.image);
-
-		if (token.kind == LBR) {
-			token = getNextToken();
-			if (skipWhitespace()) {
-				sb.append(" ");
-			}
-
-			// macro name. must be uppercase + digits.
-			if (token.kind == STRING) {
-				String tokName = token.image;
-				if (tokName.equals(tokName.toUpperCase())) {
-					name = token;
-				}
-			} else if (token.kind == RBR) {
-				//case {<whitespace>}, the ending brace
-				sb.append("}");
-				token = getNextToken();
-				return sb.toString();
-			}
-
-			sb.append(token.image);
-			token = getNextToken();
-
-			// arguments to macro call
-			while (token.kind != RBR) {
-				if (skipWhitespace()) {
-					sb.append(" ");
-				}
-				
-				// keyword argument handling
-				String key = null, val = null;
-				if (token.kind == STRING && getToken(1).kind == EQL) {
-					key = token.image;
-					// skip this and next token
-					token = getNextToken();
-					token = getNextToken();
-				}
-				
-				if (token.kind == LBR && name != null) {
-					val = expandMacroCall(possibleArgs);
-					sb.append(val);
-				} else if (token.kind == EOF) {
-					generateParseException();
-					return sb.toString();
-				} else {
-					if (name != null) {
-						val = token.kind == INBLK
-							? token.image.substring(1, token.image.length() - 1)
-							: token.image;
-					}
-
-					sb.append(token.image);
-					token = getNextToken();
-				}
-				
-				if (key != null) {
-					defArgs.put(key, val);
-				} else {
-					args.add(val);
-				}
-			}
-
-			// the ending brace
-			sb.append(token.image);
-			token = getNextToken();
-
-			if (name == null) {
-				return sb.toString();
-			}
-
-			// parsed name + args successfully, attempt expansion
-			Definition def = defines.get(name.image);
-			if (def != null) {
-				String argsAsString = Definition.argsAsString(args, defArgs);
-				debugPrint(
-					"Expanding macro " + colorify(def.name(), macroNameColor)
-					+ (!argsAsString.isEmpty()
-						? (" with values: " + colorify(argsAsString, macroNameColor))
-						: ""));
-				try {
-					return def.expand(args, defArgs);
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-					return sb.toString();
-				}
-			} else if (possibleArgs.contains(name.image)) {
-				// FIXME: do nothing for now. may need checks later.
-				return sb.toString();
-			} else {
-				warningPrint(position(name) + " undefined macro " + name.image);
-				return sb.toString();
-			}
-		}
-
-		return sb.toString();
-	}
-
 	// skip whitespace tokens
 	private final boolean skipWhitespace() {
 		boolean skipped = false;
@@ -228,6 +121,24 @@ public class Preprocessor {
 			}
 			break;
 		}
+	}
+	
+	private final String parseBodyUntil(int endTokenType, Vector<String> args) throws ParseException {
+		var sb = new StringBuffer();
+		while (token.kind != endTokenType) {
+			if (getToken(1).kind == LBR) {
+				// nested macro call
+				sb.append(expand(args));
+			} else if (token.kind == HASH) {
+				// handleDirectiveOrComment(); // FIXME faulty
+				token = getNextToken();
+			} else {
+				// anything else is just appended as string to result
+				sb.append(token.image);
+				token = getNextToken();
+			}
+		}
+		return sb.toString();
 	}
 
 	public PrintStream getOutput() {
@@ -442,21 +353,8 @@ void define() :
 			(<EOL>)*
 		)*
 	) {
-		while (token.kind != ENDDEF) {
-			if (getToken(1).kind == LBR) {
-				// nested macro call
-				sb.append(expand(args));
-			} else if (token.kind == HASH) {
-				// handleDirectiveOrComment(); // FIXME faulty
-				token = getNextToken();
-			} else {
-				// anything else is just appended as string to result
-				sb.append(token.image);
-				token = getNextToken();
-			}
-		}
-
-		def = new Definition(name.toString(), sb.toString(), args, defArgs);
+		String body = parseBodyUntil(ENDDEF, args);
+		def = new Definition(name.toString(), body, args, defArgs);
 		debugPrint("defining macro " + colorify(def.name(), macroNameColor));
 		defines.put(name.toString(), def);
 	}
@@ -547,7 +445,7 @@ void expandPath() :
 	StringBuilder sb = new StringBuilder();
 }
 {
-	(<LBR> (tok=<PATH>) <RBR>) {
+	(<LBR> (<SPACE>)* (tok=<PATH>) (<SPACE>)* <RBR>) {
 		Path p;
 		if (tok.image.startsWith(".")) {
 			if (Files.isDirectory(currentPath)) {
