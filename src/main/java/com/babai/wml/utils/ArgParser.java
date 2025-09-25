@@ -32,7 +32,7 @@ public class ArgParser {
 				-include [path]        Preprocess the given file/folder beforehand and collect macro definitions from it.
 				                       Can be used multiple times to include multiple files before the main input.
 				-define/-d [macroname] [body]
-				                       Define this macro before parsing 
+				                       Define this macro before parsing
 				-input/-i [path]       Preprocess the main input file
 				-output/-o [path]      Write output to the given file
 				-help/-?/-h            Print this help""";
