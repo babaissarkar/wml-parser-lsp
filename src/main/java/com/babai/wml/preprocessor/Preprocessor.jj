@@ -62,7 +62,7 @@ public class Preprocessor {
 	 * Recursively parse the given Path p
 	 * Note: JavaCC doesn't support lambdas or :: yet!
 	 */
-	public void subparse(Path p) throws IOException, ParseException {
+	public void subparse(Path p) throws IOException {
 		Path path = p;
 		if (Files.isDirectory(path)) {
 			Path p2 = path.resolve("./_main.cfg");
@@ -77,17 +77,21 @@ public class Preprocessor {
 					}
 					return;
 				} catch (IOException e) {
-					e.printStackTrace();
+					errorPrint("Cannot find " + path + ", skipping.");
 				}
 			} else {
 				path = p2;
 			}
 		}
-
+		
 		debugPrint("Including: " + colorify(path.toString(), filePathColor));
-		Preprocessor pp = child(path);
-		pp.parse();
-		setDefinesMap(pp.getDefines());
+		try {
+			Preprocessor pp = child(path);
+			pp.parse();
+			setDefinesMap(pp.getDefines());
+		} catch (ParseException pe) {
+			errorPrint("Error parsing " + path + ", skipping.");
+		}
 	}
 
 	// skip whitespace tokens
@@ -184,6 +188,10 @@ public class Preprocessor {
 			pL.warning(s);
 		}
 	}
+	
+	public void errorPrint(String s) {
+		pL.severe(s);
+	}
 
 	public String position(Token tok) {
 		return position(tok.beginLine, tok.beginColumn);
@@ -264,7 +272,7 @@ TOKEN : {
 |	< #LETTER :
 		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"
 		|"_"|"-"|"'"|"+"|<LANGLE>|<RANGLE>|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
-		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"|"✘"|"✔"
+		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"|"✘"|"✔"|<LSB>|<RSB>|"&"
 	>
 |	< #DIGIT  : ["0"-"9"] >
 |	< EOL     : ("\n"|"\r")+ >			{ debugPrint("EOL"); }
@@ -442,7 +450,7 @@ String expand(Vector<String> possibleArgs) :
 				String res = def.expand(args, defArgs);
 				return res;
 			} catch(IllegalArgumentException e) {
-				e.printStackTrace();
+				errorPrint(e.getMessage());
 				return sb.toString();
 			}
 		} else if (possibleArgs.contains(name.image)) {
@@ -491,8 +499,7 @@ void expandPath() :
 			try {
 				subparse(p);
 			} catch(IOException ioe) {
-				debugPrint("Cannot parse " + tok.image);
-				ioe.printStackTrace();
+				errorPrint("Cannot find file/folder " + tok.image);
 			}
 		} else {
 			warningPrint(tok.image + " not found");

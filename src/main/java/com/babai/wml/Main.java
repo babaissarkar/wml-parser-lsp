@@ -65,8 +65,10 @@ public class Main {
 					// Customize Message for separators between Level and Message
 					Level l = r.getLevel();
 					String lvlStr = "[" + l + "]";
-					if (l == Level.WARNING) {
+					if (l == Level.SEVERE) {
 						lvlStr = colorify(lvlStr, Color.RED);
+					} else if (l == Level.WARNING) {
+						lvlStr = colorify(lvlStr, Color.ORANGE);
 					} else if (l == Level.INFO) {
 						lvlStr = colorify(lvlStr, Color.CYAN);
 					}
