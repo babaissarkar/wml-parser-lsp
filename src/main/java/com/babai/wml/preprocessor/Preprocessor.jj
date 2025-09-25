@@ -124,19 +124,23 @@ public class Preprocessor {
 	}
 	
 	private final String parseBodyUntil(int endTokenType, Vector<String> args) throws ParseException {
+		token = getNextToken();
 		var sb = new StringBuffer();
+		
 		while (token.kind != endTokenType) {
 			if (getToken(1).kind == LBR) {
 				// nested macro call
-				sb.append(expand(args));
+				sb.append(token.image);
+				String res = expandAll(args);
+				sb.append(res);
 			} else if (token.kind == HASH) {
 				// handleDirectiveOrComment(); // FIXME faulty
-				token = getNextToken();
+				
 			} else {
 				// anything else is just appended as string to result
 				sb.append(token.image);
-				token = getNextToken();
 			}
+			token = getNextToken();
 		}
 		return sb.toString();
 	}
@@ -275,8 +279,7 @@ void parse() :
 	(
 		(
 			content=tag()
-			| expandPath()
-			| content=expand(new Vector<>())
+			| content=expandAll(new Vector<>())
 			| <HASH> { handleDirectiveOrComment(); }
 			| (tok=<SPACE>|tok=<EOL>) { content = tok.image; }
 		) { out.print(content); }
@@ -298,7 +301,7 @@ String tag() :
 			while (token.kind != ETAG) {
 				if (getToken(1).kind == LBR) {
 					// nested macro call
-					sb.append(expand(new Vector<String>()));
+					sb.append(expandAll(new Vector<String>()));
 				} else if (token.kind == HASH) {
 					// handleDirectiveOrComment(); // FIXME faulty
 					token = getNextToken();
@@ -343,9 +346,9 @@ void define() :
 		<DEFINE> <SPACE>
 		(name=<STRING>)
 		(
-			(<SPACE>|<EOL>)+ (arg=<STRING>) { args.add(arg.toString()); }
-			(<EOL>)*
+			(<SPACE>)+ (arg=<STRING>) { args.add(arg.toString()); }
 		)*
+		(<EOL>)*
 		(
 			(<SPACE>|<EOL>)+ (defArg=defaultArg(args)) {
 				defArgs.put(defArg.getKey(), defArg.getValue());
@@ -371,7 +374,7 @@ Map.Entry<String, String> defaultArg(Vector<String> args) :
 		while (token.kind != ENDARG) {
 			if (getToken(1).kind == LBR) {
 				// nested macro call
-				sb.append(expand(args));
+				sb.append(expandAll(args));
 			} else if (token.kind == HASH) {
 				// handleDirectiveOrComment(); // FIXME faulty
 				token = getNextToken();
@@ -385,6 +388,17 @@ Map.Entry<String, String> defaultArg(Vector<String> args) :
 			sb.deleteCharAt(0);
 		}
 		return Map.entry(argName.image, sb.toString());
+	}
+}
+
+String expandAll(Vector<String> possibleArgs) :
+{ String content = ""; }
+{
+	(
+		expandPath()
+		| content=expand(possibleArgs)
+	) {
+		return content;
 	}
 }
 
@@ -403,7 +417,7 @@ String expand(Vector<String> possibleArgs) :
 			(<SPACE>|<EOL>)+
 			(defarg=<STRING> <EQL>)?
 			(
-				val=expand(possibleArgs)
+				val=expandAll(possibleArgs)
 			|	(arg=<STRING>|arg=<PATH>|arg=<QUOTED_STRING>) { val = arg.image; }
 			|	(arg=<INBLK>) {
 					val = arg.image.substring(1, arg.image.length()-1);
@@ -422,9 +436,11 @@ String expand(Vector<String> possibleArgs) :
 	) {
 		Definition def = defines.get(name.image);
 		if (def != null) {
-			debugPrint("expanding macro " + def.name());
+			debugPrint("expanding macro " + def.name() + " with "
+				+ Definition.argsAsString(args, defArgs));
 			try {
-				return def.expand(args, defArgs);
+				String res = def.expand(args, defArgs);
+				return res;
 			} catch(IllegalArgumentException e) {
 				e.printStackTrace();
 				return sb.toString();
