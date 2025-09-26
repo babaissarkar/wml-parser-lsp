@@ -2,14 +2,17 @@ package com.babai.wml;
 
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.*;
 
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.ArgParser;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.util.logging.*;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static com.babai.wml.utils.ANSIFormatter.*;
@@ -21,40 +24,41 @@ public class Main {
 	public static void main(String[] args) {
 		var argParse = new ArgParser();
 		argParse.parseArgs(args);
-
-		setLoggingFormat();
-
 		if (argParse.startLSPServer) {
 			initServer();
 		} else {
+			setLoggingFormat();
 			try {
-				var p = new Preprocessor(System.in);
-				if (argParse.inputPath != null) {
-					p = new Preprocessor(argParse.inputPath);
-				}
-
-				p.showParseLogs(argParse.showParseLogs);
-				p.showWarnLogs(argParse.warnParseLogs);
-				p.setOutput(argParse.out == null ? System.out : argParse.out);
-				p.setDefinesMap(argParse.predefines);
-				p.token_source.dataPath = argParse.dataPath;
-				p.token_source.userDataPath = argParse.userDataPath;
-				p.token_source.showLogs = argParse.showLogs;
-
-				if (argParse.inputPath != null) {
-					p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), p.filePathColor));
-				}
-
-				for (Path incpath : argParse.includes) {
-					p.subparse(incpath);
-				}
-				p.subparse(argParse.inputPath);
-
-				p.debugPrint("Total " + p.getDefines().size() + " macros defined.");
+				initParse(argParse);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	private static void initParse(ArgParser argParse) throws IOException {
+		var p = new Preprocessor(System.in);
+		p.showParseLogs(argParse.showParseLogs);
+		p.showWarnLogs(argParse.warnParseLogs);
+		p.setOutput(argParse.out == null ? System.out : argParse.out);
+		p.setDefinesMap(argParse.predefines);
+		p.token_source.dataPath = argParse.dataPath;
+		p.token_source.userDataPath = argParse.userDataPath;
+		p.token_source.showLogs = argParse.showLogs;
+
+		if (argParse.inputPath != null) {
+			p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), p.filePathColor));
+		}
+
+		for (Path incpath : argParse.includes) {
+			p.subparse(incpath);
+		}
+
+		if (argParse.inputPath != null) {
+			p.subparse(argParse.inputPath);
+		}
+		
+		p.debugPrint("Total " + p.getDefines().size() + " macros defined.");
 	}
 
 	private static void setLoggingFormat() {
@@ -90,26 +94,47 @@ public class Main {
 		launcher.startListening();
 	}
 
-	public static class WMLLanguageServer implements LanguageServer, LanguageClientAware {
+	public static class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 
-		// private LanguageClient client;
-		//
+		private LanguageClient client;
+
 		public void connect(LanguageClient client) {
-			// this.client = client;
+			this.client = client;
 		}
 
 		@Override
 		public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
 			ServerCapabilities capabilities = new ServerCapabilities();
+			capabilities.setDefinitionProvider(true);
 			capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
-
 			InitializeResult result = new InitializeResult(capabilities);
+
+			// Send a "ready" message after startup
+			if (client != null) {
+				MessageParams msg = new MessageParams();
+				msg.setType(MessageType.Info);
+				msg.setMessage("WML LSP Server ready!");
+				client.showMessage(msg);
+			}
 			return CompletableFuture.completedFuture(result);
 		}
 
 		@Override
 		public CompletableFuture<Object> shutdown() {
 			return CompletableFuture.completedFuture(null);
+		}
+
+		@Override
+		public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(
+				DefinitionParams params) {
+			String uri = params.getTextDocument().getUri();
+
+			// Pretend we already know the symbol's definition location
+			Location loc = new Location(uri, new Range(new Position(10, 4), // start line/char
+					new Position(10, 15) // end line/char
+			));
+
+			return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
 		}
 
 		@Override
@@ -150,6 +175,30 @@ public class Main {
 				public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {
 				}
 			};
+		}
+
+		@Override
+		public void didChange(DidChangeTextDocumentParams arg0) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void didClose(DidCloseTextDocumentParams arg0) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void didOpen(DidOpenTextDocumentParams arg0) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void didSave(DidSaveTextDocumentParams arg0) {
+			// TODO Auto-generated method stub
+
 		}
 	}
 }
