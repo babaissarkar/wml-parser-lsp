@@ -35,7 +35,7 @@ public class Main {
 			}
 		}
 	}
-	
+
 	private static void initParse(ArgParser argParse) throws IOException {
 		var p = new Preprocessor(System.in);
 		p.showParseLogs(argParse.showParseLogs);
@@ -57,7 +57,7 @@ public class Main {
 		if (argParse.inputPath != null) {
 			p.subparse(argParse.inputPath);
 		}
-		
+
 		p.debugPrint("Total " + p.getDefines().size() + " macros defined.");
 	}
 
