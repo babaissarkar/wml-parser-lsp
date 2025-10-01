@@ -128,15 +128,19 @@ public class Preprocessor {
 	}
 	
 	private final String parseBodyUntil(int endTokenType, Vector<String> args) throws ParseException {
-		token = getNextToken();
+		if (getToken(1).kind != LBR) {
+			// usually it starts with EOL, skip unless
+			// EOL is followed by LBR, in which case the
+			// first case while block below with deal with it.
+			token = getNextToken();
+		}
 		var sb = new StringBuffer();
 		
 		while (token.kind != endTokenType) {
 			if (getToken(1).kind == LBR) {
 				// nested macro call
 				sb.append(token.image);
-				String res = expandAll(args);
-				sb.append(res);
+				sb.append(expandAll(args));
 			} else if (token.kind == HASH) {
 				// handleDirectiveOrComment(); // FIXME faulty
 				
@@ -146,6 +150,7 @@ public class Preprocessor {
 			}
 			token = getNextToken();
 		}
+		warningPrint("parseBodyUntil end");
 		return sb.toString();
 	}
 
@@ -290,7 +295,7 @@ void parse() :
 			| content=expandAll(new Vector<>())
 			| <HASH> { handleDirectiveOrComment(); }
 			| (tok=<SPACE>|tok=<EOL>) { content = tok.image; }
-		) { out.print(content); }
+		) { out.print(content); content = ""; }
 	)* <EOF>
 }
 
