@@ -58,7 +58,7 @@ public class Main {
 			p.subparse(argParse.inputPath);
 		}
 
-		p.debugPrint("Total " + p.getDefines().size() + " macros defined.");
+		p.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 	}
 
 	private static void setLoggingFormat() {

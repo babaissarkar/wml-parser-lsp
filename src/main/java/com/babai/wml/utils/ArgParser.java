@@ -3,7 +3,6 @@ package com.babai.wml.utils;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Vector;
 
 import com.babai.wml.core.Definition;
@@ -14,7 +13,11 @@ public class ArgParser {
 	public boolean warnParseLogs = false;
 	public boolean startLSPServer = false;
 	public Vector<Path> includes = new Vector<>();
-	public HashMap<String, Definition> predefines = new HashMap<>();
+	public Table predefines = Table.ofWithIndices(
+			new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
+			new String[] { "Line", "URI", "Name", "Definition" }, 1, // URI column
+			2 // Name column
+	);
 	public Path dataPath, userDataPath, inputPath, outputPath;
 	public PrintStream out = null;
 
@@ -84,7 +87,7 @@ public class ArgParser {
 			case "define", "d" -> {
 				String name = args[++i];
 				String value = args[++i];
-				predefines.put(name, new Definition(name, value));
+				predefines.addRow(0, "predefined", name, new Definition(name, value));
 			}
 			case "log" -> {
 				showLogs = true;

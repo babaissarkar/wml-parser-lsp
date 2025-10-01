@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.babai.wml.core.*;
+import com.babai.wml.utils.Table;
 
 import static com.babai.wml.utils.ANSIFormatter.*;
 
@@ -35,7 +36,13 @@ public class Preprocessor {
 
 	private Path currentPath = Path.of(".");
 	private PrintStream out;
-	private HashMap<String, Definition> defines = new HashMap<>();
+	Table defines = Table.ofWithIndices(
+			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
+			new String[]{"Line", "URI", "Name", "Definition"},
+			1, // URI column
+			2  // Name column
+	);
+
 
 	public Preprocessor(Path filePath) throws IOException {
 		this(Files.newInputStream(filePath));
@@ -150,7 +157,6 @@ public class Preprocessor {
 			}
 			token = getNextToken();
 		}
-		warningPrint("parseBodyUntil end");
 		return sb.toString();
 	}
 
@@ -162,15 +168,11 @@ public class Preprocessor {
 		this.out = out;
 	}
 
-	public HashMap<String, Definition> getDefines() {
+	public Table getDefines() {
 		return this.defines;
 	}
-
-	public void addDefines(HashMap<String, Definition> newDefines) {
-		this.defines.putAll(newDefines);
-	}
 	
-	public void setDefinesMap(HashMap<String, Definition> defines) {
+	public void setDefinesMap(Table defines) {
 		this.defines = defines;
 	}
 	
@@ -372,7 +374,7 @@ void define() :
 		String body = parseBodyUntil(ENDDEF, args);
 		def = new Definition(name.toString(), body, args, defArgs);
 		debugPrint("defining macro " + colorify(def.name(), macroNameColor));
-		defines.put(name.toString(), def);
+		defines.addRow(name.beginLine, currentPath.toUri().toString(), name.image, def);
 	}
 }
 
@@ -447,7 +449,12 @@ String expand(Vector<String> possibleArgs) :
 		(<SPACE>|<EOL>)*
 		(<RBR>) { sb.append("}"); }
 	) {
-		Definition def = defines.get(name.image);
+		List<Table.Row> rows = defines.getRows("Name", name.image);
+		Definition def = null;
+		if (!rows.isEmpty()) {
+			def = (Definition) rows.get(0).getColumn("Definition").getValue();
+		}
+		
 		if (def != null) {
 			debugPrint("expanding macro " + def.name() + " with "
 				+ Definition.argsAsString(args, defArgs));
@@ -518,7 +525,9 @@ void ifdef() :
 }
 {
 	(<IFDEF> <SPACE> (name=<STRING>) <EOL>) {
-		if (defines.get(name.image) == null) {
+		List<Table.Row> rows = defines.getRows("Name", name.image);
+		Definition def = null;
+		if (rows.isEmpty()) {
 			debugPrint("ifdef: define " + name.image + " not found, skipping block");
 			while (token.kind != ENDIF) {
 				token = getNextToken();
@@ -536,7 +545,7 @@ void undef() :
 {
 	<UNDEF> <SPACE> (name=<STRING>) {
 		debugPrint("removing macro " + name.toString());
-		defines.remove(name.image);
+		defines.removeAll("Name", name.image);
 	}
 
 }
