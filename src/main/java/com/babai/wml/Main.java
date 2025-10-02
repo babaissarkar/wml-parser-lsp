@@ -15,7 +15,9 @@ import java.util.logging.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 import static com.babai.wml.utils.ANSIFormatter.*;
 
@@ -61,7 +63,6 @@ public class Main {
 		}
 
 		p.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
-		p.debugPrint("Map: \n" + p.getDefines().toString());
 	}
 
 	private static void setLoggingFormat() {
@@ -87,7 +88,8 @@ public class Main {
 	}
 
 	private static void initServer(ArgParser argParser) {
-		var server = new WMLLanguageServer(argParser.inputPath, argParser.dataPath, argParser.userDataPath);
+		var server = new WMLLanguageServer(argParser.inputPath, argParser.dataPath, argParser.userDataPath,
+				argParser.includes);
 
 		// Initialize a simple JSON-RPC connection over stdin/stdout
 		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);
@@ -101,12 +103,14 @@ public class Main {
 
 		private LanguageClient client;
 		private Path inputPath, dataPath, userDataPath;
+		private Vector<Path> includePaths;
 		private Table defines = null;
 
-		public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath) {
+		public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 			this.inputPath = inputPath;
 			this.dataPath = dataPath;
 			this.userDataPath = userDataPath;
+			this.includePaths = includePaths;
 		}
 
 		public void connect(LanguageClient client) {
@@ -132,10 +136,12 @@ public class Main {
 				p.token_source.userDataPath = userDataPath;
 				p.token_source.showLogs = false;
 				if (inputPath != null) {
-					showLSPMessage("Parsing " + inputPath.toString());
+					for (Path incpath : includePaths) {
+						p.subparse(incpath);
+					}
 					p.subparse(inputPath);
 					defines = p.getDefines();
-					showLSPMessage(("Total " + defines.rowCount() + " macros defined."));
+					showLSPMessage(("Parsed, total " + defines.rowCount() + " macros defined."));
 				}
 			} catch (IOException e) {
 				showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
@@ -150,6 +156,8 @@ public class Main {
 			// Read all lines
 			String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
 
+			Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || c == ':';
+
 			int lineNum = pos.getLine();
 			if (lineNum < 0 || lineNum >= lines.length)
 				return null;
@@ -162,16 +170,16 @@ public class Main {
 				charIndex = line.length() - 1;
 
 			// If cursor is on whitespace, move back one char
-			if (!Character.isJavaIdentifierPart(line.charAt(charIndex)) && charIndex > 0) {
+			if (!isValid.test(line.charAt(charIndex)) && charIndex > 0) {
 				charIndex--;
 			}
 
 			int start = charIndex;
 			int end = charIndex;
 
-			while (start > 0 && Character.isJavaIdentifierPart(line.charAt(start - 1)))
+			while (start > 0 && isValid.test(line.charAt(start - 1)))
 				start--;
-			while (end < line.length() && Character.isJavaIdentifierPart(line.charAt(end)))
+			while (end < line.length() && isValid.test(line.charAt(end)))
 				end++;
 
 			if (start >= end)
