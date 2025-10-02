@@ -27,6 +27,7 @@ public class Preprocessor {
 	private final Logger pL = Logger.getLogger("preprocessor.parse");
 	private boolean showParseLogs = false;
 	private boolean warnParseLogs = false;
+	private boolean disableErrors = true;
 
 	public final Color tdColor = new Color(255, 221, 0);
 	public final Color macroNameColor = new Color(0, 255, 128);
@@ -39,11 +40,10 @@ public class Preprocessor {
 	Table defines = Table.ofWithIndices(
 			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
 			new String[]{"Line", "URI", "Name", "Definition"},
-			1, // URI column
-			2  // Name column
+			2  // index by Name column
 	);
 
-
+	// TODO don't expose this, and just use subparse
 	public Preprocessor(Path filePath) throws IOException {
 		this(Files.newInputStream(filePath));
 		this.currentPath = filePath;
@@ -57,7 +57,7 @@ public class Preprocessor {
 		var pinc = new Preprocessor(inpath);
 		pinc.showParseLogs = showParseLogs;
 		pinc.warnParseLogs = warnParseLogs;
-		pinc.out = (getOutput() == null) ? System.out : getOutput();
+		pinc.out = getOutput();
 		pinc.token_source.dataPath = token_source.dataPath;
 		pinc.token_source.userDataPath = token_source.userDataPath;
 		pinc.token_source.showLogs = token_source.showLogs;
@@ -197,7 +197,10 @@ public class Preprocessor {
 	}
 	
 	public void errorPrint(String s) {
-		pL.severe(s);
+		// temporary, to test lsp
+		if (!disableErrors) {
+			pL.severe(s);
+		}
 	}
 
 	public String position(Token tok) {
@@ -297,7 +300,12 @@ void parse() :
 			| content=expandAll(new Vector<>())
 			| <HASH> { handleDirectiveOrComment(); }
 			| (tok=<SPACE>|tok=<EOL>) { content = tok.image; }
-		) { out.print(content); content = ""; }
+		) {
+			if (out != null) {
+				out.print(content);
+			}
+			content = "";
+		}
 	)* <EOF>
 }
 
@@ -374,7 +382,7 @@ void define() :
 		String body = parseBodyUntil(ENDDEF, args);
 		def = new Definition(name.toString(), body, args, defArgs);
 		debugPrint("defining macro " + colorify(def.name(), macroNameColor));
-		defines.addRow(name.beginLine, currentPath.toUri().toString(), name.image, def);
+		defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
 	}
 }
 

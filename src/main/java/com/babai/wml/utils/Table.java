@@ -232,7 +232,7 @@ public final class Table {
 		sb.append("\n");
 		for (Row r : rows) {
 			for (int i = 0; i < columnCount(); i++) {
-				Object val = r.getColumn(columnNames[i]).getValue();
+				String val = r.getColumn(columnNames[i]).getValue().toString();
 				sb.append(String.format("%-" + widths[i] + "s", val));
 				if (i < columnCount() - 1)
 					sb.append(" | ");

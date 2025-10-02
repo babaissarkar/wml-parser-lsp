@@ -7,10 +7,12 @@ import org.eclipse.lsp4j.services.*;
 
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.ArgParser;
+import com.babai.wml.utils.Table;
 
 import java.awt.Color;
 import java.io.IOException;
 import java.util.logging.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -25,12 +27,12 @@ public class Main {
 		var argParse = new ArgParser();
 		argParse.parseArgs(args);
 		if (argParse.startLSPServer) {
-			initServer();
+			initServer(argParse);
 		} else {
 			setLoggingFormat();
 			try {
 				initParse(argParse);
-			} catch (Exception e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
@@ -59,6 +61,7 @@ public class Main {
 		}
 
 		p.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
+		p.debugPrint("Map: \n" + p.getDefines().toString());
 	}
 
 	private static void setLoggingFormat() {
@@ -83,8 +86,8 @@ public class Main {
 		}
 	}
 
-	private static void initServer() {
-		var server = new WMLLanguageServer();
+	private static void initServer(ArgParser argParser) {
+		var server = new WMLLanguageServer(argParser.inputPath, argParser.dataPath, argParser.userDataPath);
 
 		// Initialize a simple JSON-RPC connection over stdin/stdout
 		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);
@@ -97,9 +100,83 @@ public class Main {
 	public static class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 
 		private LanguageClient client;
+		private Path inputPath, dataPath, userDataPath;
+		private Table defines = null;
+
+		public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath) {
+			this.inputPath = inputPath;
+			this.dataPath = dataPath;
+			this.userDataPath = userDataPath;
+		}
 
 		public void connect(LanguageClient client) {
 			this.client = client;
+		}
+
+		public void showLSPMessage(String m) {
+			if (client != null) {
+				MessageParams msg = new MessageParams();
+				msg.setType(MessageType.Info);
+				msg.setMessage(m);
+				client.showMessage(msg);
+			}
+		}
+
+		private void initParserForLSP() {
+			try {
+				var p = new Preprocessor(inputPath);
+				p.showParseLogs(false);
+				p.showWarnLogs(false);
+				p.setOutput(null);
+				p.token_source.dataPath = dataPath;
+				p.token_source.userDataPath = userDataPath;
+				p.token_source.showLogs = false;
+				if (inputPath != null) {
+					showLSPMessage("Parsing " + inputPath.toString());
+					p.subparse(inputPath);
+					defines = p.getDefines();
+					showLSPMessage(("Total " + defines.rowCount() + " macros defined."));
+				}
+			} catch (IOException e) {
+				showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
+			}
+		}
+
+		/** Returns the word under cursor in the file pointed by URI */
+		public static String getWordAtPosition(String uri, Position pos) throws IOException {
+			// Convert URI to path
+			String pathStr = Path.of(java.net.URI.create(uri)).toString();
+
+			// Read all lines
+			String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
+
+			int lineNum = pos.getLine();
+			if (lineNum < 0 || lineNum >= lines.length)
+				return null;
+
+			String line = lines[lineNum];
+			int charIndex = pos.getCharacter();
+			if (charIndex < 0)
+				charIndex = 0;
+			if (charIndex >= line.length())
+				charIndex = line.length() - 1;
+
+			// If cursor is on whitespace, move back one char
+			if (!Character.isJavaIdentifierPart(line.charAt(charIndex)) && charIndex > 0) {
+				charIndex--;
+			}
+
+			int start = charIndex;
+			int end = charIndex;
+
+			while (start > 0 && Character.isJavaIdentifierPart(line.charAt(start - 1)))
+				start--;
+			while (end < line.length() && Character.isJavaIdentifierPart(line.charAt(end)))
+				end++;
+
+			if (start >= end)
+				return null;
+			return line.substring(start, end);
 		}
 
 		@Override
@@ -110,12 +187,9 @@ public class Main {
 			InitializeResult result = new InitializeResult(capabilities);
 
 			// Send a "ready" message after startup
-			if (client != null) {
-				MessageParams msg = new MessageParams();
-				msg.setType(MessageType.Info);
-				msg.setMessage("WML LSP Server ready!");
-				client.showMessage(msg);
-			}
+			showLSPMessage("WML LSP Server ready!");
+			initParserForLSP();
+
 			return CompletableFuture.completedFuture(result);
 		}
 
@@ -127,14 +201,27 @@ public class Main {
 		@Override
 		public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(
 				DefinitionParams params) {
-			String uri = params.getTextDocument().getUri();
+			if (defines != null) {
+				try {
+					String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+					var matches = defines.getRows("Name", word);
+					String targetURI = matches.get(0).getColumn("URI").getValue().toString();
+					int targetLine = (int) matches.get(0).getColumn("Line").getValue();
+					return CompletableFuture.completedFuture(
+							Either.forLeft(List.of(new Location(targetURI, new Range(new Position(targetLine, 0), // start
+																													// line/char
+									new Position(targetLine, 1) // end line/char
+							)))));
+				} catch (IOException e) {
+					showLSPMessage("Can't find word under cursor!");
+				}
+			}
 
-			// Pretend we already know the symbol's definition location
-			Location loc = new Location(uri, new Range(new Position(10, 4), // start line/char
-					new Position(10, 15) // end line/char
-			));
-
-			return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
+			return CompletableFuture.completedFuture(Either.forLeft(List.of(
+					// FIXME fake, to be replaced with proper failure handling later
+					new Location(params.getTextDocument().getUri(), new Range(new Position(0, 4), // start line/char
+							new Position(0, 15) // end line/char
+					)))));
 		}
 
 		@Override
