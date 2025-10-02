@@ -278,11 +278,15 @@ TOKEN : {
 
 |	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
 |	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING"); }
-
+// please, don't go paranoid at this menagerie of characters!
+// turns out Wesnoth had been through bizzare experiences.
+// javacc can't deal comments that can optionally be directives, yet, or
+// I haven't figured out how to yet.
 |	< #LETTER :
-		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"
+		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"|"`"
 		|"_"|"-"|"'"|"+"|<LANGLE>|<RANGLE>|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
 		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"|"✘"|"✔"|<LSB>|<RSB>|"&"
+		|["\u00a1"-"\u00ff"]|"ʿ"|"ʾ"
 	>
 |	< #DIGIT  : ["0"-"9"] >
 |	< EOL     : ("\n"|"\r")+ >			{ debugPrint("EOL"); }
@@ -464,8 +468,9 @@ String expand(Vector<String> possibleArgs) :
 		}
 		
 		if (def != null) {
-			debugPrint("expanding macro " + def.name() + " with "
-				+ Definition.argsAsString(args, defArgs));
+			String argsString = Definition.argsAsString(args, defArgs);
+			debugPrint("expanding macro " + def.name()
+				+ (!argsString.isEmpty() ? " with " + argsString : ""));
 			try {
 				String res = def.expand(args, defArgs);
 				return res;
