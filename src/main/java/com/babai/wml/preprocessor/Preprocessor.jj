@@ -134,7 +134,7 @@ public class Preprocessor {
 		}
 	}
 	
-	private final String parseBodyUntil(int endTokenType, Vector<String> args) throws ParseException {
+	private final String[] parseBodyUntil(int endTokenType, Vector<String> args) throws ParseException {
 		if (getToken(1).kind != LBR) {
 			// usually it starts with EOL, skip unless
 			// EOL is followed by LBR, in which case the
@@ -142,22 +142,39 @@ public class Preprocessor {
 			token = getNextToken();
 		}
 		var sb = new StringBuffer();
+		var docb = new StringBuffer();
+		boolean consumeComments = true; // Macro documentation comments
+		boolean inComment = false;
 		
 		while (token.kind != endTokenType) {
-			if (getToken(1).kind == LBR) {
+			if (getToken(1).kind == LBR && !inComment) {
 				// nested macro call
 				sb.append(token.image);
 				sb.append(expandAll(args));
 			} else if (token.kind == HASH) {
 				// handleDirectiveOrComment(); // FIXME faulty
-				
+				if (consumeComments) {
+					inComment = true;
+				}
+			} else if (token.kind == EOL) {
+				if (inComment) {
+					inComment = false;
+					consumeComments = false;
+				}
 			} else {
 				// anything else is just appended as string to result
-				sb.append(token.image);
+				if (inComment) {
+					docb.append(token.image);
+				} else {
+					sb.append(token.image);
+				}
 			}
 			token = getNextToken();
 		}
-		return sb.toString();
+		String[] outputs = new String[2];
+		outputs[0] = sb.toString();
+		outputs[1] = docb.toString();
+		return outputs;
 	}
 
 	public PrintStream getOutput() {
@@ -361,6 +378,7 @@ void define() :
 {
 	Token name, arg;
 	Token key, val;
+	Token doc;
 	StringBuilder sb = new StringBuilder();
 	Definition def;
 	String macro;
@@ -375,7 +393,7 @@ void define() :
 		(
 			(<SPACE>)+ (arg=<STRING>) { args.add(arg.toString()); }
 		)*
-		(<EOL>)*
+		(<EOL>)+
 		(
 			(<SPACE>|<EOL>)+ (defArg=defaultArg(args)) {
 				defArgs.put(defArg.getKey(), defArg.getValue());
@@ -383,8 +401,9 @@ void define() :
 			(<EOL>)*
 		)*
 	) {
-		String body = parseBodyUntil(ENDDEF, args);
-		def = new Definition(name.toString(), body, args, defArgs);
+		String[] content = parseBodyUntil(ENDDEF, args);
+		def = new Definition(name.toString(), content[0], args, defArgs);
+		def.setDocs(content[1]);
 		debugPrint("defining macro " + colorify(def.name(), macroNameColor));
 		defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
 	}
@@ -487,7 +506,6 @@ String expand(Vector<String> possibleArgs) :
 		}
 	}
 }
-
 void expandPath() :
 {
 	Token tok;

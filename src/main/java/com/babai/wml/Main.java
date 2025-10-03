@@ -5,6 +5,7 @@ import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.*;
 
+import com.babai.wml.core.Definition;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Table;
@@ -189,10 +190,11 @@ public class Main {
 
 		@Override
 		public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-			ServerCapabilities capabilities = new ServerCapabilities();
+			var capabilities = new ServerCapabilities();
 			capabilities.setDefinitionProvider(true);
+			capabilities.setHoverProvider(true);
 			capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
-			InitializeResult result = new InitializeResult(capabilities);
+			var result = new InitializeResult(capabilities);
 
 			// Send a "ready" message after startup
 			showLSPMessage("WML LSP Server ready!");
@@ -215,21 +217,38 @@ public class Main {
 					var matches = defines.getRows("Name", word);
 					String targetURI = matches.get(0).getColumn("URI").getValue().toString();
 					int targetLine = (int) matches.get(0).getColumn("Line").getValue();
-					return CompletableFuture.completedFuture(
-							Either.forLeft(List.of(new Location(targetURI, new Range(new Position(targetLine, 0), // start
-																													// line/char
-									new Position(targetLine, 1) // end line/char
-							)))));
+					var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+					var loc = new Location(targetURI, range);
+					return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
 				} catch (IOException e) {
 					showLSPMessage("Can't find word under cursor!");
 				}
 			}
 
-			return CompletableFuture.completedFuture(Either.forLeft(List.of(
-					// FIXME fake, to be replaced with proper failure handling later
-					new Location(params.getTextDocument().getUri(), new Range(new Position(0, 4), // start line/char
-							new Position(0, 15) // end line/char
-					)))));
+			return CompletableFuture.completedFuture(null);
+		}
+
+		@Override
+		public CompletableFuture<Hover> hover(HoverParams params) {
+			var content = new MarkupContent();
+			if (defines != null) {
+				try {
+					String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+					var matches = defines.getRows("Name", word);
+					if (!matches.isEmpty()) {
+						Definition def = (Definition) matches.get(0).getColumn("Definition").getValue();
+						content.setKind("markdown");
+						content.setValue("**" + def.name() + "**\n\n" + def.getDocs());
+					} else {
+						return CompletableFuture.completedFuture(null);
+					}
+				} catch (IOException e) {
+					showLSPMessage("Can't find word under cursor!");
+					return CompletableFuture.completedFuture(null);
+				}
+			}
+			Hover hover = new Hover(content);
+			return CompletableFuture.completedFuture(hover);
 		}
 
 		@Override
@@ -242,7 +261,6 @@ public class Main {
 			return new TextDocumentService() {
 				@Override
 				public void didOpen(DidOpenTextDocumentParams params) {
-					System.out.println("File opened: " + params.getTextDocument().getUri());
 				}
 
 				@Override

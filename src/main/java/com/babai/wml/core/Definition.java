@@ -6,8 +6,7 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 
 public class Definition {
-	private String name;
-	private String value;
+	private String name, value, docs;
 	private Vector<String> args = new Vector<>();
 	private HashMap<String, String> defArgs = new HashMap<>();
 
@@ -43,6 +42,14 @@ public class Definition {
 
 	public int getParamCount() {
 		return args.size();
+	}
+
+	public String getDocs() {
+		return this.docs;
+	}
+
+	public void setDocs(String docs) {
+		this.docs = docs;
 	}
 
 	/** Expand the macro, substituting any given args */
