@@ -7,6 +7,7 @@ import org.eclipse.lsp4j.services.*;
 
 import com.babai.wml.core.Definition;
 import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Table;
 
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import static com.babai.wml.utils.ANSIFormatter.*;
@@ -100,6 +102,7 @@ public class Main {
 		launcher.startListening();
 	}
 
+	@AIGenerated
 	public static class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 
 		private LanguageClient client;
@@ -157,7 +160,7 @@ public class Main {
 			// Read all lines
 			String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
 
-			Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || c == ':';
+			Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || c == ':' || c == '+' || c == '-';
 
 			int lineNum = pos.getLine();
 			if (lineNum < 0 || lineNum >= lines.length)
@@ -193,6 +196,9 @@ public class Main {
 			var capabilities = new ServerCapabilities();
 			capabilities.setDefinitionProvider(true);
 			capabilities.setHoverProvider(true);
+			capabilities.setCompletionProvider(new CompletionOptions(true, // resolveProvider
+					List.of("#", "{") // triggerCharacterss
+			));
 			capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
 			var result = new InitializeResult(capabilities);
 
@@ -249,6 +255,38 @@ public class Main {
 			}
 			Hover hover = new Hover(content);
 			return CompletableFuture.completedFuture(hover);
+		}
+
+		@Override
+		public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+			String triggerChar = params.getContext() != null ? params.getContext().getTriggerCharacter() : null;
+			if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
+					|| (triggerChar != null) && triggerChar.equals("#")) {
+				// Directives
+				BiFunction<String, String, CompletionItem> make = (label, doc) -> {
+					CompletionItem item = new CompletionItem(label);
+					item.setDocumentation(doc);
+					item.setKind(CompletionItemKind.Keyword);
+					return item;
+				};
+				var items = List.of(make.apply("define", "Define a macro"),
+						make.apply("enddef", "End macro definition"), make.apply("ifdef", "Do if macro defined"),
+						make.apply("ifndef", "Do if macro not defined"), make.apply("ifhave", "Do if file exist"),
+						make.apply("ifver", "Do if wesnoth version matches condition"),
+						make.apply("endif", "End if directives block"),
+						make.apply("arg", "Start optional argument in macro definition"),
+						make.apply("endarg", "End optional argument in macro definition"),
+						make.apply("textdomain", "Define Textdomain"));
+				return CompletableFuture.completedFuture(Either.forLeft(items));
+			} else {
+				return CompletableFuture.completedFuture(null);
+			}
+		}
+
+		@Override
+		public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem item) {
+			// Add more info if needed, or just return the item as-is
+			return CompletableFuture.completedFuture(item);
 		}
 
 		@Override
