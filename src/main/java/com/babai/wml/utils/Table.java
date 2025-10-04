@@ -174,6 +174,10 @@ public final class Table {
 		return result;
 	}
 
+	public List<Row> getRows() {
+		return rows;
+	}
+
 	/**
 	 * Removes all rows where the given column matches the given value. Example:
 	 * definesTable.removeAll("Name", name.image);

@@ -174,7 +174,8 @@ public class Main {
 						Definition def = (Definition) r.getColumn("Definition").getValue();
 						item.setLabel(def.name());
 						item.setKind(CompletionItemKind.Method);
-						item.setDocumentation(def.name());
+						String docs = def.getDocs();
+						item.setDocumentation(def.name() + (!docs.isEmpty() ? ("\n" + docs) : ""));
 						item.setInsertText(item.getLabel()); // $0 -> final cursor position
 						item.setInsertTextFormat(InsertTextFormat.Snippet); //
 						macroCompletions.add(item);

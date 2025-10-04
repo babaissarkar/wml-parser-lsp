@@ -143,7 +143,9 @@ public class Preprocessor {
 		}
 		var sb = new StringBuffer();
 		var docb = new StringBuffer();
-		boolean consumeComments = true; // Macro documentation comments
+		
+		// Macro documentation comments vars
+		boolean consumeComments = true;
 		boolean inComment = false;
 		
 		while (token.kind != endTokenType) {
@@ -158,14 +160,17 @@ public class Preprocessor {
 				}
 			} else if (token.kind == EOL) {
 				if (inComment) {
+					docb.append("\n\n");
 					inComment = false;
-					consumeComments = false;
 				}
 			} else {
 				// anything else is just appended as string to result
 				if (inComment) {
 					docb.append(token.image);
 				} else {
+					if (token.kind != SPACE) {
+						consumeComments = false;
+					}
 					sb.append(token.image);
 				}
 			}
