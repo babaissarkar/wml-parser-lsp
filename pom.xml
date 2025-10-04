@@ -12,7 +12,7 @@
 	<version>0.0.1</version>
 	<packaging>jar</packaging>
 
-	<name>WML Parser and LSP</name>
+	<name>WML-Parser-LSP</name>
 	<description>A WML Parser and LSP server</description>
 	<url>http://example.com</url>
 	
