@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.logging.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
@@ -109,12 +110,35 @@ public class Main {
 		private Path inputPath, dataPath, userDataPath;
 		private Vector<Path> includePaths;
 		private Table defines = null;
+		private List<CompletionItem> macroCompletions = new ArrayList<>();
+		private List<CompletionItem> keywords = new ArrayList<>();
 
 		public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 			this.inputPath = inputPath;
 			this.dataPath = dataPath;
 			this.userDataPath = userDataPath;
 			this.includePaths = includePaths;
+
+			// Directives, this List never changes so created here once
+			BiFunction<String, String, CompletionItem> make = (label, doc) -> {
+				CompletionItem item = new CompletionItem(label);
+				item.setDocumentation(doc);
+				item.setInsertText(item.getLabel() + " ");
+				item.setKind(CompletionItemKind.Keyword);
+				keywords.add(item);
+				return item;
+			};
+
+			make.apply("define", "Define a macro");
+			make.apply("enddef", "End macro definition");
+			make.apply("ifdef", "Do if macro defined");
+			make.apply("ifndef", "Do if macro not defined");
+			make.apply("ifhave", "Do if file exists");
+			make.apply("ifver", "Do if wesnoth version matches condition");
+			make.apply("endif", "End if directives block");
+			make.apply("arg", "Start optional argument in macro definition");
+			make.apply("endarg", "End optional argument in macro definition");
+			make.apply("textdomain", "Define Textdomain");
 		}
 
 		public void connect(LanguageClient client) {
@@ -145,6 +169,17 @@ public class Main {
 					}
 					p.subparse(inputPath);
 					defines = p.getDefines();
+					for (var r : defines.getRows()) {
+						CompletionItem item = new CompletionItem();
+						Definition def = (Definition) r.getColumn("Definition").getValue();
+						item.setLabel(def.name());
+						item.setKind(CompletionItemKind.Method);
+						item.setDocumentation(def.name());
+						item.setInsertText(item.getLabel()); // $0 -> final cursor position
+						item.setInsertTextFormat(InsertTextFormat.Snippet); //
+						macroCompletions.add(item);
+					}
+
 					showLSPMessage(("Parsed, total " + defines.rowCount() + " macros defined."));
 				}
 			} catch (IOException e) {
@@ -260,27 +295,22 @@ public class Main {
 		@Override
 		public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
 			String triggerChar = params.getContext() != null ? params.getContext().getTriggerCharacter() : null;
+			List<CompletionItem> items = new ArrayList<>();
+
+			// Directives
 			if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
 					|| (triggerChar != null) && triggerChar.equals("#")) {
-				// Directives
-				BiFunction<String, String, CompletionItem> make = (label, doc) -> {
-					CompletionItem item = new CompletionItem(label);
-					item.setDocumentation(doc);
-					item.setKind(CompletionItemKind.Keyword);
-					return item;
-				};
-				var items = List.of(make.apply("define", "Define a macro"),
-						make.apply("enddef", "End macro definition"), make.apply("ifdef", "Do if macro defined"),
-						make.apply("ifndef", "Do if macro not defined"), make.apply("ifhave", "Do if file exist"),
-						make.apply("ifver", "Do if wesnoth version matches condition"),
-						make.apply("endif", "End if directives block"),
-						make.apply("arg", "Start optional argument in macro definition"),
-						make.apply("endarg", "End optional argument in macro definition"),
-						make.apply("textdomain", "Define Textdomain"));
+				items.addAll(keywords);
 				return CompletableFuture.completedFuture(Either.forLeft(items));
-			} else {
-				return CompletableFuture.completedFuture(null);
 			}
+
+			if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
+					|| (triggerChar != null) && triggerChar.equals("{")) {
+				items.addAll(macroCompletions);
+				return CompletableFuture.completedFuture(Either.forLeft(items));
+			}
+
+			return CompletableFuture.completedFuture(null);
 		}
 
 		@Override

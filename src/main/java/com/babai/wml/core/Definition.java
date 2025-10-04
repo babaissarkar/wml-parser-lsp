@@ -100,7 +100,7 @@ public class Definition {
 
 	public String name() {
 		String argsAsString = argsAsString(args, defArgs);
-		return name + (!argsAsString.isEmpty() ? "[" + argsAsString + "]" : "");
+		return "{" + name + (!argsAsString.isEmpty() ? " " + argsAsString : "") + "}";
 	}
 
 	public static String argsAsString(Vector<String> args, Map<String, String> defArgs) {
