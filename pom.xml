@@ -161,6 +161,47 @@
 					</execution>
 				</executions>
 			</plugin>
+			
+			<plugin>
+				<groupId>org.panteleyev</groupId>
+				<artifactId>jpackage-maven-plugin</artifactId>
+				<version>1.5.0</version>
+				
+				<configuration>
+					<name>${project.name}</name>
+					<description>${project.description}</description>
+					<input>${project.basedir}${file.separator}jar</input>
+					<destination>${project.basedir}</destination>
+					<appVersion>${project.version}</appVersion>
+					<arguments>${jpackage.args}</arguments>
+					<mainClass>com.babai.wml.Main</mainClass>
+					<mainJar>${project.artifactId}.jar</mainJar>
+				</configuration>
+				
+				<executions>
+					<execution>
+						<id>win</id>
+						<configuration>
+							<type>MSI</type>
+							<icon>src${file.separator}main${file.separator}resources${file.separator}${project.artifactId}.ico</icon>
+							<winMenu>true</winMenu>
+							<winMenuGroup>${project.name}</winMenuGroup>
+							<winShortcut>true</winShortcut>
+							<winPerUserInstall>true</winPerUserInstall>
+							<winDirChooser>true</winDirChooser>
+						</configuration>
+					</execution>
+					<execution>
+						<id>linux</id>
+						<configuration>
+							<type>DEB</type>
+							<icon>src/main/resources/${project.artifactId}.png</icon>
+							<installDir>/usr</installDir>
+							<linuxAppCategory>Games</linuxAppCategory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>
