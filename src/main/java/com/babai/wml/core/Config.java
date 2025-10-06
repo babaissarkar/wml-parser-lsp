@@ -13,6 +13,9 @@ public class Config {
 		attributes = new HashMap<>();
 		children = new ArrayList<>();
 	}
+	public String getName() {
+		return this.name;
+	}
 
 	// @Nullable
 	public ConfigAttributeBase getAttr(String attrName) {
@@ -34,6 +37,24 @@ public class Config {
 
 	public <T> void add(String key, T value) {
 		attributes.put(key, new ConfigAttribute<T>(key, value));
+	}
+	
+	// TODO WIP error handling, nested tags
+	public static Config read(String text) {
+		Config cfg = null;
+		String[] lines = text.split("\n+");
+		for (int i = 0; i < lines.length; i++) {
+			String line = lines[i].strip();
+			if (i == 0) {
+				if (line.startsWith("[") && line.endsWith("]")) {
+					cfg = new Config(line.substring(1, line.length()-1));
+				}
+			} else if (line.contains("=")) {
+				String[] key_val = line.split("=");
+				cfg.add(key_val[0].strip(), key_val[1].strip());
+			}
+		}
+		return cfg;
 	}
 
 	public String write(int indentLevel) {

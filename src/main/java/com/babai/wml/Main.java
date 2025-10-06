@@ -55,6 +55,7 @@ public class Main {
 			p.subparse(argParse.inputPath);
 		}
 
+		p.debugPrint("Binary Paths: " + p.getBinaryPaths());
 		p.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 	}
 

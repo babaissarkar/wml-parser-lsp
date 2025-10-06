@@ -4,8 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Vector;
 
 public final class FS {
 	private FS() {
@@ -16,9 +15,9 @@ public final class FS {
 		var extFolders = Map.of(
 			List.of(".png", ".jpg", ".webp"),"images",
 			List.of(".ogg"), "music",
-			List.of(".wav"), "sounds"
+			List.of(".wav"), "sounds",
+			List.of(".map"), "maps"
 		);
-		var coreFolders = extFolders.values().stream().collect(Collectors.toSet());
 		for (var entry : extFolders.entrySet()) {
 			if (entry.getKey().stream().anyMatch(path::endsWith)) {
 				return entry.getValue();
@@ -28,21 +27,32 @@ public final class FS {
 	}
 
 	/** Convert Wesnoth path string to NIO Path object */
-	public static Path resolve(String pathStr, Path currentPath, Path dataPath, Path userDataPath) {
+	public static Path resolve(String pathStr, Vector<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
 		if (pathStr.startsWith(".")) {
 			parent = Files.isDirectory(currentPath) ? currentPath : currentPath.getParent();
 		} else {
-			String assetType = getAssetType(pathStr); 
-			pathStr = Path.of(assetType, pathStr).toString();
 			if (pathStr.startsWith("~")) {
 				// Supports both ~add-ons and ~/add-ons
 				pathStr = pathStr.replaceFirst("^~/?", "");
 				parent = userDataPath;
 			} else {
 				// E.g.: scenary/alter.png
+				String assetType = getAssetType(pathStr); 
+				pathStr = Path.of(assetType, pathStr).toString();
 				if (!assetType.isEmpty()) {
+					for (var bPath : binaryPaths) {
+						parent = userDataPath.resolve(Path.of("../", bPath.toString()));
+						if (Files.exists(parent.resolve(pathStr))) {
+							return parent.resolve(pathStr).normalize();
+						} else {
+							parent = dataPath.resolve(Path.of("../", bPath.toString()));
+							if (Files.exists(parent.resolve(pathStr))) {
+								return parent.resolve(pathStr).normalize();
+							}
+						}
+					}
 					pathStr = Path.of("core", pathStr).toString();
 				}
 				parent = dataPath;

@@ -60,6 +60,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public Path userDataPath;
 	public Table defines;
 	public Vector<Path> includePaths = new Vector<>();
+	public Vector<Path> binaryPaths = new Vector<>();
 	public List<CompletionItem> macroCompletions = new ArrayList<>();
 	public List<CompletionItem> keywords = new ArrayList<>();
 
@@ -193,13 +194,15 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
 				if (word.contains("/") || word.contains("~")) {
 					// Wesnoth Paths
-					if (word.contains("~")) {
+					// if tilde is in front, it's a userdata path, ignore
+					// if not, drop, IPF.
+					if (!word.startsWith("~") && word.contains("~")) {
 						word = word.substring(0, word.indexOf("~"));
 					}
 					if (word.contains(":")) {
 						word = word.substring(0, word.indexOf(":"));
 					}
-					Path p = FS.resolve(word, Path.of(
+					Path p = FS.resolve(word, binaryPaths, Path.of(
 						new URI(params.getTextDocument().getUri())),
 						dataPath, userDataPath);
 					if (Files.exists(p)) {
@@ -207,7 +210,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 						if (FS.getAssetType(word).equals("images")) {
 							content.setValue("![Image](" + p.toUri().toString() + ")");
 						} else {
-							content.setValue("[Path](" + p.toUri().toString() + ")");
+							content.setValue("[" + p.getFileName() + "](" + p.toUri().toString() + ")");
 						}
 					} else {
 						content.setKind("plaintext");
@@ -351,6 +354,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					p.subparse(incpath);
 				}
 				p.subparse(inputPath);
+				
+				binaryPaths = p.getBinaryPaths();
 				defines = p.getDefines();
 				for (var r : defines.getRows()) {
 					CompletionItem item = new CompletionItem();

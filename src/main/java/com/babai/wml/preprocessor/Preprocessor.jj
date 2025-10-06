@@ -30,6 +30,7 @@ public class Preprocessor {
 	private boolean showParseLogs = false;
 	private boolean warnParseLogs = false;
 	private boolean disableErrors = true;
+	private static Vector<Path> bpaths = new Vector<>();
 
 	private Path currentPath = Path.of(".");
 	private PrintStream out;
@@ -190,6 +191,10 @@ public class Preprocessor {
 		return this.defines;
 	}
 	
+	public Vector<Path> getBinaryPaths() {
+		return Preprocessor.bpaths;
+	}
+	
 	public void setDefinesMap(Table defines) {
 		this.defines = defines;
 	}
@@ -318,7 +323,13 @@ void parse() :
 {
 	(
 		(
-			content=tag()
+			content=tag() {
+				Config cfg = Config.read(content);
+				if ((cfg != null && cfg.getName().equals("binary_path"))) {
+					debugPrint("Binary Path found: " + cfg.getAttr("path").stringValue());
+					bpaths.add(Path.of(cfg.getAttr("path").stringValue()));
+				}
+			}
 			| content=expandAll(new Vector<>())
 			| <HASH> { handleDirectiveOrComment(); }
 			| (tok=<SPACE>|tok=<EOL>) { content = tok.image; }
@@ -331,6 +342,7 @@ void parse() :
 	)* <EOF>
 }
 
+// TODO use Config class here
 String tag() :
 {
 	Token tstart, tend, body;
@@ -339,7 +351,9 @@ String tag() :
 }
 {
 	(
-		(tstart=<STAG>) { sb.append(tstart.image); }
+		(tstart=<STAG>) {
+			sb.append(tstart.image);
+		}
 		(<EOL>)?
 		{
 			// TODO can check tag mismatch here
@@ -355,13 +369,12 @@ String tag() :
 					sb.append("\t" + tag());
 					token = getNextToken();
 				} else {
-					// anything else except comments is just appended as string to result
 					sb.append(token.image);
 					token = getNextToken();
 				}
 			}
 
-			debugPrint("Tag found: " + colorify(tstart.image, tagColor));
+			debugPrint(position(tstart) + "-" + position(token) +  " Tag found: " + colorify(tstart.image, tagColor));
 			sb.append(token.image);
 		}
 	) { return sb.toString(); }
@@ -514,7 +527,7 @@ void expandPath() :
 }
 {
 	(<LBR> (<SPACE>)* (tok=<PATH>) (<SPACE>)* <RBR>) {
-		Path p = FS.resolve(tok.image, currentPath, token_source.dataPath, token_source.userDataPath);
+		Path p = FS.resolve(tok.image, bpaths, currentPath, token_source.dataPath, token_source.userDataPath);
 
 		debugPrint("Trying to include: " + colorify(p.toString(), filePathColor));
 
