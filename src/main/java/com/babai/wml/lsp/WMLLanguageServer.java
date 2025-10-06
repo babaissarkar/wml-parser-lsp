@@ -1,10 +1,11 @@
 package com.babai.wml.lsp;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +49,7 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import com.babai.wml.core.Definition;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
+import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
 
 @AIGenerated
@@ -56,10 +58,10 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public Path inputPath;
 	public Path dataPath;
 	public Path userDataPath;
-	public Vector<Path> includePaths;
 	public Table defines;
-	public List<CompletionItem> macroCompletions;
-	public List<CompletionItem> keywords;
+	public Vector<Path> includePaths = new Vector<>();
+	public List<CompletionItem> macroCompletions = new ArrayList<>();
+	public List<CompletionItem> keywords = new ArrayList<>();
 
 	public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 		this.inputPath = inputPath;
@@ -88,7 +90,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		make.apply("endarg", "End optional argument in macro definition");
 		make.apply("textdomain", "Define Textdomain");
 	}
-	
+
 	/** Returns the word under cursor in the file pointed by URI */
 	private static String getWordAtPosition(String uri, Position pos) throws IOException {
 		// Convert URI to path
@@ -96,8 +98,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		// Read all lines
 		String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
-		
-		List<Character> validChars = Arrays.asList(':', '+', '-', '/', '~');
+
+		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.');
 		Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
 
 		int lineNum = pos.getLine();
@@ -147,9 +149,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		var capabilities = new ServerCapabilities();
 		capabilities.setDefinitionProvider(true);
 		capabilities.setHoverProvider(true);
-		capabilities.setCompletionProvider(new CompletionOptions(true, // resolveProvider
-				List.of("#", "{") // triggerCharacterss
-				));
+		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/")));
 		capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
 		var result = new InitializeResult(capabilities);
 
@@ -191,16 +191,45 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (defines != null) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-				var matches = defines.getRows("Name", word);
-				if (!matches.isEmpty()) {
-					Definition def = (Definition) matches.get(0).getColumn("Definition").getValue();
-					content.setKind("markdown");
-					content.setValue("**" + def.name() + "**\n\n" + def.getDocs());
+				if (word.contains("/") || word.contains("~")) {
+					// Wesnoth Paths
+					if (word.contains("~")) {
+						word = word.substring(0, word.indexOf("~"));
+					}
+					if (word.contains(":")) {
+						word = word.substring(0, word.indexOf(":"));
+					}
+					Path p = FS.resolve(word, Path.of(
+						new URI(params.getTextDocument().getUri())),
+						dataPath, userDataPath);
+					if (Files.exists(p)) {
+						content.setKind("markdown");
+						if (FS.getAssetType(word).equals("images")) {
+							content.setValue("![Image](" + p.toUri().toString() + ")");
+						} else {
+							content.setValue("[Path](" + p.toUri().toString() + ")");
+						}
+					} else {
+						content.setKind("plaintext");
+						content.setValue("Non-existant path: " + p);
+					}
 				} else {
-					return CompletableFuture.completedFuture(null);
+					// Macro calls
+					var matches = defines.getRows("Name", word);
+					if (!matches.isEmpty()) {
+						Definition def = (Definition) matches.get(0).getColumn("Definition").getValue();
+						content.setKind("markdown");
+						content.setValue("**" + def.name() + "**\n\n" + def.getDocs());
+					} else {
+						return CompletableFuture.completedFuture(null);
+					}
 				}
 			} catch (IOException e) {
 				showLSPMessage("Can't find word under cursor!");
+				return CompletableFuture.completedFuture(null);
+			} catch (URISyntaxException e) {
+				// shouldn't really happen...
+				showLSPMessage("Invalid uri for current document!");
 				return CompletableFuture.completedFuture(null);
 			}
 		}
@@ -224,6 +253,17 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				|| (triggerChar != null) && triggerChar.equals("{")) {
 			items.addAll(macroCompletions);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
+		}
+
+		if ((triggerChar != null) && triggerChar.equals("/")) {
+			try {
+				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+//				items.add(new CompletionItem(word));
+				return CompletableFuture.completedFuture(Either.forLeft(items));
+			} catch (IOException e) {
+				e.printStackTrace();
+				return CompletableFuture.completedFuture(null);
+			}
 		}
 
 		return CompletableFuture.completedFuture(null);
@@ -296,7 +336,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public void didSave(DidSaveTextDocumentParams arg0) {
 		// TODO Auto-generated method stub
 	}
-	
+
 	private void initParserForLSP() {
 		try {
 			var p = new Preprocessor(inputPath);
