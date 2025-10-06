@@ -9,6 +9,7 @@ import com.babai.wml.core.Definition;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.ArgParser;
+import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
 
 import java.awt.Color;
@@ -55,7 +56,7 @@ public class Main {
 		p.token_source.showLogs = argParse.showLogs;
 
 		if (argParse.inputPath != null) {
-			p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), p.filePathColor));
+			p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), Colors.filePathColor));
 		}
 
 		for (Path incpath : argParse.includes) {

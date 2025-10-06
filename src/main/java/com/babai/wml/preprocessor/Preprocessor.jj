@@ -19,8 +19,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.babai.wml.core.*;
+import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
 
+import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.ANSIFormatter.*;
 
 public class Preprocessor {
@@ -28,12 +30,6 @@ public class Preprocessor {
 	private boolean showParseLogs = false;
 	private boolean warnParseLogs = false;
 	private boolean disableErrors = true;
-
-	public final Color tdColor = new Color(255, 221, 0);
-	public final Color macroNameColor = new Color(0, 255, 128);
-	public final Color lineNumColor = new Color(0, 153, 255);
-	public final Color filePathColor = new Color(128, 192, 255);
-	public final Color tagColor = Color.decode("#00CED1");
 
 	private Path currentPath = Path.of(".");
 	private PrintStream out;
@@ -518,25 +514,7 @@ void expandPath() :
 }
 {
 	(<LBR> (<SPACE>)* (tok=<PATH>) (<SPACE>)* <RBR>) {
-		Path p;
-		if (tok.image.startsWith(".")) {
-			if (Files.isDirectory(currentPath)) {
-				p = currentPath.resolve(tok.image);
-			} else {
-				p = currentPath.getParent().resolve(tok.image);
-			}
-		} else if (tok.image.startsWith("~")) {
-			// TODO should throw warning if userdatapath is null
-			// Supports both ~add-ons and ~/add-ons
-			String relpath = tok.image.substring(1);
-			if (relpath.startsWith("/")) {
-				relpath = relpath.substring(1);
-			}
-			p = token_source.userDataPath.resolve(relpath);
-		} else {
-			// TODO should throw warning if datapath is null
-			p = token_source.dataPath.resolve(tok.image);
-		}
+		Path p = FS.resolve(tok.image, currentPath, token_source.dataPath, token_source.userDataPath);
 
 		debugPrint("Trying to include: " + colorify(p.toString(), filePathColor));
 
