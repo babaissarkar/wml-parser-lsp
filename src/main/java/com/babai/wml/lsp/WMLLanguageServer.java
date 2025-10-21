@@ -64,6 +64,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public Vector<Path> binaryPaths = new Vector<>();
 	public List<CompletionItem> macroCompletions = new ArrayList<>();
 	public List<CompletionItem> keywords = new ArrayList<>();
+	public List<CompletionItem> tags = new ArrayList<>();
 	public Properties tagLinks = new Properties();
 
 	public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
@@ -96,6 +97,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		// Reference links for tags
 		try {
 			tagLinks.load(getClass().getResourceAsStream("/taglinks.properties"));
+			for (var tag : tagLinks.entrySet()) {
+				CompletionItem item = new CompletionItem(tag.getKey().toString());
+				item.setInsertText(item.getLabel() + "]$0[/" + item.getLabel());
+				item.setKind(CompletionItemKind.Snippet);
+				item.setInsertTextFormat(InsertTextFormat.Snippet);
+				tags.add(item);
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -166,7 +174,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		var capabilities = new ServerCapabilities();
 		capabilities.setDefinitionProvider(true);
 		capabilities.setHoverProvider(true);
-		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/")));
+		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[")));
 		capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
 		var result = new InitializeResult(capabilities);
 
@@ -209,10 +217,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
 				if (word.contains("[")) {
-					String link = tagLinks.getProperty(word.substring(1, word.length() - 1));
+					// Tags
+					String searchWord = word.replaceAll("/", "");
+					searchWord = searchWord.substring(1, searchWord.length() - 1);
+					String link = tagLinks.getProperty(searchWord);
 					content.setKind("markdown");
 					content.setValue("Tag: **" + word + "**" +  "\n\n"
-						+ (link != null ? "Reference: [see here](" + link + ")" : "")
+						+ (link != null ? "Reference: " + link : "")
 					);
 				} else if (word.contains("/") || word.contains("~")) {
 					// Wesnoth Paths
@@ -279,11 +290,16 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			items.addAll(macroCompletions);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
+		
+		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
+				|| (triggerChar != null) && triggerChar.equals("[")) {
+			items.addAll(tags);
+			return CompletableFuture.completedFuture(Either.forLeft(items));
+		}
 
 		if ((triggerChar != null) && triggerChar.equals("/")) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-//				items.add(new CompletionItem(word));
 				return CompletableFuture.completedFuture(Either.forLeft(items));
 			} catch (IOException e) {
 				e.printStackTrace();
