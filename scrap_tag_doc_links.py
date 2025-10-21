@@ -23,8 +23,8 @@ for row in rows:
         properties_data.append(f"{link.get_text()}={full_link}")  # Prepare properties format
 
 # Save to properties file
-with open('taglinks.list', 'w', encoding='utf-8') as properties_file:
+with open('src/main/resources/taglinks.properties', 'w', encoding='utf-8') as properties_file:
     for entry in properties_data:
         properties_file.write(entry + '\n')  # Write each line
 
-print(f"Saved {len(properties_data)} links to 'taglinks.list'.")
+print(f"Saved {len(properties_data)} links to 'src/main/resources/taglinks.properties'.")

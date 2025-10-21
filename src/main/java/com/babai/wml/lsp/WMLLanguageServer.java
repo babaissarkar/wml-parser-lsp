@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
@@ -63,6 +64,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public Vector<Path> binaryPaths = new Vector<>();
 	public List<CompletionItem> macroCompletions = new ArrayList<>();
 	public List<CompletionItem> keywords = new ArrayList<>();
+	public Properties tagLinks = new Properties();
 
 	public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 		this.inputPath = inputPath;
@@ -90,6 +92,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		make.apply("arg", "Start optional argument in macro definition");
 		make.apply("endarg", "End optional argument in macro definition");
 		make.apply("textdomain", "Define Textdomain");
+		
+		// Reference links for tags
+		try {
+			tagLinks.load(getClass().getResourceAsStream("/taglinks.properties"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/** Returns the word under cursor in the file pointed by URI */
@@ -129,6 +138,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		if (start >= end)
 			return null;
+		
+		// recognize tags
+		if (start > 0 && (line.charAt(start - 1) == '[') && end < line.length() && (line.charAt(end) == ']')) {
+			start -= 1;
+			end += 1;
+		}
+		
 		return line.substring(start, end);
 	}
 
@@ -192,7 +208,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (defines != null) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-				if (word.contains("/") || word.contains("~")) {
+				if (word.contains("[")) {
+					String link = tagLinks.getProperty(word.substring(1, word.length() - 1));
+					content.setKind("markdown");
+					content.setValue("Tag: **" + word + "**" +  "\n\n"
+						+ (link != null ? "Reference: [see here](" + link + ")" : "")
+					);
+				} else if (word.contains("/") || word.contains("~")) {
 					// Wesnoth Paths
 					// if tilde is in front, it's a userdata path, ignore
 					// if not, drop, IPF.
