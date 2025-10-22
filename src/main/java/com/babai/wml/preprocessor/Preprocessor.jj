@@ -11,7 +11,6 @@ options
 PARSER_BEGIN(Preprocessor)
 package com.babai.wml.preprocessor;
 
-import java.awt.Color;
 import java.util.*;
 import java.util.logging.Logger;
 import java.io.*;
