@@ -40,6 +40,7 @@ import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
+import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -66,6 +67,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public List<CompletionItem> keywords = new ArrayList<>();
 	public List<CompletionItem> tags = new ArrayList<>();
 	public Properties tagLinks = new Properties();
+	private Preprocessor p;
 
 	public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 		this.inputPath = inputPath;
@@ -175,7 +177,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setDefinitionProvider(true);
 		capabilities.setHoverProvider(true);
 		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[")));
-		capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
+		TextDocumentSyncOptions syncOptions = new TextDocumentSyncOptions();
+		syncOptions.setOpenClose(true);
+		syncOptions.setChange(TextDocumentSyncKind.Full);
+		syncOptions.setSave(true);
+		capabilities.setTextDocumentSync(syncOptions);
 		var result = new InitializeResult(capabilities);
 
 		// Send a "ready" message after startup
@@ -374,13 +380,36 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public void didSave(DidSaveTextDocumentParams arg0) {
-		// TODO Auto-generated method stub
+	public void didSave(DidSaveTextDocumentParams saveParams) {
+		String uri = saveParams.getTextDocument().getUri();
+		inputPath = Path.of(URI.create(uri));
+		
+		try {
+			macroCompletions.clear();
+			p.setDefinesMap(defines);
+			p.subparse(inputPath);
+			binaryPaths = p.getBinaryPaths();
+			defines = p.getDefines();
+			for (var r : defines.getRows()) {
+				CompletionItem item = new CompletionItem();
+				Definition def = (Definition) r.getColumn("Definition").getValue();
+				item.setLabel(def.name());
+				item.setKind(CompletionItemKind.Method);
+				String docs = def.getDocs();
+				item.setDocumentation(def.name() + (!docs.isEmpty() ? ("\n" + docs) : ""));
+				item.setInsertText(item.getLabel());
+				item.setInsertTextFormat(InsertTextFormat.Snippet); //
+				macroCompletions.add(item);
+			}
+			showLSPMessage("Parsed, total " + defines.rowCount() + " macros defined.");
+		} catch (IOException e) {
+			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
+		}
 	}
 
 	private void initParserForLSP() {
 		try {
-			var p = new Preprocessor(inputPath);
+			p = new Preprocessor(inputPath);
 			p.showParseLogs(false);
 			p.showWarnLogs(false);
 			p.setOutput(null);
@@ -402,7 +431,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					item.setKind(CompletionItemKind.Method);
 					String docs = def.getDocs();
 					item.setDocumentation(def.name() + (!docs.isEmpty() ? ("\n" + docs) : ""));
-					item.setInsertText(item.getLabel()); // $0 -> final cursor position
+					item.setInsertText(item.getLabel());
 					item.setInsertTextFormat(InsertTextFormat.Snippet); //
 					macroCompletions.add(item);
 				}
