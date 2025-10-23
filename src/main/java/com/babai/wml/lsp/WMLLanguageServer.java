@@ -12,6 +12,8 @@ import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -39,6 +41,7 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
+import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -306,7 +309,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		if ((triggerChar != null) && triggerChar.equals("/")) {
 			try {
-				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+//				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+//				showLSPMessage(word);
+				items.addAll(listAll(inputPath, "", params.getPosition()));
 				return CompletableFuture.completedFuture(Either.forLeft(items));
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -315,6 +320,32 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 
 		return CompletableFuture.completedFuture(null);
+	}
+	
+	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
+		CompletionItem item = new CompletionItem(relPath);
+		item.setKind(CompletionItemKind.File); // You could detect folder vs file if you want
+//		item.setInsertText(relPath);           // Simple snippet = just the path
+//		 Replace the trigger "/" with the path text
+		Range replaceRange = new Range(
+				new Position(cursor.getLine(), cursor.getCharacter() - 1),
+				cursor
+				);
+		item.setTextEdit(Either.forLeft(new TextEdit(replaceRange, relPath)));
+		return item;
+	}
+	
+	private static List<CompletionItem> listAll(Path baseDir, String prefix, Position cursor) throws IOException {
+		try (Stream<Path> stream = Files.walk(baseDir)) {
+			return stream
+					.filter(p -> !p.equals(baseDir))
+					.map(baseDir::relativize)
+					.map(p -> p.toString().replace('\\', '/'))
+					.filter(rel -> rel.startsWith(prefix))
+					.filter(rel -> !rel.startsWith("."))
+					.map(rel -> toCompletionItem(rel, cursor))
+					.collect(Collectors.toList());
+		}
 	}
 
 	@Override
