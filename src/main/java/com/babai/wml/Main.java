@@ -82,8 +82,12 @@ public class Main {
 	}
 
 	private static void initServer(ArgParser argParser) {
-		var server = new WMLLanguageServer(argParser.inputPath, argParser.dataPath, argParser.userDataPath,
-				argParser.includes);
+		var server = new WMLLanguageServer(
+			argParser.predefines,
+			argParser.inputPath,
+			argParser.dataPath,
+			argParser.userDataPath,
+			argParser.includes);
 
 		// Initialize a simple JSON-RPC connection over stdin/stdout
 		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);

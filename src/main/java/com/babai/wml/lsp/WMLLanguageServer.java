@@ -57,23 +57,24 @@ import com.babai.wml.utils.Table;
 @AIGenerated
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 	public LanguageClient client;
-	public Path inputPath;
-	public Path dataPath;
-	public Path userDataPath;
-	public Table defines;
-	public Vector<Path> includePaths = new Vector<>();
-	public Vector<Path> binaryPaths = new Vector<>();
-	public List<CompletionItem> macroCompletions = new ArrayList<>();
-	public List<CompletionItem> keywords = new ArrayList<>();
-	public List<CompletionItem> tags = new ArrayList<>();
-	public Properties tagLinks = new Properties();
+	private Path inputPath;
+	private Path dataPath;
+	private Path userDataPath;
+	private Table defines;
+	private Vector<Path> includePaths = new Vector<>();
+	private Vector<Path> binaryPaths = new Vector<>();
+	private List<CompletionItem> macroCompletions = new ArrayList<>();
+	private List<CompletionItem> keywords = new ArrayList<>();
+	private List<CompletionItem> tags = new ArrayList<>();
+	private Properties tagLinks = new Properties();
 	private Preprocessor p;
 
-	public WMLLanguageServer(Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
+	public WMLLanguageServer(Table predefines, Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 		this.inputPath = inputPath;
 		this.dataPath = dataPath;
 		this.userDataPath = userDataPath;
 		this.includePaths = includePaths;
+		this.defines = predefines;
 
 		// Directives, this List never changes so created here once
 		BiFunction<String, String, CompletionItem> make = (label, doc) -> {
@@ -249,7 +250,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 						if (FS.getAssetType(word).equals("images")) {
 							content.setValue("![Image](" + p.toUri().toString() + ")");
 						} else {
-							content.setValue("[" + p.getFileName() + "](" + p.toUri().toString() + ")");
+							content.setValue("Go To: [" + p.getFileName() + "](" + p.toUri().toString() + ")");
 						}
 					} else {
 						content.setKind("plaintext");
@@ -413,6 +414,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			p.showParseLogs(false);
 			p.showWarnLogs(false);
 			p.setOutput(null);
+			p.setDefinesMap(defines);
 			p.token_source.dataPath = dataPath;
 			p.token_source.userDataPath = userDataPath;
 			p.token_source.showLogs = false;
@@ -430,7 +432,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					item.setLabel(def.name());
 					item.setKind(CompletionItemKind.Method);
 					String docs = def.getDocs();
-					item.setDocumentation(def.name() + (!docs.isEmpty() ? ("\n" + docs) : ""));
+					item.setDocumentation(def.name() + (docs != null && !docs.isEmpty() ? ("\n" + docs) : ""));
 					item.setInsertText(item.getLabel());
 					item.setInsertTextFormat(InsertTextFormat.Snippet); //
 					macroCompletions.add(item);

@@ -47,11 +47,15 @@ public class Config {
 			String line = lines[i].strip();
 			if (i == 0) {
 				if (line.startsWith("[") && line.endsWith("]")) {
-					cfg = new Config(line.substring(1, line.length()-1));
+					if (cfg == null) {
+						cfg = new Config(line.substring(1, line.length()-1));
+					}
 				}
 			} else if (line.contains("=")) {
 				String[] key_val = line.split("=");
-				cfg.add(key_val[0].strip(), key_val[1].strip());
+				if (key_val.length > 1) {
+					cfg.add(key_val[0].strip(), key_val[1].strip());
+				}
 			}
 		}
 		return cfg;
