@@ -570,8 +570,9 @@ void undef() :
 }
 {
 	<UNDEF> <SPACE> (name=<STRING>) {
-		debugPrint("removing macro " + name.toString());
-		defines.removeAll("Name", name.image);
+// TODO respect scope in LSP
+//		debugPrint("removing macro " + name.toString());
+//		defines.removeAll("Name", name.image);
 	}
 
 }
