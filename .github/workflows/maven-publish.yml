@@ -24,7 +24,7 @@ jobs:
         settings-path: ${{ github.workspace }} # location for the settings.xml file
 
     - name: Build everything
-      run: ./mvnw -B -X clean package jpackage:jpackage@linux
+      run: ./mvnw -ntp -B clean package jpackage:jpackage@linux
 
     - uses: actions/upload-artifact@v4
       with:
@@ -45,6 +45,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -54,12 +55,12 @@ jobs:
         settings-path: ${{ github.workspace }} # location for the settings.xml file
 
     - name: Build with Maven
-      run: ./mvnw -B -X clean package jpackage:jpackage@win
-      
-    - name: Show Directory Contents
-      run: dir
+      run: ./mvnw -ntp -B clean package jpackage:jpackage@win
+    
+    - name: Compress app-image folder
+      run: 7z a wml-image.7z WML-Parser-LSP
         
     - uses: actions/upload-artifact@v4
       with:
-        name: wml.msi
-        path: "./*.msi"
+        name: wml-image.7z
+        path: ./wml-image.7z

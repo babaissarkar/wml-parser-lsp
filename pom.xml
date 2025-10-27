@@ -2,9 +2,9 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
 							 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	
+
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.babai.wml</groupId>
@@ -15,7 +15,7 @@
 	<name>WML-Parser-LSP</name>
 	<description>A WML Parser and LSP server</description>
 	<url>http://example.com</url>
-	
+
 	<developers>
 		<developer>
 			<id>babaissarkar</id>
@@ -31,7 +31,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<lsp4j.version>0.24.0</lsp4j.version>
 	</properties>
-	
+
 	<licenses>
 		<license>
 			<name>GNU General Public License, version 2 or later</name>
@@ -62,7 +62,7 @@
 			<artifactId>org.eclipse.lsp4j.jsonrpc</artifactId>
 			<version>${lsp4j.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
@@ -167,12 +167,12 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+
 			<plugin>
 				<groupId>org.panteleyev</groupId>
 				<artifactId>jpackage-maven-plugin</artifactId>
 				<version>1.5.0</version>
-				
+
 				<configuration>
 					<name>${project.name}</name>
 					<description>${project.description}</description>
@@ -183,18 +183,19 @@
 					<mainClass>com.babai.wml.Main</mainClass>
 					<mainJar>${project.artifactId}.jar</mainJar>
 				</configuration>
-				
+
 				<executions>
 					<execution>
 						<id>win</id>
 						<configuration>
-							<type>MSI</type>
+							<type>APP_IMAGE</type>
 							<icon>src${file.separator}main${file.separator}resources${file.separator}${project.artifactId}.ico</icon>
-							<winMenu>true</winMenu>
+							<winConsole>true</winConsole>
+							<!-- <winMenu>true</winMenu>
 							<winMenuGroup>${project.name}</winMenuGroup>
 							<winShortcut>true</winShortcut>
 							<winPerUserInstall>true</winPerUserInstall>
-							<winDirChooser>true</winDirChooser>
+							<winDirChooser>true</winDirChooser> -->
 						</configuration>
 					</execution>
 					<execution>
