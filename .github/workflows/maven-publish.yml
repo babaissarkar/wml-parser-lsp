@@ -57,10 +57,25 @@ jobs:
     - name: Build with Maven
       run: ./mvnw -ntp -B clean package jpackage:jpackage@win
     
+    - name: Fetch and prepare 7-Zip SFX module
+      shell: pwsh
+      run: |
+       Invoke-WebRequest -Uri "https://github.com/ip7z/7zip/releases/latest/download/lzma2501.7z" -OutFile "lzma.7z"
+       7z e lzma.7z 7zS2con.sfx -r -y
+       Remove-Item lzma.7z -Force
+    
     - name: Compress app-image folder
       run: 7z a wml-image.7z WML-Parser-LSP
-        
-    - uses: actions/upload-artifact@v4
+    
+    - name: Create portable single-file Executable
+      shell: cmd
+      run: |
+       dir
+       copy /b 7zS2con.sfx + wml-image.7z wml.exe
+       del /f /q wml-image.7z 7zS2con.sfx
+    
+    - name: Upload built portable Executable
+      uses: actions/upload-artifact@v4
       with:
-        name: wml-image.7z
-        path: ./wml-image.7z
+        name: wml.exe
+        path: ./wml.exe
