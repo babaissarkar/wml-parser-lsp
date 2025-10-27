@@ -97,16 +97,6 @@ public class Preprocessor {
 		}
 	}
 
-	// skip whitespace tokens
-	private final boolean skipWhitespace() {
-		boolean skipped = false;
-		while (token.kind == SPACE) {
-			skipped = true;
-			token = getNextToken();
-		}
-		return skipped;
-	}
-
 	private final void handleDirectiveOrComment() throws ParseException {
 		Token t = getToken(1);
 		switch (t.kind) {
