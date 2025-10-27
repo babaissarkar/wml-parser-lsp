@@ -408,7 +408,7 @@ void define() :
 		)*
 		(<EOL>)+
 		(
-			(<SPACE>|<EOL>)+ (defArg=defaultArg(args)) {
+			(<SPACE>)* (defArg=defaultArg(args)) {
 				defArgs.put(defArg.getKey(), defArg.getValue());
 			}
 			(<EOL>)*
