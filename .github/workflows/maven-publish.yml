@@ -23,12 +23,19 @@ jobs:
         server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
         settings-path: ${{ github.workspace }} # location for the settings.xml file
 
-    - name: Build everything
+    - name: Build JAR
       run: ./mvnw -ntp -B clean package jpackage:jpackage@linux
+      
+    - name: Build AppImage
+      env:
+        PROGRAM: wml
+        PROGRAM_NAME: WML
+        JAR_DIR: ../../jar
+      run: cd packaging/appimage && ./package.sh
 
     - uses: actions/upload-artifact@v4
       with:
-        name: ssplot.jar
+        name: wml.jar
         path: "./jar/wml.jar"
         
     - uses: actions/upload-artifact@v4
