@@ -42,6 +42,11 @@ jobs:
       with:
         name: wml.deb
         path: "./*.deb"
+        
+    - uses: actions/upload-artifact@v4
+      with:
+        name: WML-x86_64.AppImage
+        path: "./packaging/appimage/WML-x86_64.AppImage"
 
   build-windows:
 
