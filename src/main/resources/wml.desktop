@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=WML
+Comment=Run WML Parser and LSP tool
+Exec=wml
+Icon=wml
+Terminal=true
+Type=Application
+StartupNotify=true
+Categories=Development;
+Name[en_IN]=WML
+Comment[en_IN.UTF-8]=Run WML Parser and LSP tool

@@ -27,11 +27,14 @@ jobs:
       run: ./mvnw -ntp -B clean package jpackage:jpackage@linux
       
     - name: Build AppImage
-      env:
-        PROGRAM: wml
-        PROGRAM_NAME: WML
-        JAR_DIR: ../../jar
-      run: cd packaging/appimage && ./package.sh
+      uses: babaissarkar/jar-to-executable@v1
+      with:
+       id: "wml"
+       name: "WML"
+       icon: "./src/main/resources/wml.png"
+       desktop-file: "./src/main/resources/wml.desktop"
+       input: "./jar/wml.jar"
+       output: "./WML.AppImage"
 
     - uses: actions/upload-artifact@v4
       with:
@@ -45,8 +48,8 @@ jobs:
         
     - uses: actions/upload-artifact@v4
       with:
-        name: WML-x86_64.AppImage
-        path: "./packaging/appimage/WML-x86_64.AppImage"
+        name: WML.AppImage
+        path: "./WML.AppImage"
 
   build-windows:
 
@@ -68,24 +71,16 @@ jobs:
 
     - name: Build with Maven
       run: ./mvnw -ntp -B clean package jpackage:jpackage@win
-    
-    - name: Fetch and prepare 7-Zip SFX module
-      shell: pwsh
-      run: |
-       Invoke-WebRequest -Uri "https://github.com/ip7z/7zip/releases/latest/download/lzma2501.7z" -OutFile "lzma.7z"
-       7z e lzma.7z 7zS2con.sfx -r -y
-       Remove-Item lzma.7z -Force
-    
-    - name: Compress app-image folder
-      run: 7z a wml-image.7z WML-Parser-LSP
-    
+       
     - name: Create portable single-file Executable
-      shell: cmd
-      run: |
-       dir
-       copy /b 7zS2con.sfx + wml-image.7z wml.exe
-       del /f /q wml-image.7z 7zS2con.sfx
-    
+      uses: babaissarkar/jar-to-executable@v1
+      with:
+       id: "wml"
+       name: "WML"
+       icon: "./src/main/resources/wml.ico"
+       input: "./WML-Parser-LSP"
+       output: "./wml.exe"
+       
     - name: Upload built portable Executable
       uses: actions/upload-artifact@v4
       with:
