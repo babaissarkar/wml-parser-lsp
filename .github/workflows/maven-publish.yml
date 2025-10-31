@@ -27,11 +27,14 @@ jobs:
       run: ./mvnw -ntp -B clean package jpackage:jpackage@linux
       
     - name: Build AppImage
-      env:
-        PROGRAM: wml
-        PROGRAM_NAME: WML
-        JAR_DIR: ../../jar
-      run: cd packaging/appimage && ./package.sh
+      uses: babaissarkar/jar-to-executable@v1
+      with:
+       id: "wml"
+       name: "WML"
+       icon: "./packaging/appimage/wml.png"
+       desktop-file: "./packaging/appimage/wml.desktop"
+       input: "./jar/wml.jar"
+       output: "./WML.AppImage"
 
     - uses: actions/upload-artifact@v4
       with:
@@ -46,7 +49,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: WML-x86_64.AppImage
-        path: "./packaging/appimage/WML-x86_64.AppImage"
+        path: "./WML.AppImage"
 
   build-windows:
 
