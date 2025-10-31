@@ -31,8 +31,8 @@ jobs:
       with:
        id: "wml"
        name: "WML"
-       icon: "./packaging/appimage/wml.png"
-       desktop-file: "./packaging/appimage/wml.desktop"
+       icon: "./src/main/resources/wml.png"
+       desktop-file: "./src/main/resources/wml.desktop"
        input: "./jar/wml.jar"
        output: "./WML.AppImage"
 
