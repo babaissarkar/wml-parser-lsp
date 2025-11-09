@@ -66,6 +66,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Table defines;
 	private Vector<Path> includePaths = new Vector<>();
 	private Vector<Path> binaryPaths = new Vector<>();
+	private Vector<String> unitTypes = new Vector<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();
@@ -180,7 +181,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		var capabilities = new ServerCapabilities();
 		capabilities.setDefinitionProvider(true);
 		capabilities.setHoverProvider(true);
-		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[")));
+		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
 		TextDocumentSyncOptions syncOptions = new TextDocumentSyncOptions();
 		syncOptions.setOpenClose(true);
 		syncOptions.setChange(TextDocumentSyncKind.Full);
@@ -306,8 +307,20 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			items.addAll(tags);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
+		
+		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
+				|| (triggerChar != null) && triggerChar.equals("="))
+		{
+			for (var type : unitTypes) {
+				CompletionItem item = new CompletionItem(type);
+				item.setInsertText(item.getLabel());
+				item.setKind(CompletionItemKind.Constant);
+				items.add(item);
+			}
+			return CompletableFuture.completedFuture(Either.forLeft(items));
+		}
 
-		if ((triggerChar != null) && triggerChar.equals("/")) {
+		if (triggerChar != null && triggerChar.equals("/")) {
 			try {
 //				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
 //				showLSPMessage(word);
@@ -421,6 +434,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			p.setDefinesMap(defines);
 			p.subparse(inputPath);
 			binaryPaths = p.getBinaryPaths();
+			unitTypes = p.getUnitTypes();
 			defines = p.getDefines();
 			for (var r : defines.getRows()) {
 				CompletionItem item = new CompletionItem();
@@ -456,6 +470,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				p.subparse(inputPath);
 				
 				binaryPaths = p.getBinaryPaths();
+				unitTypes = p.getUnitTypes();
 				defines = p.getDefines();
 				for (var r : defines.getRows()) {
 					CompletionItem item = new CompletionItem();

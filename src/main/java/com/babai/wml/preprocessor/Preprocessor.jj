@@ -328,6 +328,9 @@ void parse() :
 					bpaths.add(Path.of(path));
 				} else if (name.equals("unit_type")) {
 					String unitTypeId = cfg.getAttr("id").stringValue();
+					if (unitTypeId.startsWith("\"") && unitTypeId.endsWith("\"")) {
+						unitTypeId = unitTypeId.substring(1, unitTypeId.length()-1);
+					}
 					debugPrint("Unit Type found: " + unitTypeId);
 					unitTypes.add(unitTypeId);
 				}
