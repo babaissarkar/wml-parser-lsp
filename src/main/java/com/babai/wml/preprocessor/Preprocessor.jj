@@ -115,7 +115,7 @@ public class Preprocessor {
 			textdomain();
 			break;
 		default:
-			while (token.kind != EOL) {
+			while (token.kind != EOL && token.kind != EOF) {
 				token = getNextToken();
 			}
 			break;
@@ -136,7 +136,7 @@ public class Preprocessor {
 		boolean consumeComments = true;
 		boolean inComment = false;
 		
-		while (token.kind != endTokenType) {
+		while (token.kind != endTokenType && token.kind != EOF) {
 			if (getToken(1).kind == LBR && !inComment) {
 				// nested macro call
 				sb.append(token.image);
@@ -359,7 +359,7 @@ String tag() :
 		(<EOL>)?
 		{
 			// TODO can check tag mismatch here
-			while (token.kind != ETAG) {
+			while (token.kind != ETAG && token.kind != EOF) {
 				if (getToken(1).kind == LBR) {
 					// nested macro call
 					sb.append(expandAll(new Vector<String>()));
@@ -433,7 +433,7 @@ Map.Entry<String, String> defaultArg(Vector<String> args) :
 	<ARG> <SPACE> argName=<STRING>
 	(<SPACE>|<EOL>)+ {
 		var sb = new StringBuffer();
-		while (token.kind != ENDARG) {
+		while (token.kind != ENDARG && token.kind != EOF) {
 			if (getToken(1).kind == LBR) {
 				// nested macro call
 				sb.append(expandAll(args));
@@ -558,7 +558,7 @@ void ifdef() :
 		Definition def = null;
 		if (rows.isEmpty()) {
 			debugPrint("ifdef: define " + name.image + " not found, skipping block");
-			while (token.kind != ENDIF) {
+			while (token.kind != ENDIF && token.kind != EOF) {
 				token = getNextToken();
 			}
 		} else {
