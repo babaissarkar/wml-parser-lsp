@@ -56,6 +56,7 @@ public class Main {
 		}
 
 		p.debugPrint("Binary Paths: " + p.getBinaryPaths());
+		p.debugPrint("Unit Types: " + p.getUnitTypes());
 		p.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 	}
 

@@ -29,7 +29,9 @@ public class Preprocessor {
 	private boolean showParseLogs = false;
 	private boolean warnParseLogs = false;
 	private boolean disableErrors = true;
+	
 	private static Vector<Path> bpaths = new Vector<>();
+	private static Vector<String> unitTypes = new Vector<>();
 
 	private Path currentPath = Path.of(".");
 	private PrintStream out;
@@ -184,6 +186,10 @@ public class Preprocessor {
 		return Preprocessor.bpaths;
 	}
 	
+	public Vector<String> getUnitTypes() {
+		return Preprocessor.unitTypes;
+	}
+	
 	public void setDefinesMap(Table defines) {
 		this.defines = defines;
 	}
@@ -314,9 +320,16 @@ void parse() :
 		(
 			content=tag() {
 				Config cfg = Config.read(content);
-				if ((cfg != null && cfg.getName().equals("binary_path"))) {
-					debugPrint("Binary Path found: " + cfg.getAttr("path").stringValue());
-					bpaths.add(Path.of(cfg.getAttr("path").stringValue()));
+				if (cfg == null) return;
+				String name = cfg.getName();
+				if (name.equals("binary_path")) {
+					String path = cfg.getAttr("path").stringValue();
+					debugPrint("Binary Path found: " + path);
+					bpaths.add(Path.of(path));
+				} else if (name.equals("unit_type")) {
+					String unitTypeId = cfg.getAttr("id").stringValue();
+					debugPrint("Unit Type found: " + unitTypeId);
+					unitTypes.add(unitTypeId);
 				}
 			}
 			| content=expandAll(new Vector<>())
