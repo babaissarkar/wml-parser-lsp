@@ -448,7 +448,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				item.setInsertTextFormat(InsertTextFormat.Snippet); //
 				macroCompletions.add(item);
 			}
-			showLSPMessage("Parsed, total " + defines.rowCount() + " macros defined.");
+			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
 			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
 		}
@@ -486,7 +486,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					macroCompletions.add(item);
 				}
 
-				showLSPMessage(("Parsed, total " + defines.rowCount() + " macros defined."));
+				showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 			}
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");

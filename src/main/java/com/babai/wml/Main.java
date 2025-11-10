@@ -55,9 +55,10 @@ public class Main {
 			p.subparse(argParse.inputPath);
 		}
 
+		var unitTypes = p.getUnitTypes();
 		p.debugPrint("Binary Paths: " + p.getBinaryPaths());
-		p.debugPrint("Unit Types: " + p.getUnitTypes());
-		p.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
+		p.debugPrint("Unit Types: " + unitTypes);
+		p.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 	}
 
 	private static void setLoggingFormat() {
