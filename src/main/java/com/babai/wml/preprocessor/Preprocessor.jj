@@ -31,7 +31,7 @@ public class Preprocessor {
 	private boolean disableErrors = true;
 	
 	private static Vector<Path> bpaths = new Vector<>();
-	private static Vector<String> unitTypes = new Vector<>();
+	private static HashSet<String> unitTypes = new HashSet<>();
 
 	private Path currentPath = Path.of(".");
 	private PrintStream out;
@@ -169,6 +169,32 @@ public class Preprocessor {
 		outputs[1] = docb.toString();
 		return outputs;
 	}
+	
+	private final void extractData(String tagName, String tagContents) {
+		String name = tagName;
+		if (tagName.startsWith("[") && tagName.endsWith("]")) {
+			name = name.substring(1, name.length()-1);
+		}
+		
+		if (name.equals("binary_path")) {
+			Config cfg = Config.read(tagContents);
+			if (cfg == null) return;
+			
+			String path = cfg.getAttr("path").stringValue();
+			debugPrint("Binary Path found: " + path);
+			bpaths.add(Path.of(path));
+		} else if (name.equals("unit_type")) {
+			Config cfg = Config.read(tagContents);
+			if (cfg == null) return;
+			
+			String unitTypeId = cfg.getAttr("id").stringValue();
+			if (unitTypeId.startsWith("\"") && unitTypeId.endsWith("\"")) {
+				unitTypeId = unitTypeId.substring(1, unitTypeId.length()-1);
+			}
+			debugPrint("Unit Type found: " + unitTypeId);
+			unitTypes.add(unitTypeId);
+		}
+	}
 
 	public PrintStream getOutput() {
 		return out;
@@ -186,7 +212,7 @@ public class Preprocessor {
 		return Preprocessor.bpaths;
 	}
 	
-	public Vector<String> getUnitTypes() {
+	public HashSet<String> getUnitTypes() {
 		return Preprocessor.unitTypes;
 	}
 	
@@ -291,7 +317,7 @@ TOKEN : {
 |	< QUOTED_STRING: "\"" (~["\""])* "\"" > { debugPrint("quoted string"); }
 |	< INBLK  : <LPAR> (~[")"])+ <RPAR> >
 
-|	< STAG   : <LSB> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
+|	< STAG   : <LSB> ("+")? (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
 |	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag"); }
 
 |	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
@@ -318,23 +344,7 @@ void parse() :
 {
 	(
 		(
-			content=tag() {
-				Config cfg = Config.read(content);
-				if (cfg == null) return;
-				String name = cfg.getName();
-				if (name.equals("binary_path")) {
-					String path = cfg.getAttr("path").stringValue();
-					debugPrint("Binary Path found: " + path);
-					bpaths.add(Path.of(path));
-				} else if (name.equals("unit_type")) {
-					String unitTypeId = cfg.getAttr("id").stringValue();
-					if (unitTypeId.startsWith("\"") && unitTypeId.endsWith("\"")) {
-						unitTypeId = unitTypeId.substring(1, unitTypeId.length()-1);
-					}
-					debugPrint("Unit Type found: " + unitTypeId);
-					unitTypes.add(unitTypeId);
-				}
-			}
+			content=tag()
 			| content=expandAll(new Vector<>())
 			| <HASH> { handleDirectiveOrComment(); }
 			| (tok=<SPACE>|tok=<EOL>) { content = tok.image; }
@@ -356,11 +366,8 @@ String tag() :
 }
 {
 	(
-		(tstart=<STAG>) {
-			sb.append(tstart.image);
-		}
-		(<EOL>)?
-		{
+		(tstart=<STAG>) { sb.append(tstart.image); }
+		(<EOL>)? {
 			// TODO can check tag mismatch here
 			while (token.kind != ETAG && token.kind != EOF) {
 				if (getToken(1).kind == LBR) {
@@ -380,6 +387,9 @@ String tag() :
 			}
 
 			debugPrint(position(tstart) + "-" + position(token) +  " Tag found: " + colorify(tstart.image, tagColor));
+			
+			extractData(tstart.image, sb.toString());
+			
 			sb.append(token.image);
 		}
 	) { return sb.toString(); }

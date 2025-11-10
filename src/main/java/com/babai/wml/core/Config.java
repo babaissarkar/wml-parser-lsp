@@ -47,8 +47,12 @@ public class Config {
 			String line = lines[i].strip();
 			if (i == 0) {
 				if (line.startsWith("[") && line.endsWith("]")) {
+					line = line.substring(1, line.length()-1);
+					if (line.startsWith("+")) {
+						line = line.substring(1);
+					}
 					if (cfg == null) {
-						cfg = new Config(line.substring(1, line.length()-1));
+						cfg = new Config(line);
 					}
 				}
 			} else if (line.contains("=")) {

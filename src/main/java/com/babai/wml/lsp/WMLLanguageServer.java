@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
@@ -66,7 +67,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Table defines;
 	private Vector<Path> includePaths = new Vector<>();
 	private Vector<Path> binaryPaths = new Vector<>();
-	private Vector<String> unitTypes = new Vector<>();
+	private HashSet<String> unitTypes = new HashSet<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();
@@ -466,11 +467,12 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			if (inputPath != null) {
 				for (Path incpath : includePaths) {
 					p.subparse(incpath);
+					unitTypes.addAll(p.getUnitTypes());
 				}
 				p.subparse(inputPath);
+				unitTypes.addAll(p.getUnitTypes());
 				
 				binaryPaths = p.getBinaryPaths();
-				unitTypes = p.getUnitTypes();
 				defines = p.getDefines();
 				for (var r : defines.getRows()) {
 					CompletionItem item = new CompletionItem();
