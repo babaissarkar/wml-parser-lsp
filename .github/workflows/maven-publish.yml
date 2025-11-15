@@ -81,6 +81,10 @@ jobs:
        input: "./WML-Parser-LSP"
        output: "./wml.exe"
        
+    - name: Test
+      shell: pwsh
+      run: dir
+       
     - name: Upload built portable Executable
       uses: actions/upload-artifact@v4
       with:
