@@ -10,8 +10,7 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
@@ -50,6 +49,14 @@ jobs:
       with:
         name: WML.AppImage
         path: "./WML.AppImage"
+        
+    - name: Update release
+      uses: johnwbyrd/update-release@v1.0.0
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: |
+          ./jar/wml.jar
+          ./WML.AppImage
 
   build-windows:
 
