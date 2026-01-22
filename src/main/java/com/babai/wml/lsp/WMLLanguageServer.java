@@ -66,7 +66,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Path userDataPath;
 	private Table defines;
 	private Vector<Path> includePaths = new Vector<>();
-	private Vector<Path> binaryPaths = new Vector<>();
+	private List<Path> binaryPaths = new ArrayList<>();
 	private HashSet<String> unitTypes = new HashSet<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
@@ -427,6 +427,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	@Override
 	public void didSave(DidSaveTextDocumentParams saveParams) {
+		// FIXME broken and doesn't work correctly
+		/*
 		String uri = saveParams.getTextDocument().getUri();
 		inputPath = Path.of(URI.create(uri));
 		
@@ -452,6 +454,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		} catch (IOException e) {
 			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
 		}
+		*/
 	}
 
 	private void initParserForLSP() {

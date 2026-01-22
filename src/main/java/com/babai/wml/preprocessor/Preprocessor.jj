@@ -30,12 +30,15 @@ public class Preprocessor {
 	private boolean warnParseLogs = false;
 	private boolean disableErrors = true;
 	
-	private static Vector<Path> bpaths = new Vector<>();
+	private boolean extractUnitTypeData = false;
+	private static HashSet<Config> unitTypesFull = new HashSet<>();
+	
+	private static List<Path> bpaths = new ArrayList<>();
 	private static HashSet<String> unitTypes = new HashSet<>();
 
 	private Path currentPath = Path.of(".");
 	private PrintStream out;
-	Table defines = Table.ofWithIndices(
+	private Table defines = Table.ofWithIndices(
 			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
 			new String[]{"Line", "URI", "Name", "Definition"},
 			2  // index by Name column
@@ -55,6 +58,7 @@ public class Preprocessor {
 		var pinc = new Preprocessor(inpath);
 		pinc.showParseLogs = showParseLogs;
 		pinc.warnParseLogs = warnParseLogs;
+		pinc.setExtractData(extractUnitTypeData);
 		pinc.out = getOutput();
 		pinc.token_source.dataPath = token_source.dataPath;
 		pinc.token_source.userDataPath = token_source.userDataPath;
@@ -187,12 +191,14 @@ public class Preprocessor {
 			Config cfg = Config.read(tagContents);
 			if (cfg == null) return;
 			
-			String unitTypeId = cfg.getAttr("id").stringValue();
-			if (unitTypeId.startsWith("\"") && unitTypeId.endsWith("\"")) {
-				unitTypeId = unitTypeId.substring(1, unitTypeId.length()-1);
+			if (extractUnitTypeData) {
+				unitTypesFull.add(cfg);
+				debugPrint("Unit Type found: " + cfg.getID());
+			} else {
+				String unitTypeId = cfg.getID();
+				unitTypes.add(unitTypeId);
+				debugPrint("Unit Type found: " + unitTypeId);
 			}
-			debugPrint("Unit Type found: " + unitTypeId);
-			unitTypes.add(unitTypeId);
 		}
 	}
 
@@ -208,12 +214,16 @@ public class Preprocessor {
 		return this.defines;
 	}
 	
-	public Vector<Path> getBinaryPaths() {
+	public List<Path> getBinaryPaths() {
 		return Preprocessor.bpaths;
 	}
 	
 	public HashSet<String> getUnitTypes() {
 		return Preprocessor.unitTypes;
+	}
+	
+	public HashSet<Config> getUnitTypeData() {
+		return Preprocessor.unitTypesFull;
 	}
 	
 	public void setDefinesMap(Table defines) {
@@ -226,6 +236,10 @@ public class Preprocessor {
 	
 	public void showWarnLogs(boolean showWarnLogs) {
 		this.warnParseLogs = showWarnLogs;
+	}
+	
+	public void setExtractData(boolean extractData) {
+		this.extractUnitTypeData = extractData;
 	}
 
 	public void debugPrint(String s) {

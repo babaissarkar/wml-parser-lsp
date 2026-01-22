@@ -4,7 +4,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 public final class FS {
 	private FS() {
@@ -27,7 +26,7 @@ public final class FS {
 	}
 
 	/** Convert Wesnoth path string to NIO Path object */
-	public static Path resolve(String pathStr, Vector<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
+	public static Path resolve(String pathStr, List<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
 		if (pathStr.startsWith(".")) {

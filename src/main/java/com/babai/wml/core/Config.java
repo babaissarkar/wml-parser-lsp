@@ -39,6 +39,14 @@ public class Config {
 		attributes.put(key, new ConfigAttribute<T>(key, value));
 	}
 	
+	public String getID() {
+		String unitTypeId = getAttr("id").stringValue();
+		if (unitTypeId.startsWith("\"") && unitTypeId.endsWith("\"")) {
+			unitTypeId = unitTypeId.substring(1, unitTypeId.length()-1);
+		}
+		return unitTypeId;
+	}
+	
 	// TODO WIP error handling, nested tags
 	public static Config read(String text) {
 		Config cfg = null;
