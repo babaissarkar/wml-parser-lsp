@@ -17,7 +17,12 @@ public final class Token {
 		return kind;
 	}
 
+	@Override
+	public String toString() {
+		return "Token[token=" + content + ", kind=" + kind + "]";
+	}
+
 	public enum Kind {
-		TEXT, COMMENT, EOL, WHITESPACE
+		TEXT, COMMENT, EOL, WHITESPACE, QUOTED_TEXT
 	}
 }

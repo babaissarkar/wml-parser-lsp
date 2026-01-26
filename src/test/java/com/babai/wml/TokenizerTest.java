@@ -16,12 +16,15 @@ class TokenizerTest {
 
 	@Test
 	void testCommentSplit() {
-		String text = "Hello #Comment";
+		String text = "Hello #Comment\n";
 		try {
 			List<Token> toks = Tokenizer.tokenize(new BufferedReader(new StringReader(text)));
-			assertEquals(toks.size(), 2);
-			assertEquals(toks.get(0).getContent(), "Hello ");
-			assertEquals(toks.get(1).getContent(), "#Comment");
+			System.out.println("Toks: " + toks);
+			assertEquals(toks.size(), 4);
+			assertEquals(toks.get(0).getContent(), "Hello");
+			assertEquals(toks.get(1).getContent(), " ");
+			assertEquals(toks.get(2).getContent(), "#Comment");
+			assertEquals(toks.get(3).getContent(), "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
