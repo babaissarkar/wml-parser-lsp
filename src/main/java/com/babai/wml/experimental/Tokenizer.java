@@ -37,6 +37,8 @@ public final class Tokenizer {
 						buff.append(c);
 					} else if (isEOL(c)) {
 						handleEOLToken(tokens, c, r);
+					} else if (c == '"') {
+						buff.append(readQuoteToken(tokens, r));
 					} else {
 						buff.append(c);
 					}
@@ -64,6 +66,8 @@ public final class Tokenizer {
 					
 					if (isEOL(c)) {
 						handleEOLToken(tokens, c, r);
+					} else if (c == '"') {
+						buff.append(readQuoteToken(tokens, r));
 					} else {
 						buff.append(c);
 					}
@@ -87,6 +91,40 @@ public final class Tokenizer {
 		return tokens;
 	}
 	
+	// TODO detect mismatched quotes
+	// NOTE this assumes that r is currently at the character '"' (dbl quote)
+	private static String readQuoteToken(List<Token> tokens, PushbackReader r) throws IOException {
+		char prevChar = '"';
+		var buff = new StringBuilder();
+		buff.append(prevChar);
+		int ch;
+		while((ch = r.read()) != -1) {
+			char c = (char) ch;
+			if (prevChar == '"' && c == '"') {
+				if (buff.length() == 1) {
+					// trivial case: "" (empty string), do nothing, terminate
+					return "";
+				} else {
+					// back to back quotes: "text""text", add only one "
+					buff.append(c);
+				}
+			} else if (prevChar != '"' && c == '"') {
+				// terminate quote token
+				char c2 = (char) r.read();
+				if (c2 != '"') {
+					buff.append(c);
+					break;
+				} else {
+					r.unread(c2);
+				}
+			} else {
+				buff.append(c);
+			}
+			prevChar = c;
+		}
+		return buff.toString();
+	}
+
 	private static void handleEOLToken(List<Token> tokens, char c, PushbackReader r) throws IOException {
 		if (c == '\r') {
 			char c2 = (char) r.read();
