@@ -20,11 +20,11 @@ class TokenizerTest {
 		try {
 			List<Token> toks = Tokenizer.tokenize(new BufferedReader(new StringReader(text)));
 			System.out.println("Toks(comment test): " + toks);
-			assertEquals(toks.size(), 4);
-			assertEquals(toks.get(0).getContent(), "Hello");
-			assertEquals(toks.get(1).getContent(), " ");
-			assertEquals(toks.get(2).getContent(), "#Comment");
-			assertEquals(toks.get(3).getContent(), "\n");
+			assertEquals(4, toks.size());
+			assertEquals("Hello", toks.get(0).getContent());
+			assertEquals(" ", toks.get(1).getContent());
+			assertEquals("#Comment", toks.get(2).getContent());
+			assertEquals("\n", toks.get(3).getContent());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -36,16 +36,21 @@ class TokenizerTest {
 		try {
 			List<Token> toks = Tokenizer.tokenize(new BufferedReader(new StringReader(text)));
 			System.out.println("Toks(quoted test): " + toks);
-			assertEquals(toks.size(), 1);
+			assertEquals(1, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
-			assertEquals(toks.get(0).getContent(), "key=\"value val\"ue2\nvalue3\"");
+			assertEquals("key=value val\"ue2\nvalue3", toks.get(0).getContent());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
+	}
+	
 	@Test
 	void testAngledQuotedString() {
 		String text = "key=<<value val\"ue2\nvalue3>>";
 		try {
 			List<Token> toks = Tokenizer.tokenize(new BufferedReader(new StringReader(text)));
 			System.out.println("Toks(angle quote test): " + toks);
-			assertEquals(toks.size(), 1);
+			assertEquals(1, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
 			assertEquals("key=value val\"ue2\nvalue3", toks.get(0).getContent());
 		} catch (IOException e) {
