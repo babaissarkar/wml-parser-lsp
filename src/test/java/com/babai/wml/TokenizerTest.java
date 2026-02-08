@@ -39,6 +39,15 @@ class TokenizerTest {
 			assertEquals(toks.size(), 1);
 			// checks 1. "" -> " collapse, preservation of whitespace
 			assertEquals(toks.get(0).getContent(), "key=\"value val\"ue2\nvalue3\"");
+	@Test
+	void testAngledQuotedString() {
+		String text = "key=<<value val\"ue2\nvalue3>>";
+		try {
+			List<Token> toks = Tokenizer.tokenize(new BufferedReader(new StringReader(text)));
+			System.out.println("Toks(angle quote test): " + toks);
+			assertEquals(toks.size(), 1);
+			// checks 1. "" -> " collapse, preservation of whitespace
+			assertEquals("key=value val\"ue2\nvalue3", toks.get(0).getContent());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
