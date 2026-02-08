@@ -13,7 +13,6 @@ public final class Tokenizer {
 		return tokenize(Files.newBufferedReader(inputPath));
 	}
 	
-	// TODO: macro calls: {MYMACRO ARG1 ARG2 ...}, quoted text
 	public static List<Token> tokenize(Reader reader) throws IOException {
 		PushbackReader r = new PushbackReader(reader);
 		List<Token> tokens = new ArrayList<>();
@@ -38,7 +37,9 @@ public final class Tokenizer {
 					} else if (isEOL(c)) {
 						handleEOLToken(tokens, c, r);
 					} else if (c == '"') {
-						buff.append(readQuoteToken(tokens, r));
+						buff.append(readQuoteToken(r));
+					} else if (c == '<') {
+						buff.append(readAngleQuoteToken(r));
 					} else {
 						buff.append(c);
 					}
@@ -67,7 +68,9 @@ public final class Tokenizer {
 					if (isEOL(c)) {
 						handleEOLToken(tokens, c, r);
 					} else if (c == '"') {
-						buff.append(readQuoteToken(tokens, r));
+						buff.append(readQuoteToken(r));
+					} else if (c == '<') {
+						buff.append(readAngleQuoteToken(r));
 					} else {
 						buff.append(c);
 					}
@@ -92,11 +95,11 @@ public final class Tokenizer {
 	}
 	
 	// TODO detect mismatched quotes
-	// NOTE this assumes that r is currently at the character '"' (dbl quote)
-	private static String readQuoteToken(List<Token> tokens, PushbackReader r) throws IOException {
+	// Note: this assumes that r is currently at the character '"' (dbl quote)
+	// Note: we are skipping " from the token text itself, unless escaped by ""
+	private static String readQuoteToken(PushbackReader r) throws IOException {
 		char prevChar = '"';
 		var buff = new StringBuilder();
-		buff.append(prevChar);
 		int ch;
 		while((ch = r.read()) != -1) {
 			char c = (char) ch;
@@ -112,7 +115,6 @@ public final class Tokenizer {
 				// terminate quote token
 				char c2 = (char) r.read();
 				if (c2 != '"') {
-					buff.append(c);
 					break;
 				} else {
 					r.unread(c2);
@@ -121,6 +123,35 @@ public final class Tokenizer {
 				buff.append(c);
 			}
 			prevChar = c;
+		}
+		return buff.toString();
+	}
+	
+	// Note: this assumes that r is currently at the character '<' (greater than)
+	// Note: we are skipping << and >> from the token text itself
+	private static String readAngleQuoteToken(PushbackReader r) throws IOException {
+		var buff = new StringBuilder();
+		int ch = r.read();
+		if (((char) ch) != '<') {
+			r.unread(ch);
+			// << not matched, char after < not another <, bail out
+			return "";
+		}
+		
+		while((ch = r.read()) != -1) {
+			char c = (char) ch;
+			if (c == '>') {
+				ch = r.read();
+				if (((char) ch) == '>') {
+					// >> detected, exit
+					break;
+				} else {
+					r.unread(ch);
+				}
+				buff.append(c);
+			} else {
+				buff.append(c);
+			}
 		}
 		return buff.toString();
 	}
