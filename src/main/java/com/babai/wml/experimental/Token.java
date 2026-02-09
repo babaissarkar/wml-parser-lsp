@@ -19,7 +19,7 @@ public final class Token {
 
 	@Override
 	public String toString() {
-		return "Token[token=" + content + ", kind=" + kind + "]";
+		return "Token[content=" + content + ", kind=" + kind + "]";
 	}
 
 	public enum Kind {
