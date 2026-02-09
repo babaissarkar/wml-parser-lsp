@@ -23,6 +23,6 @@ public final class Token {
 	}
 
 	public enum Kind {
-		TEXT, COMMENT, EOL, WHITESPACE, QUOTED_TEXT
+		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED
 	}
 }
