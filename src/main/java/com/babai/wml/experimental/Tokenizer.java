@@ -19,8 +19,6 @@ public final class Tokenizer {
 		StringBuilder buff = new StringBuilder();
 		State state = State.NORMAL;
 		
-		// No state change needed in case of EOL
-		
 		int ch;
 		while((ch = r.read()) != -1) {
 			char c = (char) ch;
@@ -29,7 +27,6 @@ public final class Tokenizer {
 					if (c == '#') {
 						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
 						state = State.LINE_COMMENT;
-						buff.append(c);
 					} else if (isWS(c)) {
 						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
 						state = State.WS;
@@ -74,7 +71,9 @@ public final class Tokenizer {
 					} else if (c == '<') {
 						finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED);
 					} else {
-						buff.append(c);
+						if (c != '#') {
+							buff.append(c);
+						}
 					}
 				}
 			}
