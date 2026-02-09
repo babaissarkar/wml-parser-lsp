@@ -37,9 +37,11 @@ public final class Tokenizer {
 					} else if (isEOL(c)) {
 						handleEOLToken(tokens, c, r);
 					} else if (c == '"') {
-						buff.append(readQuoteToken(r));
+						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
+						finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED);
 					} else if (c == '<') {
-						buff.append(readAngleQuoteToken(r));
+						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
+						finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED);
 					} else {
 						buff.append(c);
 					}
@@ -68,9 +70,9 @@ public final class Tokenizer {
 					if (isEOL(c)) {
 						handleEOLToken(tokens, c, r);
 					} else if (c == '"') {
-						buff.append(readQuoteToken(r));
+						finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED);
 					} else if (c == '<') {
-						buff.append(readAngleQuoteToken(r));
+						finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED);
 					} else {
 						buff.append(c);
 					}
@@ -129,6 +131,7 @@ public final class Tokenizer {
 	
 	// Note: this assumes that r is currently at the character '<' (greater than)
 	// Note: we are skipping << and >> from the token text itself
+	// TODO throw exception if mismatched quoted
 	private static String readAngleQuoteToken(PushbackReader r) throws IOException {
 		var buff = new StringBuilder();
 		int ch = r.read();
