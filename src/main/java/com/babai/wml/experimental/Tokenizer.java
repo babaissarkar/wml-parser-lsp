@@ -40,6 +40,9 @@ public final class Tokenizer {
 					} else if (c == '<') {
 						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
 						finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED);
+					} else if (c == '{') {
+						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
+						finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO);
 					} else {
 						buff.append(c);
 					}
@@ -71,6 +74,8 @@ public final class Tokenizer {
 						finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED);
 					} else if (c == '<') {
 						finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED);
+					} else if (c == '{') {
+						finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO);
 					} else {
 						if (c != '#') {
 							buff.append(c);
@@ -98,7 +103,8 @@ public final class Tokenizer {
 	
 	// TODO detect mismatched quotes
 	// Note: this assumes that r is currently at the character '"' (dbl quote)
-	// Note: we are skipping " from the token text itself, unless escaped by ""
+	// Note: we are skipping " from the token text itself, unless escaped by "".
+	// Can be deduced from token kind if needed. 
 	private static String readQuoteToken(PushbackReader r) throws IOException {
 		char prevChar = '"';
 		var buff = new StringBuilder();
@@ -130,7 +136,7 @@ public final class Tokenizer {
 	}
 	
 	// Note: this assumes that r is currently at the character '<' (greater than)
-	// Note: we are skipping << and >> from the token text itself
+	// Note: we are skipping << and >> from the token text itself, can be deduced from token kind
 	// TODO throw exception if mismatched quoted
 	private static String readAngleQuoteToken(PushbackReader r) throws IOException {
 		var buff = new StringBuilder();
@@ -152,6 +158,24 @@ public final class Tokenizer {
 					r.unread(ch);
 				}
 				buff.append(c);
+			} else {
+				buff.append(c);
+			}
+		}
+		return buff.toString();
+	}
+	
+	// Note: this assumes that r is currently at the character '{' (greater than)
+	// Note: we are skipping { and } from the token text itself, can be deduced from token kind
+	// TODO throw exception if mismatched quoted
+	private static String readMacroToken(PushbackReader r) throws IOException {
+		var buff = new StringBuilder();
+		int ch;
+		
+		while((ch = r.read()) != -1) {
+			char c = (char) ch;
+			if (c == '}') {
+				break;
 			} else {
 				buff.append(c);
 			}
