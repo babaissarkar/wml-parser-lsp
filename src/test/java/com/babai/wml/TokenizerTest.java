@@ -60,4 +60,19 @@ class TokenizerTest {
 			e.printStackTrace();
 		}	
 	}
+	
+	@Test
+	void testMacroString() {
+		String text = "key={MYMACRO ARG1 ARG2 ARG3=\"def\"}";
+		try {
+			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			System.out.println("Toks(angle quote test): " + toks);
+			assertEquals(2, toks.size());
+			// checks 1. "" -> " collapse, preservation of whitespace
+			assertEquals("key=", toks.get(0).getContent());
+			assertEquals("MYMACRO ARG1 ARG2 ARG3=\"def\"", toks.get(1).getContent());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
+	}
 }
