@@ -32,6 +32,7 @@ public final class Tokenizer {
 						state = State.WS;
 						buff.append(c);
 					} else if (isEOL(c)) {
+						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
 						handleEOLToken(tokens, c, r);
 					} else if (c == '"') {
 						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
