@@ -75,4 +75,64 @@ class TokenizerTest {
 			e.printStackTrace();
 		}	
 	}
+	
+	@Test
+	void testQuotedConcatenation() {
+		String text = "\"Hello \" + \"Hello\"";
+		try {
+			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			System.out.println("Toks(quoted concat): " + toks);
+
+			assertEquals(1, toks.size());
+			assertEquals("Hello Hello", toks.get(0).getContent());
+			assertEquals(Token.Kind.QUOTED, toks.get(0).getKind());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testUnquotedConcatenation() {
+		String text = "foo + bar";
+		try {
+			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			System.out.println("Toks(unquoted concat): " + toks);
+
+			assertEquals(1, toks.size());
+			assertEquals("foo bar", toks.get(0).getContent());
+			assertEquals(Token.Kind.TEXT, toks.get(0).getKind());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testMixedConcatenation() {
+		String text = "\"Hello\" + world";
+		try {
+			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			System.out.println("Toks(mixed concat): " + toks);
+
+			assertEquals(1, toks.size());
+			assertEquals("Helloworld", toks.get(0).getContent());
+			assertEquals(Token.Kind.QUOTED, toks.get(0).getKind());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testChainedConcatenation() {
+		String text = "\"Journey\" + of + a + \"Frost Mage\"";
+		try {
+			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			System.out.println("Toks(chained concat): " + toks);
+
+			assertEquals(1, toks.size());
+			assertEquals("Journeyof aFrost Mage", toks.get(0).getContent());
+			assertEquals(Token.Kind.QUOTED, toks.get(0).getKind());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
