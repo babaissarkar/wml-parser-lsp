@@ -1,6 +1,7 @@
 package com.babai.wml.core;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
@@ -25,6 +26,13 @@ public class Definition {
 		this.name = name;
 		this.value = value;
 		this.args = args;
+		this.defArgs = defArgs;
+	}
+	
+	public Definition(String name, String value, List<String> args, HashMap<String, String> defArgs) {
+		this.name = name;
+		this.value = value;
+		this.args.addAll(args);
 		this.defArgs = defArgs;
 	}
 
