@@ -16,6 +16,38 @@ public final class Token {
 	public Kind getKind() {
 		return kind;
 	}
+	
+	public boolean isDirective() {
+		if (kind != Token.Kind.COMMENT) return false;
+		
+		if (content.isEmpty()) return false;
+		
+		String[] directives = {
+			"define",
+			"arg",
+			"undef",
+			"ifdef",
+			"ifndef",
+			"ifhave",
+			"ifnhave",
+			"ifver",
+			"ifnver",
+			"error",
+			"warning",
+			"deprecated"
+		};
+
+		for (String d : directives) {
+			if (content.startsWith(d)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean isDirectiveName(String directiveName) {
+		return content.equals(directiveName);
+	}
 
 	@Override
 	public String toString() {
