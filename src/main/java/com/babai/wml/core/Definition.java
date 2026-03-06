@@ -43,13 +43,25 @@ public class Definition {
 	public void addDefArg(String key, String val) {
 		defArgs.put(key, val);
 	}
+	
+	public Vector<String> getArgs() {
+		return args;
+	}
+
+	public HashMap<String, String> getDefArgs() {
+		return defArgs;
+	}
 
 	public String getValue() {
 		return this.value;
 	}
 
-	public int getParamCount() {
+	public int getArgCount() {
 		return args.size();
+	}
+	
+	public int getDefArgCount() {
+		return defArgs.size();
 	}
 
 	public String getDocs() {
