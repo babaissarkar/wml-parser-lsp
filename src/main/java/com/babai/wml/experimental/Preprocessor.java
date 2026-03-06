@@ -58,7 +58,6 @@ public class Preprocessor {
 	}
 	
 	private static void handleDirective(Token directiveStart, ListIterator<Token> itor) {
-		StringBuilder body = new StringBuilder();
 		List<String> args;
 		var defArgs = new LinkedHashMap<String, String>();
 		
@@ -80,28 +79,48 @@ public class Preprocessor {
 			}
 			System.out.println("[define args]: " + args);
 			
-			// ignore EOL
-			Token t = itor.next();
+			Token t = itor.next(); // skip EOL
 			t = itor.next();
 			
 			// TODO macro documentation comments
 			
-			// TODO defargs processing
+			// defargs processing
+			while (t.isDirectiveName("arg", true)) {
+				System.out.println("[defarg tok]: " + t);
+				String[] defArgToks = t.getContent().split("\\s+", 2); // arg NAME
+				itor.next(); // skip EOL
+				defArgs.put(defArgToks[1], consumeUntilEndDirective("endarg", itor));
+				System.out.println("[defarg key]: " + defArgToks[1]);
+				System.out.println("[defarg val]: " + defArgs.get(defArgToks[1]).toString());
+				itor.next(); // skip EOL
+				t = itor.next();
+				System.out.println("[defarg end tok]: " + t);
+			}
+			
+			itor.previous();
 			
 			// Body
-			while (!t.isDirectiveName("enddef")) {
-				if (!itor.hasNext()) {
-					// terminated before define completed, error
-					throw new RuntimeException("Incomplete macro definition!");
-				} else {
-					body.append(t.getContent());
-					t = itor.next();
-				}
-			}
+			String body = consumeUntilEndDirective("enddef", itor);
 			System.out.println("[define body]: " + body);
 			
-			var def = new Definition(macroName, body.toString(), args, defArgs);
+			var def = new Definition(macroName, body, args, defArgs);
 			System.out.println("[Definition]: " + def);
 		}
+	}
+
+	private static String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
+		StringBuilder body = new StringBuilder();
+		Token t = itor.next();
+		while (!t.isDirectiveName(directiveName, false)) {
+			if (!itor.hasNext()) {
+				// terminated before define completed, error
+				throw new RuntimeException("Incomplete macro definition!");
+			} else {
+				body.append(t.getContent());
+				System.out.println("[consumeUntil]: " + body);
+				t = itor.next();
+			}
+		}
+		return body.toString();
 	}
 }
