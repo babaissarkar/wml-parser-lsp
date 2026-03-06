@@ -7,18 +7,29 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Optional;
-
 import com.babai.wml.core.Definition;
+import com.babai.wml.utils.Table;
 
 import static com.babai.wml.experimental.Tokenizer.tokenize;
 
 public class Preprocessor {
+	private static Table defines = Table.ofWithIndices(
+			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
+			new String[]{"Line", "URI", "Name", "Definition"},
+			2  // index by Name column
+	);
 	
+	public static Table getDefines() {
+		return defines;
+	}
+
+	public static void setDefines(Table defines) {
+		Preprocessor.defines = defines;
+	}
+
 	public static String preprocess(Path inputPath) throws IOException {
 		return preprocess(Files.newBufferedReader(inputPath));
 	}
@@ -63,8 +74,6 @@ public class Preprocessor {
 		
 		String[] directiveStartTokens = directiveStart.getContent().split("\\s+", 2);
 		String directiveName = directiveStartTokens[0]; // first is directive name, rest are args
-		System.out.println("[full token]: " + directiveStart);
-		System.out.println("[subtokens]: " + Arrays.asList(directiveStartTokens).toString());
 
 		if (directiveName.equals("define")) {
 			var directiveArgs = directiveStartTokens[1].split("\\s+");
@@ -86,25 +95,21 @@ public class Preprocessor {
 			
 			// defargs processing
 			while (t.isDirectiveName("arg", true)) {
-				System.out.println("[defarg tok]: " + t);
 				String[] defArgToks = t.getContent().split("\\s+", 2); // arg NAME
 				itor.next(); // skip EOL
 				defArgs.put(defArgToks[1], consumeUntilEndDirective("endarg", itor));
-				System.out.println("[defarg key]: " + defArgToks[1]);
-				System.out.println("[defarg val]: " + defArgs.get(defArgToks[1]).toString());
 				itor.next(); // skip EOL
 				t = itor.next();
-				System.out.println("[defarg end tok]: " + t);
 			}
 			
 			itor.previous();
 			
 			// Body
-			String body = consumeUntilEndDirective("enddef", itor);
-			System.out.println("[define body]: " + body);
+			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), args, defArgs);
 			
-			var def = new Definition(macroName, body, args, defArgs);
-			System.out.println("[Definition]: " + def);
+			// dummy, needs more info
+			//defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
+			defines.addRow(0, ".", macroName, def);
 		}
 	}
 
@@ -117,7 +122,6 @@ public class Preprocessor {
 				throw new RuntimeException("Incomplete macro definition!");
 			} else {
 				body.append(t.getContent());
-				System.out.println("[consumeUntil]: " + body);
 				t = itor.next();
 			}
 		}
