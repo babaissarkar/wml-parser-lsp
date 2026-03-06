@@ -6,7 +6,7 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -69,48 +69,79 @@ public class Preprocessor {
 	}
 	
 	private static void handleDirective(Token directiveStart, ListIterator<Token> itor) {
-		List<String> args;
-		var defArgs = new LinkedHashMap<String, String>();
-		
-		String[] directiveStartTokens = directiveStart.getContent().split("\\s+", 2);
-		String directiveName = directiveStartTokens[0]; // first is directive name, rest are args
+		var directiveHeader = processDirectiveNameAndArgs(directiveStart);
 
-		if (directiveName.equals("define")) {
-			var directiveArgs = directiveStartTokens[1].split("\\s+");
+		if (directiveHeader.name().equals("define")) {
+			var directiveArgs = directiveHeader.args();
 			
 			// Macro name
 			String macroName = directiveArgs[0];
-			
-			// Args
-			args = new ArrayList<String>();
-			for (int i = 1; i < directiveArgs.length; i++) {
-				args.add(directiveArgs[i]);
-			}
-			System.out.println("[define args]: " + args);
-			
-			Token t = itor.next(); // skip EOL
-			t = itor.next();
-			
+			List<String> macroArgs = Arrays.asList(directiveArgs).subList(1, directiveArgs.length);
+
+			skipEOL(itor);
+
 			// TODO macro documentation comments
 			
 			// defargs processing
-			while (t.isDirectiveName("arg", true)) {
-				String[] defArgToks = t.getContent().split("\\s+", 2); // arg NAME
-				itor.next(); // skip EOL
-				defArgs.put(defArgToks[1], consumeUntilEndDirective("endarg", itor));
-				itor.next(); // skip EOL
-				t = itor.next();
+			var macroDefaultArgs = new LinkedHashMap<String, String>();
+			while (peek(itor).isDirectiveName("arg", true)) {
+				Token t = itor.next();
+				String defArgName = processDirectiveNameAndArgs(t).args()[0]; // arg NAME
+				
+				skipEOL(itor);
+				
+				macroDefaultArgs.put(defArgName, consumeUntilEndDirective("endarg", itor));
+				
+				skipEOL(itor);
 			}
 			
-			itor.previous();
-			
 			// Body
-			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), args, defArgs);
+			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), macroArgs, macroDefaultArgs);
 			
 			// dummy, needs more info
 			//defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
 			defines.addRow(0, ".", macroName, def);
 		}
+	}
+	
+	private static Token peek(ListIterator<Token> it) {
+		Token t = it.next();
+		it.previous();
+		return t;
+	}
+	
+	private static void skipEOL(ListIterator<Token> itor) {
+		while (itor.hasNext() && peek(itor).getKind() == Token.Kind.EOL) {
+			itor.next();
+		}
+	}
+	
+	private record DirectiveHeader(String name, String[] args) {}
+	
+	private static DirectiveHeader processDirectiveNameAndArgs(Token token) {
+		if (!token.isDirective()) {
+			throw new RuntimeException("Not a directive!");
+		}
+		
+		String[] parts = token.getContent().split("\\s+", 2);
+		String name = parts[0];
+		String[] args = parts.length > 1 ? parts[1].split("\\s+") : new String[0];
+
+		return new DirectiveHeader(name, args);
+	}
+	
+	@SuppressWarnings("unused")
+	private static void debugPrintTok(Token t) {
+		var frame = StackWalker.getInstance()
+				.walk(s -> s.skip(1).findFirst().get());
+		System.out.println("[tok, " + frame.getMethodName() +":L" + frame.getLineNumber() + "]: " + t);
+	}
+
+	@SuppressWarnings("unused")
+	private static void debugPrintJ(String str) {
+		var frame = StackWalker.getInstance()
+				.walk(s -> s.skip(1).findFirst().get());
+		System.out.println("[" + frame.getMethodName() +":L" + frame.getLineNumber() + "]: " + str);
 	}
 
 	private static String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
