@@ -130,6 +130,8 @@ public class Definition {
 			sb.append(" " + arg);
 		}
 		sb.append("\n");
+		sb.append(defArgs.toString());
+		sb.append("\n");
 		sb.append(value);
 		sb.append("#enddef");
 		return sb.toString();

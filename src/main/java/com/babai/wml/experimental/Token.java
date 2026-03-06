@@ -45,8 +45,9 @@ public final class Token {
 		return false;
 	}
 	
-	public boolean isDirectiveName(String directiveName) {
-		return content.equals(directiveName);
+	public boolean isDirectiveName(String directiveName, boolean hasArg) {
+		return hasArg ? content.startsWith(directiveName) : content.equals(directiveName);
+		// TODO throw error if hasArg = false & content.startsWith(directiveName) passes.
 	}
 
 	@Override
