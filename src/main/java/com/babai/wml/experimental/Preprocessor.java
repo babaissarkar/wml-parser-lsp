@@ -104,7 +104,7 @@ public class Preprocessor {
 			
 			// dummy, needs more info
 			//defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
-			defines.addRow(0, ".", macroName, def);
+			defines.addRow(directiveStart.beginLine(), ".", macroName, def);
 		}
 	}
 	
