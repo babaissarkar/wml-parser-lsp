@@ -219,8 +219,8 @@ public final class Tokenizer {
 			// Only TEXT or QUOTED can start a concat chain
 			if (isConcatCandidate(current)) {
 
-				StringBuilder merged = new StringBuilder(current.getContent());
-				Token.Kind resultingKind = current.getKind();
+				StringBuilder merged = new StringBuilder(current.content());
+				Token.Kind resultingKind = current.kind();
 				Token previousOperand = current;
 
 				int j = i + 1;
@@ -228,13 +228,13 @@ public final class Tokenizer {
 				while (j < tokens.size()) {
 
 					int k = j;
-					while (k < tokens.size() && tokens.get(k).getKind() == Token.Kind.WHITESPACE) k++;
+					while (k < tokens.size() && tokens.get(k).kind() == Token.Kind.WHITESPACE) k++;
 
 					if (k >= tokens.size() || !isPlus(tokens.get(k))) break;
 
 					k++;
 
-					while (k < tokens.size() && tokens.get(k).getKind() == Token.Kind.WHITESPACE) k++;
+					while (k < tokens.size() && tokens.get(k).kind() == Token.Kind.WHITESPACE) k++;
 
 					if (k >= tokens.size()) break;
 
@@ -242,15 +242,15 @@ public final class Tokenizer {
 					if (!isConcatCandidate(next)) break;
 
 					// Pairwise spacing rule
-					if (previousOperand.getKind() == Token.Kind.TEXT
-						&& next.getKind() == Token.Kind.TEXT)
+					if (previousOperand.kind() == Token.Kind.TEXT
+						&& next.kind() == Token.Kind.TEXT)
 					{
 						merged.append(" ");
 					}
 
-					merged.append(next.getContent());
+					merged.append(next.content());
 
-					if (next.getKind() == Token.Kind.QUOTED) {
+					if (next.kind() == Token.Kind.QUOTED) {
 						resultingKind = Token.Kind.QUOTED;
 					}
 
@@ -269,11 +269,11 @@ public final class Tokenizer {
 	}
 	
 	private static boolean isConcatCandidate(Token t) {
-		return t.getKind() == Token.Kind.TEXT || t.getKind() == Token.Kind.QUOTED;
+		return t.kind() == Token.Kind.TEXT || t.kind() == Token.Kind.QUOTED;
 	}
 
 	private static boolean isPlus(Token t) {
-		return t.getKind() == Token.Kind.TEXT && t.getContent().equals("+");
+		return t.kind() == Token.Kind.TEXT && t.content().equals("+");
 	}
 
 	private static boolean isEOL(char c) {

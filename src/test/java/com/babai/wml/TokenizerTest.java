@@ -21,11 +21,11 @@ class TokenizerTest {
 			List<Token> toks = Tokenizer.tokenize(new BufferedReader(new StringReader(text)));
 			System.out.println("Toks(comment test): " + toks);
 			assertEquals(5, toks.size());
-			assertEquals("Hello", toks.get(0).getContent());
-			assertEquals(" ", toks.get(1).getContent());
-			assertEquals("Comment", toks.get(2).getContent());
-			assertEquals("\n", toks.get(3).getContent());
-			assertEquals("Line2", toks.get(4).getContent());
+			assertEquals("Hello", toks.get(0).content());
+			assertEquals(" ", toks.get(1).content());
+			assertEquals("Comment", toks.get(2).content());
+			assertEquals("\n", toks.get(3).content());
+			assertEquals("Line2", toks.get(4).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -39,8 +39,8 @@ class TokenizerTest {
 			System.out.println("Toks(quoted test): " + toks);
 			assertEquals(2, toks.size());
 			// checks "" -> " collapse, preservation of whitespace
-			assertEquals("key=", toks.get(0).getContent());
-			assertEquals("value val\"ue2\nvalue3", toks.get(1).getContent());
+			assertEquals("key=", toks.get(0).content());
+			assertEquals("value val\"ue2\nvalue3", toks.get(1).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -54,8 +54,8 @@ class TokenizerTest {
 			System.out.println("Toks(angle quote test): " + toks);
 			assertEquals(2, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
-			assertEquals("key=", toks.get(0).getContent());
-			assertEquals("value val\"ue2\nvalue3", toks.get(1).getContent());
+			assertEquals("key=", toks.get(0).content());
+			assertEquals("value val\"ue2\nvalue3", toks.get(1).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -69,8 +69,8 @@ class TokenizerTest {
 			System.out.println("Toks(angle quote test): " + toks);
 			assertEquals(2, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
-			assertEquals("key=", toks.get(0).getContent());
-			assertEquals("MYMACRO ARG1 ARG2 ARG3=\"def\"", toks.get(1).getContent());
+			assertEquals("key=", toks.get(0).content());
+			assertEquals("MYMACRO ARG1 ARG2 ARG3=\"def\"", toks.get(1).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -84,8 +84,8 @@ class TokenizerTest {
 			System.out.println("Toks(quoted concat): " + toks);
 
 			assertEquals(1, toks.size());
-			assertEquals("Hello Hello", toks.get(0).getContent());
-			assertEquals(Token.Kind.QUOTED, toks.get(0).getKind());
+			assertEquals("Hello Hello", toks.get(0).content());
+			assertEquals(Token.Kind.QUOTED, toks.get(0).kind());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -99,8 +99,8 @@ class TokenizerTest {
 			System.out.println("Toks(unquoted concat): " + toks);
 
 			assertEquals(1, toks.size());
-			assertEquals("foo bar", toks.get(0).getContent());
-			assertEquals(Token.Kind.TEXT, toks.get(0).getKind());
+			assertEquals("foo bar", toks.get(0).content());
+			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -114,8 +114,8 @@ class TokenizerTest {
 			System.out.println("Toks(mixed concat): " + toks);
 
 			assertEquals(1, toks.size());
-			assertEquals("Helloworld", toks.get(0).getContent());
-			assertEquals(Token.Kind.QUOTED, toks.get(0).getKind());
+			assertEquals("Helloworld", toks.get(0).content());
+			assertEquals(Token.Kind.QUOTED, toks.get(0).kind());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -129,8 +129,8 @@ class TokenizerTest {
 			System.out.println("Toks(chained concat): " + toks);
 
 			assertEquals(1, toks.size());
-			assertEquals("Journeyof aFrost Mage", toks.get(0).getContent());
-			assertEquals(Token.Kind.QUOTED, toks.get(0).getKind());
+			assertEquals("Journeyof aFrost Mage", toks.get(0).content());
+			assertEquals(Token.Kind.QUOTED, toks.get(0).kind());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
