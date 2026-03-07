@@ -4,18 +4,20 @@ public final class Token {
 	private String content;
 	private Kind kind;
 	
+	private int beginLine, endLine;
+	private int beginColumn, endColumn;
+	
 	public Token(String content, Kind kind) {
 		this.content = content;
 		this.kind = kind;
 	}
 	
-	public String getContent() {
-		return content;
-	}
-
-	public Kind getKind() {
-		return kind;
-	}
+	public String content() { return content; }
+	public Kind kind() { return kind; }
+	public int beginLine() { return beginLine; }
+	public int endLine() { return endLine; }
+	public int beginColumn() { return beginColumn; }
+	public int endColumn() { return endColumn; }
 	
 	public boolean isDirective() {
 		if (kind != Token.Kind.COMMENT) return false;
