@@ -8,7 +8,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class Tokenizer {
+
+public final class Tokenizer {	
 	public static List<Token> tokenize(Path inputPath) throws IOException {
 		return tokenize(Files.newBufferedReader(inputPath));
 	}
@@ -18,6 +19,7 @@ public final class Tokenizer {
 		List<Token> tokens = new ArrayList<>();
 		StringBuilder buff = new StringBuilder();
 		State state = State.NORMAL;
+		Position start = new Position(1, 1);
 
 		int ch;
 		while((ch = r.read()) != -1) {
@@ -25,24 +27,24 @@ public final class Tokenizer {
 			switch(state) {
 			case NORMAL -> {
 				if (c == '#') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
+					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 					state = State.LINE_COMMENT;
 				} else if (isWS(c)) {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
+					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 					state = State.WS;
 					buff.append(c);
 				} else if (isEOL(c)) {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
-					handleEOLToken(tokens, c, r);
+					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					handleEOLToken(tokens, c, r, start);
 				} else if (c == '"') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
-					finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED);
+					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED, start);
 				} else if (c == '<') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
-					finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED);
+					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED, start);
 				} else if (c == '{') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
-					finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO);
+					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO, start);
 				} else {
 					buff.append(c);
 				}
@@ -50,8 +52,8 @@ public final class Tokenizer {
 
 			case LINE_COMMENT -> {
 				if (isEOL(c)) {
-					finalizeAndAddToken(tokens, buff, Token.Kind.COMMENT);
-					handleEOLToken(tokens, c, r);
+					finalizeAndAddToken(tokens, buff, Token.Kind.COMMENT, start);
+					handleEOLToken(tokens, c, r, start);
 					state = State.NORMAL;
 				} else {
 					buff.append(c);
@@ -60,7 +62,7 @@ public final class Tokenizer {
 
 			case WS -> {
 				if (!isWS(c)) {
-					finalizeAndAddToken(tokens, buff, Token.Kind.WHITESPACE);
+					finalizeAndAddToken(tokens, buff, Token.Kind.WHITESPACE, start);
 					if (c == '#') {
 						state = State.LINE_COMMENT;
 					} else {
@@ -69,13 +71,13 @@ public final class Tokenizer {
 				}
 
 				if (isEOL(c)) {
-					handleEOLToken(tokens, c, r);
+					handleEOLToken(tokens, c, r, start);
 				} else if (c == '"') {
-					finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED);
+					finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED, start);
 				} else if (c == '<') {
-					finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED);
+					finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED, start);
 				} else if (c == '{') {
-					finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO);
+					finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO, start);
 				} else {
 					if (c != '#') {
 						buff.append(c);
@@ -90,11 +92,11 @@ public final class Tokenizer {
 			// file terminated in the middle of content, finish tokens
 			// TODO maybe throw exception to warn about the issue.
 			if (state == State.NORMAL) {
-				finalizeAndAddToken(tokens, buff, Token.Kind.TEXT);
+				finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 			} else if (state == State.LINE_COMMENT) {
-				finalizeAndAddToken(tokens, buff, Token.Kind.COMMENT);
+				finalizeAndAddToken(tokens, buff, Token.Kind.COMMENT, start);
 			} else if (state == State.WS) {
-				finalizeAndAddToken(tokens, buff, Token.Kind.WHITESPACE);
+				finalizeAndAddToken(tokens, buff, Token.Kind.WHITESPACE, start);
 			}
 		}
 
@@ -183,29 +185,41 @@ public final class Tokenizer {
 		return buff.toString();
 	}
 
-	private static void handleEOLToken(List<Token> tokens, char c, PushbackReader r) throws IOException {
+	private static void handleEOLToken(List<Token> tokens, char c, PushbackReader r, Position start) throws IOException {
 		if (c == '\r') {
 			char c2 = (char) r.read();
 			if (c2 == '\n') {
-				finalizeAndAddToken(tokens, "\r\n", Token.Kind.EOL);
+				finalizeAndAddToken(tokens, "\r\n", Token.Kind.EOL, start);
 			} else {
 				r.unread(c2);
 			}
 		} else {
-			finalizeAndAddToken(tokens, "" + c, Token.Kind.EOL);
+			finalizeAndAddToken(tokens, "" + c, Token.Kind.EOL, start);
 		}
 	}
 
-	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind) {
+	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start) {
 		if (!contents.isEmpty()) {
-			tokens.add(new Token(contents, kind));
+			tokens.add(new Token(contents, kind, start.line(), start.col()));
+			// modify start aka current cursor position
+			if(kind == Token.Kind.EOL) {
+				start.newline();
+			} else {
+				start.forward(contents.length());
+			}
 		}
 	}
 
-	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind) {
+	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start) {
 		if (!buff.isEmpty()) {
-			tokens.add(new Token(buff.toString(), kind));
+			tokens.add(new Token(buff.toString(), kind, start.line(), start.col()));
 			buff.delete(0, buff.length());
+			// modify start aka current cursor position
+			if(kind == Token.Kind.EOL) {
+				start.newline();
+			} else {
+				start.forward(buff.length());
+			}
 		}
 	}
 
