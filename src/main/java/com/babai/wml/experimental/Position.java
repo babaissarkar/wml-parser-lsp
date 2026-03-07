@@ -1,5 +1,6 @@
 package com.babai.wml.experimental;
 
+/** Position is 1 based */
 public class Position {
 	private int col;
 	private int line;
@@ -7,6 +8,10 @@ public class Position {
 	public Position(int col, int line) {
 		this.col = col;
 		this.line = line;
+	}
+	
+	public static Position start() {
+		return new Position(1, 1);
 	}
 	
 	/** Copy ctor */
@@ -20,7 +25,7 @@ public class Position {
 	}
 	
 	public void newline() {
-		this.col = 0;
+		this.col = 1;
 		this.line += 1;
 	}
 	
