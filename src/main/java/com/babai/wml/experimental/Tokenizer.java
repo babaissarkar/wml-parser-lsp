@@ -19,7 +19,7 @@ public final class Tokenizer {
 		List<Token> tokens = new ArrayList<>();
 		StringBuilder buff = new StringBuilder();
 		State state = State.NORMAL;
-		Position start = new Position(1, 1);
+		Position start = Position.start();
 
 		int ch;
 		while((ch = r.read()) != -1) {
@@ -213,13 +213,13 @@ public final class Tokenizer {
 	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start) {
 		if (!buff.isEmpty()) {
 			tokens.add(new Token(buff.toString(), kind, start.line(), start.col()));
-			buff.delete(0, buff.length());
 			// modify start aka current cursor position
 			if(kind == Token.Kind.EOL) {
 				start.newline();
 			} else {
 				start.forward(buff.length());
 			}
+			buff.delete(0, buff.length());
 		}
 	}
 
