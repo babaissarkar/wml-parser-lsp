@@ -12,6 +12,13 @@ public final class Token {
 		this.kind = kind;
 	}
 	
+	public Token(String content, Kind kind, int beginLine, int beginColumn) {
+		this.content = content;
+		this.kind = kind;
+		this.beginLine = beginLine;
+		this.beginColumn = beginColumn;
+	}
+	
 	public String content() { return content; }
 	public Kind kind() { return kind; }
 	public int beginLine() { return beginLine; }
