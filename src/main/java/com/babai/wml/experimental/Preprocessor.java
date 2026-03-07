@@ -7,12 +7,15 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import com.babai.wml.core.Definition;
 import com.babai.wml.utils.Table;
 
+import static com.babai.wml.experimental.LogUtils.*;
+import static com.babai.wml.experimental.ParseUtils.*;
 import static com.babai.wml.experimental.Tokenizer.tokenize;
 
 public class Preprocessor {
@@ -42,26 +45,27 @@ public class Preprocessor {
 		
 		while (itor.hasNext()) {
 			Token t = itor.next();
-			if (t.getKind() == Token.Kind.TEXT) {
-				out.print(t.getContent());
-			}
-			else if (t.getKind() == Token.Kind.WHITESPACE) {
-				out.print(" ");
-			}
-			else if (t.getKind() == Token.Kind.EOL) {
-				out.print("\n");
-			}
-			else if (t.getKind() == Token.Kind.QUOTED) {
-				out.print("\"" + t.getContent() + "\"");
-			}
-			else if (t.getKind() == Token.Kind.ANGLE_QUOTED) {
-				out.print("<<" + t.getContent() + ">>");
-			}
-			else if (t.getKind() == Token.Kind.COMMENT) {
+
+			switch (t.kind()) {
+			case TEXT -> out.print(t.content());
+
+			case WHITESPACE -> out.print(" ");
+
+			case EOL -> out.print("\n");
+
+			case QUOTED -> out.print("\"" + t.content() + "\"");
+
+			case ANGLE_QUOTED -> out.print("<<" + t.content() + ">>");
+
+			case COMMENT -> {
 				if (t.isDirective()) {
 					handleDirective(t, itor);
 				}
-				// ignore comment otherwise
+				// otherwise ignore
+			}
+			
+			case MACRO -> throw new UnsupportedOperationException("Unimplemented case: " + t.kind());
+			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
 			}
 		}
 		
@@ -69,7 +73,7 @@ public class Preprocessor {
 	}
 	
 	private static void handleDirective(Token directiveStart, ListIterator<Token> itor) {
-		var directiveHeader = processDirectiveNameAndArgs(directiveStart);
+		var directiveHeader = DirectiveHeader.parse(directiveStart);
 
 		if (directiveHeader.name().equals("define")) {
 			var directiveArgs = directiveHeader.args();
@@ -86,7 +90,7 @@ public class Preprocessor {
 			var macroDefaultArgs = new LinkedHashMap<String, String>();
 			while (peek(itor).isDirectiveName("arg", true)) {
 				Token t = itor.next();
-				String defArgName = processDirectiveNameAndArgs(t).args()[0]; // arg NAME
+				String defArgName = DirectiveHeader.parse(t).args()[0]; // arg NAME
 				
 				skipEOL(itor);
 				
@@ -104,58 +108,55 @@ public class Preprocessor {
 		}
 	}
 	
-	private static Token peek(ListIterator<Token> it) {
-		Token t = it.next();
-		it.previous();
-		return t;
-	}
-	
-	private static void skipEOL(ListIterator<Token> itor) {
-		while (itor.hasNext() && peek(itor).getKind() == Token.Kind.EOL) {
-			itor.next();
-		}
-	}
-	
-	private record DirectiveHeader(String name, String[] args) {}
-	
-	private static DirectiveHeader processDirectiveNameAndArgs(Token token) {
-		if (!token.isDirective()) {
-			throw new RuntimeException("Not a directive!");
+	@SuppressWarnings("unused")
+	private static String expandMacroCall(
+			Token macroCall,
+			List<String> possibleArgs)
+	{
+		// TODO extract these from macroCall token
+		String macroName = "";
+		List<String> args = List.of();
+		HashMap<String, String> defArgs = new LinkedHashMap<>();
+		// ---------------------------------------
+		
+		List<Table.Row> rows = defines.getRows("Name", macroName);
+		Definition def = null;
+		if (!rows.isEmpty()) {
+			def = (Definition) rows.get(0).getColumn("Definition").getValue();
 		}
 		
-		String[] parts = token.getContent().split("\\s+", 2);
-		String name = parts[0];
-		String[] args = parts.length > 1 ? parts[1].split("\\s+") : new String[0];
-
-		return new DirectiveHeader(name, args);
+		if (def != null) {
+			String argsString = Definition.argsAsString(args, defArgs);
+			debugPrint("expanding macro " + def.name()
+				+ (!argsString.isEmpty() ? " with " + argsString : ""));
+			try {
+				return def.expand(args, defArgs);
+			} catch(IllegalArgumentException e) {
+				errorPrint(e.getMessage());
+				return macroCall.toString();
+			}
+		} else if (possibleArgs.contains(macroName)) {
+			// FIXME: do nothing for now. may need checks later why this is happening.
+			return macroCall.toString();
+		} else {
+			warningPrint(position(macroCall) + " undefined macro " + macroName);
+			return macroCall.toString();
+		}
 	}
 	
-	@SuppressWarnings("unused")
-	private static void debugPrintTok(Token t) {
-		var frame = StackWalker.getInstance()
-				.walk(s -> s.skip(1).findFirst().get());
-		System.out.println("[tok, " + frame.getMethodName() +":L" + frame.getLineNumber() + "]: " + t);
-	}
-
-	@SuppressWarnings("unused")
-	private static void debugPrintJ(String str) {
-		var frame = StackWalker.getInstance()
-				.walk(s -> s.skip(1).findFirst().get());
-		System.out.println("[" + frame.getMethodName() +":L" + frame.getLineNumber() + "]: " + str);
-	}
-
-	private static String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
-		StringBuilder body = new StringBuilder();
-		Token t = itor.next();
-		while (!t.isDirectiveName(directiveName, false)) {
-			if (!itor.hasNext()) {
-				// terminated before define completed, error
-				throw new RuntimeException("Incomplete macro definition!");
-			} else {
-				body.append(t.getContent());
-				t = itor.next();
+	private record DirectiveHeader(String name, String[] args) {
+		
+		// processDirectiveNameAndArgs
+		public static DirectiveHeader parse(Token token) {
+			if (!token.isDirective()) {
+				throw new RuntimeException("Not a directive!");
 			}
+			
+			String[] parts = token.content().split("\\s+", 2);
+			String name = parts[0];
+			String[] args = parts.length > 1 ? parts[1].split("\\s+") : new String[0];
+	
+			return new DirectiveHeader(name, args);
 		}
-		return body.toString();
 	}
 }
