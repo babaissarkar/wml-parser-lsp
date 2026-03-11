@@ -116,53 +116,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 	}
 
-	/** Returns the word under cursor in the file pointed by URI */
-	private static String getWordAtPosition(String uri, Position pos) throws IOException {
-		// Convert URI to path
-		String pathStr = Path.of(java.net.URI.create(uri)).toString();
-
-		// Read all lines
-		String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
-
-		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.');
-		Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
-
-		int lineNum = pos.getLine();
-		if (lineNum < 0 || lineNum >= lines.length)
-			return null;
-
-		String line = lines[lineNum];
-		int charIndex = pos.getCharacter();
-		if (charIndex < 0)
-			charIndex = 0;
-		if (charIndex >= line.length())
-			charIndex = line.length() - 1;
-
-		// If cursor is on whitespace, move back one char
-		if (!isValid.test(line.charAt(charIndex)) && charIndex > 0) {
-			charIndex--;
-		}
-
-		int start = charIndex;
-		int end = charIndex;
-
-		while (start > 0 && isValid.test(line.charAt(start - 1)))
-			start--;
-		while (end < line.length() && isValid.test(line.charAt(end)))
-			end++;
-
-		if (start >= end)
-			return null;
-		
-		// recognize tags
-		if (start > 0 && (line.charAt(start - 1) == '[') && end < line.length() && (line.charAt(end) == ']')) {
-			start -= 1;
-			end += 1;
-		}
-		
-		return line.substring(start, end);
-	}
-
 	public void connect(LanguageClient client) {
 		this.client = client;
 	}
@@ -495,5 +448,52 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
 		}
+	}
+	
+	/** Returns the word under cursor in the file pointed by URI */
+	private static String getWordAtPosition(String uri, Position pos) throws IOException {
+		// Convert URI to path
+		String pathStr = Path.of(java.net.URI.create(uri)).toString();
+
+		// Read all lines
+		String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
+
+		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.');
+		Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
+
+		int lineNum = pos.getLine();
+		if (lineNum < 0 || lineNum >= lines.length)
+			return null;
+
+		String line = lines[lineNum];
+		int charIndex = pos.getCharacter();
+		if (charIndex < 0)
+			charIndex = 0;
+		if (charIndex >= line.length())
+			charIndex = line.length() - 1;
+
+		// If cursor is on whitespace, move back one char
+		if (!isValid.test(line.charAt(charIndex)) && charIndex > 0) {
+			charIndex--;
+		}
+
+		int start = charIndex;
+		int end = charIndex;
+
+		while (start > 0 && isValid.test(line.charAt(start - 1)))
+			start--;
+		while (end < line.length() && isValid.test(line.charAt(end)))
+			end++;
+
+		if (start >= end)
+			return null;
+		
+		// recognize tags
+		if (start > 0 && (line.charAt(start - 1) == '[') && end < line.length() && (line.charAt(end) == ']')) {
+			start -= 1;
+			end += 1;
+		}
+		
+		return line.substring(start, end);
 	}
 }

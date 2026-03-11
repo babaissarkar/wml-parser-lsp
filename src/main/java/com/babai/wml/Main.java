@@ -23,25 +23,6 @@ import static com.babai.wml.utils.ANSIFormatter.*;
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 public class Main {
-	private static final String[] UNIT_TYPE_COLUMNS = {
-			"id",
-			"race",
-			"gender",
-			"hitpoints",
-			"movement_type",
-			"movement",
-			"experience",
-			"level",
-			"alignment",
-			"advances_to",
-			"cost",
-			"usage",
-			"name",
-			"image",
-			"profile",
-			"description"
-	};
-
 	public static void main(String[] args) {
 		var argParse = new ArgParser();
 		argParse.parseArgs(args);
@@ -94,6 +75,25 @@ public class Main {
 	}
 
 	private static void writeUnitTypeData(HashSet<Config> unitTypeData, Path unitTypeOutPath) {
+		final String[] UNIT_TYPE_COLUMNS = {
+			"id",
+			"race",
+			"gender",
+			"hitpoints",
+			"movement_type",
+			"movement",
+			"experience",
+			"level",
+			"alignment",
+			"advances_to",
+			"cost",
+			"usage",
+			"name",
+			"image",
+			"profile",
+			"description"
+		};
+		
 		try (BufferedWriter writer = Files.newBufferedWriter(unitTypeOutPath)) {
 
 			// Header
