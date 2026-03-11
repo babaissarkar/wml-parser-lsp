@@ -161,7 +161,6 @@ public class Main {
 	private static void initServer(ArgParser argParser) {
 		var server = new WMLLanguageServer(
 			argParser.predefines,
-			argParser.inputPath,
 			argParser.dataPath,
 			argParser.userDataPath,
 			argParser.includes);

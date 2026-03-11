@@ -74,8 +74,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Properties tagLinks = new Properties();
 	private Preprocessor p;
 
-	public WMLLanguageServer(Table predefines, Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
-		this.inputPath = inputPath;
+	public WMLLanguageServer(Table predefines, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 		this.dataPath = dataPath;
 		this.userDataPath = userDataPath;
 		this.includePaths = includePaths;
@@ -189,9 +188,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		syncOptions.setSave(true);
 		capabilities.setTextDocumentSync(syncOptions);
 		var result = new InitializeResult(capabilities);
+		
+		inputPath = Path.of(URI.create(params.getWorkspaceFolders().get(0).getUri()));
 
 		// Send a "ready" message after startup
-		showLSPMessage("WML LSP Server ready!");
+		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
 		initParserForLSP();
 
 		return CompletableFuture.completedFuture(result);
