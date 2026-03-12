@@ -11,9 +11,25 @@ import com.babai.wml.core.Definition;
 import com.babai.wml.experimental.Preprocessor;
 
 class PreprocessorTest {
-
+	
 	@Test
-	void testDefineBasic() {
+	void testDefineExpand() {
+		String defString = """
+			#define MYMACRO2
+			Something#enddef
+			{MYMACRO2}""";
+		try {
+			String str = Preprocessor.preprocess(new StringReader(defString));
+			System.out.println(str);
+			assertEquals(true, !str.isEmpty());
+			assertEquals("\nSomething", str);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	void testDefineArgs() {
 		String defString = """
 			#define MYMACRO ARG1 ARG2
 			#arg DARG1

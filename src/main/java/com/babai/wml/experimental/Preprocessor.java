@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -19,11 +20,7 @@ import static com.babai.wml.experimental.ParseUtils.*;
 import static com.babai.wml.experimental.Tokenizer.tokenize;
 
 public class Preprocessor {
-	private static Table defines = Table.ofWithIndices(
-			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
-			new String[]{"Line", "URI", "Name", "Definition"},
-			2  // index by Name column
-	);
+	private static Table defines;
 	
 	public static Table getDefines() {
 		return defines;
@@ -38,6 +35,12 @@ public class Preprocessor {
 	}
 	
 	public static String preprocess(Reader reader) throws IOException {
+		defines = Table.ofWithIndices(
+			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
+			new String[]{"Line", "URI", "Name", "Definition"},
+			2  // index by Name column
+		);
+		
 		var writer = new StringWriter();
 		PrintWriter out = new PrintWriter(writer);
 		
@@ -64,7 +67,7 @@ public class Preprocessor {
 				// otherwise ignore
 			}
 			
-			case MACRO -> throw new UnsupportedOperationException("Unimplemented case: " + t.kind());
+			case MACRO -> out.print(expandMacroCall(t, List.of()));
 			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
 			}
 		}
@@ -108,15 +111,41 @@ public class Preprocessor {
 		}
 	}
 	
-	@SuppressWarnings("unused")
-	private static String expandMacroCall(
-			Token macroCall,
-			List<String> possibleArgs)
-	{
-		// TODO extract these from macroCall token
-		String macroName = "";
-		List<String> args = List.of();
+	private static String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
+		StringBuilder body = new StringBuilder();
+		Token t = itor.next();
+		while (!t.isDirectiveName(directiveName, false)) {
+			if (!itor.hasNext()) {
+				// terminated before define completed, error
+				throw new RuntimeException("Incomplete macro definition!");
+			} else {
+				if (t.kind() == Token.Kind.MACRO) {
+					//TODO pass upper level args if nested in a #define
+					body.append(expandMacroCall(t, List.of()));
+				} else {
+					body.append(t.content());
+				}
+				t = itor.next();
+			}
+		}
+		return body.toString();
+	}
+	
+	private static String expandMacroCall(Token macroCall, List<String> possibleArgs) {
+		var parts = ParseUtils.splitParenQuoted(macroCall.content());
+		String macroName = parts.get(0);
+		List<String> args = new ArrayList<>();
 		HashMap<String, String> defArgs = new LinkedHashMap<>();
+		for (int i = 1; i < parts.size(); i++) {
+			String str = parts.get(i);
+			if (str.contains("=")) {
+				String[] keyVal = str.split("=", 2);
+				defArgs.put(keyVal[0], keyVal[1]);
+			} else {
+				args.add(str);
+			}
+		}
+		
 		// ---------------------------------------
 		
 		List<Table.Row> rows = defines.getRows("Name", macroName);
