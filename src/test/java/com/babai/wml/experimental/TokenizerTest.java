@@ -1,4 +1,4 @@
-package com.babai.wml;
+package com.babai.wml.experimental;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -9,10 +9,17 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.babai.wml.experimental.Token;
-import com.babai.wml.experimental.Tokenizer;
-
 class TokenizerTest {
+	@Test
+	void testParenQuotedSplit() {
+		String text = "Hello   (How\n are) you?";
+		var parts = ParseUtils.splitParenQuoted(text);
+		System.out.println("quoted split test: " + parts);
+		assertEquals(3, parts.size());
+		assertEquals("Hello", parts.get(0));
+		assertEquals("How\n are", parts.get(1));
+		assertEquals("you?", parts.get(2));
+	}
 
 	@Test
 	void testCommentSplit() {
