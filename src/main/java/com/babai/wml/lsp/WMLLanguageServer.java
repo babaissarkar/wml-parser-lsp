@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -29,6 +30,8 @@ import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.HoverParams;
 import org.eclipse.lsp4j.InitializeParams;
@@ -42,6 +45,7 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
+import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
@@ -129,7 +133,10 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 	}
 
+	
+	@SuppressWarnings("deprecation")
 	@Override
+	
 	public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
 		var capabilities = new ServerCapabilities();
 		capabilities.setDefinitionProvider(true);
@@ -142,7 +149,16 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setTextDocumentSync(syncOptions);
 		var result = new InitializeResult(capabilities);
 		
-		inputPath = Path.of(URI.create(params.getWorkspaceFolders().get(0).getUri()));
+		if (params.getWorkspaceFolders() != null && !params.getWorkspaceFolders().isEmpty()) {
+			// 1. Multi-root workspaces (modern)
+			inputPath = Path.of(URI.create(params.getWorkspaceFolders().get(0).getUri()));
+		} else if (params.getRootUri() != null) {
+			// 2. Single-root URI
+			inputPath = Path.of(URI.create(params.getRootUri()));
+		} else if (params.getRootPath() != null) {
+			// 3. Old deprecated rootPath
+			inputPath = Path.of(params.getRootPath());
+		}
 
 		// Send a "ready" message after startup
 		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
@@ -288,6 +304,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 
 		return CompletableFuture.completedFuture(null);
+	}
+	
+	@Override
+	public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
+		return CompletableFuture.completedFuture(Collections.emptyList());
 	}
 	
 	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
