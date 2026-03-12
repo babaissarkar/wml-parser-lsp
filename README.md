@@ -22,7 +22,7 @@ ollect macro definitions from it.
 les before the main input.
         -define/-d [macroname] [body]
                                Define this macro before parsing
-        -input/-i [path]       Preprocess the main input file
+        -input/-i [path]       Preprocess the main input file (Not needed in LSP Server mode `-s`)
         -output/-o [path]      Write output to the given file
         -help/-?/-h            Print this help
 ```
@@ -37,4 +37,19 @@ les before the main input.
 * Preliminary Wesnoth path autocomplete. (Triggered by '/')
 * Wesnoth Unit Type ids autocomplete. (Triggered by '=')
 
-Note: this is still very much a prototype. Please be forgiving and report any errors you come across. A log is usually available in Output tab in VSCode under WML LSP Server category.
+### Usage
+* **VSCode**: Use the extension from [here](https://github.com/babaissarkar/wml-extension).
+* **Kate**: Download the server JAR, install Java runtime, then use this config in **Settings > Configure Kate > LSP Client > User Server settings**.
+Adjust paths as needed. Append the `wml` section to your `servers` if you have other stuff there.
+```json
+{
+    "servers": {
+        "wml": {
+            "command": ["/usr/bin/java","-jar","/path/to/wml.jar","-s","-datadir","/path/to/wesnoth/data","-userdatadir","/path/to/wesnoth/user/data","-include","/path/to/wesnoth/datadir/core/macros","-include","/path/to/wesnoth/datadir/core/units.cfg"],
+             "highlightingModeRegex": "Wesnoth"
+        }
+   }
+}
+```
+
+Note: this is still very much a prototype. Please be forgiving and report any errors you come across. A log is usually available in Output tab in VSCode under WML LSP Server category, or the Output tab in Kate.

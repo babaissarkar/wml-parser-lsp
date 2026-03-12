@@ -38,7 +38,7 @@ public class ArgParser {
 				-define/-d [macroname] [body]
 				                       Define this macro before parsing
 				-extract [path]        Extract full unit type data and write it as CSV to the given path
-				-input/-i [path]       Preprocess the main input file
+				-input/-i [path]       Preprocess the main input file (Not needed in LSP Server mode `-s`)
 				-output/-o [path]      Write output to the given file
 				-help/-?/-h            Print this help""";
 
