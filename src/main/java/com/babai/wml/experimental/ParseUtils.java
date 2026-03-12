@@ -20,21 +20,6 @@ final class ParseUtils {
 		}
 	}
 	
-	static String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
-		StringBuilder body = new StringBuilder();
-		Token t = itor.next();
-		while (!t.isDirectiveName(directiveName, false)) {
-			if (!itor.hasNext()) {
-				// terminated before define completed, error
-				throw new RuntimeException("Incomplete macro definition!");
-			} else {
-				body.append(t.content());
-				t = itor.next();
-			}
-		}
-		return body.toString();
-	}
-	
 	static List<String> splitParenQuoted(String token) {
 		List<String> parts = new ArrayList<>();
 		
