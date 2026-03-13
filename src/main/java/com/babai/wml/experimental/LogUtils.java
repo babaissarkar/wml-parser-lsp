@@ -12,9 +12,9 @@ final class LogUtils {
 	private final static Logger pL = Logger.getLogger("preprocessor.parse");
 	
 	// TODO setters needed
-	private static boolean showParseLogs = true;
-	private static boolean warnParseLogs = true;
-	private static boolean disableErrors = false;
+	private static volatile boolean showParseLogs = true;
+	private static volatile boolean warnParseLogs = true;
+	private static volatile boolean disableErrors = false;
 	
 	static {
 		setLoggingFormat();
