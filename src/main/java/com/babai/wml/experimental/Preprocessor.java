@@ -13,8 +13,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import com.babai.wml.core.Definition;
+import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
 
+import static com.babai.wml.utils.ANSIFormatter.colorify;
 import static com.babai.wml.experimental.LogUtils.*;
 import static com.babai.wml.experimental.ParseUtils.*;
 import static com.babai.wml.experimental.Tokenizer.tokenize;
@@ -107,6 +109,7 @@ public class Preprocessor {
 			
 			// dummy, needs more info
 			//defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
+			debugPrint("defining macro " + colorify(def.name(), Colors.macroNameColor));
 			defines.addRow(directiveStart.beginLine(), ".", macroName, def);
 		}
 	}
