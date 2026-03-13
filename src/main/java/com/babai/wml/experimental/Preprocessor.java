@@ -1,5 +1,6 @@
 package com.babai.wml.experimental;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -109,7 +110,7 @@ public class Preprocessor {
 			
 			// dummy, needs more info
 			//defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
-			debugPrint("defining macro " + colorify(def.name(), Colors.macroNameColor));
+			debugPrint("defining macro " + def.coloredName());
 			defines.addRow(directiveStart.beginLine(), ".", macroName, def);
 		}
 	}
@@ -159,8 +160,9 @@ public class Preprocessor {
 		
 		if (def != null) {
 			String argsString = Definition.argsAsString(args, defArgs);
-			debugPrint("expanding macro " + def.name()
-				+ (!argsString.isEmpty() ? " with " + argsString : ""));
+			debugPrint("expanding macro "
+				+ def.coloredName()
+				+ (!argsString.isEmpty() ? " with " + colorify(argsString, Colors.macroArgColor) : ""));
 			try {
 				return def.expand(args, defArgs);
 			} catch(IllegalArgumentException e) {
@@ -171,7 +173,7 @@ public class Preprocessor {
 			// FIXME: do nothing for now. may need checks later why this is happening.
 			return macroCall.toString();
 		} else {
-			warningPrint(position(macroCall) + " undefined macro " + macroName);
+			warningPrint(position(macroCall) + " undefined macro " + colorify(macroName, Color.RED));
 			return macroCall.toString();
 		}
 	}
