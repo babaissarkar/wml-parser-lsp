@@ -23,27 +23,38 @@ import static com.babai.wml.experimental.ParseUtils.*;
 import static com.babai.wml.experimental.Tokenizer.tokenize;
 
 public class Preprocessor {
-	private static Table defines;
+	private Table defines;
+	private PathContext context;
 	
-	public static Table getDefines() {
-		return defines;
-	}
-
-	public static void setDefines(Table defines) {
-		Preprocessor.defines = defines;
-	}
-
-	public static String preprocess(Path inputPath) throws IOException {
-		return preprocess(Files.newBufferedReader(inputPath));
-	}
-	
-	public static String preprocess(Reader reader) throws IOException {
-		defines = Table.ofWithIndices(
+	// toplevel
+	public Preprocessor(PathContext context) {
+		this.context = context;
+		this.defines =  Table.ofWithIndices(
 			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
 			new String[]{"Line", "URI", "Name", "Definition"},
 			2  // index by Name column
 		);
-		
+	}
+	
+	// usually for child processes
+	private Preprocessor(PathContext context, Table defines) {
+		this.context = context;
+		this.defines = defines;
+	}
+	
+	public Table getDefines() {
+		return defines;
+	}
+
+	public void setDefines(Table defines) {
+		this.defines = defines;
+	}
+
+	public String preprocess() throws IOException {
+		return preprocess(Files.newBufferedReader(context.currentPath()));
+	}
+	
+	public String preprocess(Reader reader) throws IOException {
 		var writer = new StringWriter();
 		PrintWriter out = new PrintWriter(writer);
 		
@@ -65,12 +76,13 @@ public class Preprocessor {
 
 			case COMMENT -> {
 				if (t.isDirective()) {
-					handleDirective(t, itor);
+					String path = this.context.currentPath().toAbsolutePath().toString();
+					handleDirective(t, itor, path);
 				}
 				// otherwise ignore
 			}
 			
-			case MACRO -> out.print(expandMacroCall(t, List.of()));
+			case MACRO -> out.print(expandMacro(t, List.of(), this.context));
 			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
 			}
 		}
@@ -78,7 +90,27 @@ public class Preprocessor {
 		return writer.toString();
 	}
 	
-	private static void handleDirective(Token directiveStart, ListIterator<Token> itor) {
+	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
+		StringBuilder body = new StringBuilder();
+		Token t = itor.next();
+		while (!t.isDirectiveName(directiveName, false)) {
+			if (!itor.hasNext()) {
+				// terminated before define completed, error
+				throw new RuntimeException("Incomplete macro definition!");
+			} else {
+				if (t.kind() == Token.Kind.MACRO) {
+					//TODO pass upper level args if nested in a #define
+					body.append(expandMacro(t, List.of(), this.context));
+				} else {
+					body.append(t.content());
+				}
+				t = itor.next();
+			}
+		}
+		return body.toString();
+	}
+	
+	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathname) {
 		var directiveHeader = DirectiveHeader.parse(directiveStart);
 
 		if (directiveHeader.name().equals("define")) {
@@ -111,31 +143,48 @@ public class Preprocessor {
 			// dummy, needs more info
 			//defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
 			debugPrint("defining macro " + def.coloredName());
-			defines.addRow(directiveStart.beginLine(), ".", macroName, def);
+			defines.addRow(directiveStart.beginLine(), pathname, macroName, def);
 		}
 	}
 	
-	private static String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
-		StringBuilder body = new StringBuilder();
-		Token t = itor.next();
-		while (!t.isDirectiveName(directiveName, false)) {
-			if (!itor.hasNext()) {
-				// terminated before define completed, error
-				throw new RuntimeException("Incomplete macro definition!");
-			} else {
-				if (t.kind() == Token.Kind.MACRO) {
-					//TODO pass upper level args if nested in a #define
-					body.append(expandMacroCall(t, List.of()));
-				} else {
-					body.append(t.content());
-				}
-				t = itor.next();
+	private boolean isPath(String str) {
+		return str.contains("/");
+	}
+	
+	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
+		if (isPath(macroCall.toString())) {
+			// TODO possibleArgs should be zero in this case, otherwise error.
+			return handleFileInclusion(macroCall, context);
+		} else {
+			return expandMacroCall(macroCall, possibleArgs);
+		}
+	}
+	
+	private String handleFileInclusion(Token macroCall, PathContext context) {
+		Path p = context.resolve(macroCall.content());
+
+		debugPrint("Trying to include: " + colorify(p.toString(), Colors.filePathColor));
+
+		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return "";
+
+		if (Files.exists(p)) {
+			debugPrint("Including: " + colorify(p.toString(), Colors.filePathColor));
+			try {
+				// FIXME appended defines from child preproc to this one.
+				var child = new Preprocessor(context.withCurrentPath(p), defines);
+				child.setDefines(this.defines);
+				return child.preprocess();
+			} catch(IOException ioe) {
+				errorPrint("Cannot find file/folder " + macroCall.content());
 			}
+		} else {
+			warningPrint(macroCall.content() + " not found");
 		}
-		return body.toString();
+		
+		return "";
 	}
 	
-	private static String expandMacroCall(Token macroCall, List<String> possibleArgs) {
+	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
 		var parts = ParseUtils.splitParenQuoted(macroCall.content());
 		String macroName = parts.get(0);
 		List<String> args = new ArrayList<>();
@@ -179,7 +228,6 @@ public class Preprocessor {
 	}
 	
 	private record DirectiveHeader(String name, String[] args) {
-		
 		// processDirectiveNameAndArgs
 		public static DirectiveHeader parse(Token token) {
 			if (!token.isDirective()) {
