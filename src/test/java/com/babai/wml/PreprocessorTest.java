@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.StringReader;
 
 import com.babai.wml.core.Definition;
+import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
 
 class PreprocessorTest {
@@ -19,7 +20,8 @@ class PreprocessorTest {
 			Something#enddef
 			{MYMACRO2}""";
 		try {
-			String str = Preprocessor.preprocess(new StringReader(defString));
+			var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+			String str = preproc.preprocess(new StringReader(defString));
 			System.out.println(str);
 			assertEquals(true, !str.isEmpty());
 			assertEquals("\nSomething", str);
@@ -42,8 +44,9 @@ class PreprocessorTest {
 			default3#endarg
 			Something#enddef""";
 		try {
-			Preprocessor.preprocess(new StringReader(defString));
-			var defines = Preprocessor.getDefines();
+			var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+			preproc.preprocess(new StringReader(defString));
+			var defines = preproc.getDefines();
 			assertEquals(1, defines.rowCount()); // Only 1 macro defined
 			var rows = defines.getRows("Name", "MYMACRO");
 			assertEquals(1, rows.size()); // Can be retrieved
