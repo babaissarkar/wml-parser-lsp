@@ -1,10 +1,14 @@
 package com.babai.wml.core;
 
+import static com.babai.wml.utils.ANSIFormatter.colorify;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
+
+import com.babai.wml.utils.Colors;
 
 public class Definition {
 	private String name, value, docs;
@@ -173,6 +177,10 @@ public class Definition {
 	public String name() {
 		String argsAsString = argsAsString(args, defArgs);
 		return "{" + name + (!argsAsString.isEmpty() ? " " + argsAsString : "") + "}";
+	}
+	
+	public String coloredName() {
+		return colorify(name(), Colors.macroNameColor);
 	}
 
 	public static String argsAsString(Vector<String> args, Map<String, String> defArgs) {
