@@ -6,18 +6,23 @@ import org.eclipse.lsp4j.services.*;
 import com.babai.wml.core.Config;
 import com.babai.wml.core.ConfigAttributeBase;
 import com.babai.wml.lsp.WMLLanguageServer;
-import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.experimental.*;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
 
 import java.awt.Color;
+
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.logging.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
 import static com.babai.wml.utils.ANSIFormatter.*;
 
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
@@ -39,41 +44,52 @@ public class Main {
 	}
 
 	private static void initParse(ArgParser argParse) throws IOException {
-		var p = new Preprocessor(System.in);
-		p.showParseLogs(argParse.showParseLogs);
-		p.showWarnLogs(argParse.warnParseLogs);
-		p.setOutput(argParse.out == null ? System.out : argParse.out);
-		p.setDefinesMap(argParse.predefines);
-		p.setExtractData(argParse.extractUnitTypeData);
-		p.token_source.dataPath = argParse.dataPath;
-		p.token_source.userDataPath = argParse.userDataPath;
-		p.token_source.showLogs = argParse.showLogs;
+		LogUtils.showParseLogs(argParse.showParseLogs);
+		LogUtils.showParseWarnings(argParse.warnParseLogs);
+		
+		PathContext context = new PathContext(
+			argParse.dataPath,
+			argParse.userDataPath,
+			new ArrayList<Path>());
+		
+		var p = new Preprocessor(context, argParse.predefines);
+		if (argParse.outputPath != null) {
+			p.setOutput(Files.newBufferedWriter(argParse.outputPath));
+		} else {
+			p.setOutput(new BufferedWriter(new OutputStreamWriter(System.out)));
+		}
+//		p.setExtractData(argParse.extractUnitTypeData);
 
 		if (argParse.inputPath != null) {
-			p.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), Colors.filePathColor));
+			LogUtils.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), Colors.filePathColor));
 		}
 
 		for (Path incpath : argParse.includes) {
-			p.subparse(incpath);
+			// FIXME this cannot handle directories!!
+			p.preprocess(incpath);
 		}
 
 		if (argParse.inputPath != null) {
-			p.subparse(argParse.inputPath);
+			p.preprocess(argParse.inputPath);
+		} else {
+			p.preprocess(new InputStreamReader(System.in));
 		}
 
-		var unitTypes = p.getUnitTypes();
-		p.debugPrint("Binary Paths: " + p.getBinaryPaths());
-		if (argParse.extractUnitTypeData) {
-			HashSet<Config> unitTypeData = p.getUnitTypeData();
-			writeUnitTypeData(unitTypeData, argParse.unitTypeOutPath);
-			p.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypeData.size() + " unit types defined.");
-		} else {
-			p.debugPrint("Unit Types: " + unitTypes);
-			p.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
-		}
+//		var unitTypes = p.getUnitTypes();
+//		p.debugPrint("Binary Paths: " + p.getBinaryPaths());
+//		if (argParse.extractUnitTypeData) {
+//			HashSet<Config> unitTypeData = p.getUnitTypeData();
+//			writeUnitTypeData(unitTypeData, argParse.unitTypeOutPath);
+//			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypeData.size() + " unit types defined.");
+//		} else {
+//			LogUtils.debugPrint("Unit Types: " + unitTypes);
+//			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
+//		}
 		
+		LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 	}
 
+	@SuppressWarnings("unused")
 	private static void writeUnitTypeData(HashSet<Config> unitTypeData, Path unitTypeOutPath) {
 		final String[] UNIT_TYPE_COLUMNS = {
 			"id",
