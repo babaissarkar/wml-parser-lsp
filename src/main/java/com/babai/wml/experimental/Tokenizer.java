@@ -139,7 +139,7 @@ public final class Tokenizer {
 
 	// Note: this assumes that r is currently at the character '<' (greater than)
 	// Note: we are skipping << and >> from the token text itself, can be deduced from token kind
-	// TODO throw exception if mismatched quoted
+	// TODO throw exception if mismatched
 	private static String readAngleQuoteToken(PushbackReader r) throws IOException {
 		var buff = new StringBuilder();
 		int ch = r.read();
@@ -169,15 +169,25 @@ public final class Tokenizer {
 
 	// Note: this assumes that r is currently at the character '{' (greater than)
 	// Note: we are skipping { and } from the token text itself, can be deduced from token kind
-	// TODO throw exception if mismatched quoted
+	// TODO throw exception if mismatched or prematurely terminates
+	// TODO what about { inside quotes? like {HELLO "some{weirdo"}
 	private static String readMacroToken(PushbackReader r) throws IOException {
 		var buff = new StringBuilder();
 		int ch;
+		int nlvl = 0; // nesting level
 
 		while((ch = r.read()) != -1) {
 			char c = (char) ch;
-			if (c == '}') {
-				break;
+			if (c == '{') {
+				nlvl++;
+				buff.append(c); // keep inner braces
+			} else if (c == '}') {
+				if (nlvl == 0) {
+					break;
+				} else {
+					nlvl--;
+					buff.append(c); // keep inner braces
+				}
 			} else {
 				buff.append(c);
 			}
