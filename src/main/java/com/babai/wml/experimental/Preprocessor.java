@@ -25,6 +25,7 @@ import static com.babai.wml.experimental.Tokenizer.tokenize;
 public class Preprocessor {
 	private Table defines;
 	private PathContext context;
+	private Path currentPath = Path.of(".");
 	
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -37,7 +38,7 @@ public class Preprocessor {
 	}
 	
 	// usually for child processes
-	private Preprocessor(PathContext context, Table defines) {
+	public Preprocessor(PathContext context, Table defines) {
 		this.context = context;
 		this.defines = defines;
 	}
@@ -45,13 +46,10 @@ public class Preprocessor {
 	public Table getDefines() {
 		return defines;
 	}
-
-	public void setDefines(Table defines) {
-		this.defines = defines;
-	}
-
-	public String preprocess() throws IOException {
-		return preprocess(Files.newBufferedReader(context.currentPath()));
+	
+	public String preprocess(Path inputPath) throws IOException {
+		this.currentPath = inputPath;
+		return preprocess(Files.newBufferedReader(inputPath));
 	}
 	
 	public String preprocess(Reader reader) throws IOException {
@@ -76,7 +74,7 @@ public class Preprocessor {
 
 			case COMMENT -> {
 				if (t.isDirective()) {
-					String path = this.context.currentPath().toAbsolutePath().toString();
+					String path = currentPath.toAbsolutePath().toString();
 					handleDirective(t, itor, path);
 				}
 				// otherwise ignore
@@ -161,7 +159,7 @@ public class Preprocessor {
 	}
 	
 	private String handleFileInclusion(Token macroCall, PathContext context) {
-		Path p = context.resolve(macroCall.content());
+		Path p = context.resolve(macroCall.content(), currentPath);
 
 		debugPrint("Trying to include: " + colorify(p.toString(), Colors.filePathColor));
 
@@ -170,10 +168,7 @@ public class Preprocessor {
 		if (Files.exists(p)) {
 			debugPrint("Including: " + colorify(p.toString(), Colors.filePathColor));
 			try {
-				// FIXME appended defines from child preproc to this one.
-				var child = new Preprocessor(context.withCurrentPath(p), defines);
-				child.setDefines(this.defines);
-				return child.preprocess();
+				preprocess(p);
 			} catch(IOException ioe) {
 				errorPrint("Cannot find file/folder " + macroCall.content());
 			}
