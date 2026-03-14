@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.regex.Pattern;
 import com.babai.wml.core.Definition;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
@@ -172,14 +173,16 @@ public class Preprocessor {
 		}
 	}
 	
+	private final static Pattern wspattern = Pattern.compile("\\s+");
 	private boolean isPath(String str) {
-		return str.contains("/");
+		return str.contains("/") && !wspattern.matcher(str).find();
 	}
 	
 	// TODO This might need to be recursive, like after expansion
 	// if macro exists, expand again and so on until no macro calls remain.
 	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
-		if (isPath(macroCall.toString())) {
+		var parts = ParseUtils.splitParenQuoted(macroCall.content());
+		if (parts.size() > 1 && isPath(macroCall.toString())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
 			return handleFileInclusion(macroCall, context);
 		} else {
