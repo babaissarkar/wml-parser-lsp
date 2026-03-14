@@ -53,11 +53,35 @@ public class Preprocessor {
 		this.writer  = writer;
 	}
 	
-	public void preprocess(Path inputPath) throws IOException {
-		this.currentPath = inputPath;
-		preprocess(Files.newBufferedReader(inputPath));
+	// Can handle both file or folder
+	public void preprocess(Path path) throws IOException {
+		String coloredPath = colorify(path.toString(), Colors.filePathColor);
+		if (Files.isDirectory(path)) {
+			debugPrint("Including directory: " + coloredPath);
+			Path main = path.resolve("_main.cfg");
+			if (Files.exists(main)) {
+				path = main;
+			} else {
+				try (var stream = Files.list(path)) {
+					var files = stream.sorted().toList();
+					for (Path f : files) {
+						if (Files.isDirectory(f) || !f.toString().endsWith(".cfg"))
+							return;
+						preprocess(f);
+					}
+				} catch (IOException e) {
+					errorPrint("Cannot find " + path + ", skipping.");
+				}
+				return;
+			}
+		} else {
+			this.currentPath = path;
+			debugPrint("Preprocessing: " + coloredPath);
+			preprocess(Files.newBufferedReader(path));
+		}
 	}
 	
+	// Can only deal with a file
 	public void preprocess(Reader reader) throws IOException {
 		var out = new PrintWriter(
 			this.writer == null
@@ -102,12 +126,7 @@ public class Preprocessor {
 				// terminated before define completed, error
 				throw new RuntimeException("Incomplete macro definition!");
 			} else {
-				if (t.kind() == Token.Kind.MACRO) {
-					//TODO pass upper level args if nested in a #define
-					body.append(expandMacro(t, List.of(), this.context));
-				} else {
-					body.append(t.content());
-				}
+				body.append(t.content());
 				t = itor.next();
 			}
 		}
@@ -155,6 +174,8 @@ public class Preprocessor {
 		return str.contains("/");
 	}
 	
+	// TODO This might need to be recursive, like after expansion
+	// if macro exists, expand again and so on until no macro calls remain.
 	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
 		if (isPath(macroCall.toString())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
