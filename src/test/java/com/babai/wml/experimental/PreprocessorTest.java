@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 
 import com.babai.wml.core.Definition;
 
@@ -19,7 +20,10 @@ class PreprocessorTest {
 			{MYMACRO2}""";
 		try {
 			var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-			String str = preproc.preprocess(new StringReader(defString));
+			var writer = new StringWriter();
+			preproc.setOutput(writer);
+			preproc.preprocess(new StringReader(defString));
+			String str = writer.toString();
 			System.out.println(str);
 			assertEquals(true, !str.isEmpty());
 			assertEquals("\nSomething", str);
