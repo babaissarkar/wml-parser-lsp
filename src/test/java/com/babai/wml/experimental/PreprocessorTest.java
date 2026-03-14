@@ -1,4 +1,4 @@
-package com.babai.wml;
+package com.babai.wml.experimental;
 
 import org.junit.jupiter.api.Test;
 
@@ -8,8 +8,6 @@ import java.io.IOException;
 import java.io.StringReader;
 
 import com.babai.wml.core.Definition;
-import com.babai.wml.experimental.PathContext;
-import com.babai.wml.experimental.Preprocessor;
 
 class PreprocessorTest {
 	
