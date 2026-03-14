@@ -8,16 +8,27 @@ import com.babai.wml.utils.Colors;
 
 import static com.babai.wml.utils.ANSIFormatter.*;
 
-final class LogUtils {
+public final class LogUtils {
 	private final static Logger pL = Logger.getLogger("preprocessor.parse");
 	
-	// TODO setters needed
 	private static volatile boolean showParseLogs = true;
 	private static volatile boolean warnParseLogs = true;
 	private static volatile boolean disableErrors = false;
 	
 	static {
 		setLoggingFormat();
+	}
+	
+	public static void showParseLogs(boolean showParseLogs) {
+		LogUtils.showParseLogs = showParseLogs;
+	}
+
+	public static void showParseWarnings(boolean warnParseLogs) {
+		LogUtils.warnParseLogs = warnParseLogs;
+	}
+
+	public static void disableErrors(boolean disableErrors) {
+		LogUtils.disableErrors = disableErrors;
 	}
 	
 	private LogUtils() {}
