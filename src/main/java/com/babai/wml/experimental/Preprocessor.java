@@ -124,7 +124,8 @@ public class Preprocessor {
 		while (!t.isDirectiveName(directiveName, false)) {
 			if (!itor.hasNext()) {
 				// terminated before define completed, error
-				errorPrint("Incomplete macro def for " + directiveName + "at " + position(t));
+				errorPrint("Incomplete macro definition for "
+						+ colorify(directiveName, Colors.directiveColor) + " at " + position(t));
 				break;
 			} else {
 				body.append(t.content());
@@ -198,7 +199,7 @@ public class Preprocessor {
 			try {
 				preprocess(p);
 			} catch(IOException ioe) {
-				errorPrint("Cannot find file/folder " + macroCall.content());
+				errorPrint("Cannot find file/folder " + colorify(macroCall.content(), Colors.filePathColor));
 			}
 		} else {
 			warningPrint(macroCall.content() + " not found");
@@ -238,7 +239,7 @@ public class Preprocessor {
 			try {
 				return def.expand(args, defArgs);
 			} catch(IllegalArgumentException e) {
-				errorPrint(e.getMessage());
+				errorPrint("Error expanding macro " + def.coloredName() + ": " + e.getMessage());
 				return macroCall.toString();
 			}
 		} else if (possibleArgs.contains(macroName)) {

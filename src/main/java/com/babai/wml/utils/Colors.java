@@ -5,6 +5,7 @@ import java.awt.Color;
 public final class Colors {
 	private Colors() {}
 
+	public static final Color directiveColor = Color.ORANGE;
 	public static final Color tdColor = new Color(255, 221, 0);
 	public static final Color macroNameColor = new Color(0, 255, 128);
 	public static final Color macroArgColor = new Color(255, 0, 255);
