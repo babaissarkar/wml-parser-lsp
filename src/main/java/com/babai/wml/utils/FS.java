@@ -6,8 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import com.babai.wml.experimental.PathContext;
-
 public final class FS {
 	private FS() {
 	}
