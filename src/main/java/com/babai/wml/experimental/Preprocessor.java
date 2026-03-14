@@ -124,7 +124,8 @@ public class Preprocessor {
 		while (!t.isDirectiveName(directiveName, false)) {
 			if (!itor.hasNext()) {
 				// terminated before define completed, error
-				throw new RuntimeException("Incomplete macro definition!");
+				errorPrint("Incomplete macro def for " + directiveName + "at " + position(t));
+				break;
 			} else {
 				body.append(t.content());
 				t = itor.next();
@@ -253,7 +254,7 @@ public class Preprocessor {
 		// processDirectiveNameAndArgs
 		public static DirectiveHeader parse(Token token) {
 			if (!token.isDirective()) {
-				throw new RuntimeException("Not a directive!");
+				errorPrint("Unknown directive found at " + position(token));
 			}
 			
 			String[] parts = token.content().split("\\s+", 2);
