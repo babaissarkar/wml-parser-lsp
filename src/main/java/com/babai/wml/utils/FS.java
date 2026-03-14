@@ -5,8 +5,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import com.babai.wml.experimental.PathContext;
-
 public final class FS {
 	private FS() {
 	}
@@ -27,17 +25,7 @@ public final class FS {
 		return "";
 	}
 
-	/** Convert Wesnoth path string to NIO Path object */
-	public static Path resolve(String pathStr, PathContext context) {
-		return resolve(
-			pathStr,
-			context.binaryPaths(),
-			context.currentPath(),
-			context.dataPath(),
-			context.userDataPath()
-		);
-	}
-	
+	/** Convert Wesnoth path string to NIO Path object */	
 	public static Path resolve(String pathStr, List<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
