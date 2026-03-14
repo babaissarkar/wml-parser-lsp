@@ -2,9 +2,10 @@ package com.babai.wml.experimental;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
-import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class Preprocessor {
 	private Table defines;
 	private PathContext context;
 	private Path currentPath = Path.of(".");
+	private Writer writer = null;
 	
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -47,14 +49,20 @@ public class Preprocessor {
 		return defines;
 	}
 	
-	public String preprocess(Path inputPath) throws IOException {
-		this.currentPath = inputPath;
-		return preprocess(Files.newBufferedReader(inputPath));
+	public void setOutput(Writer writer) {
+		this.writer  = writer;
 	}
 	
-	public String preprocess(Reader reader) throws IOException {
-		var writer = new StringWriter();
-		PrintWriter out = new PrintWriter(writer);
+	public void preprocess(Path inputPath) throws IOException {
+		this.currentPath = inputPath;
+		preprocess(Files.newBufferedReader(inputPath));
+	}
+	
+	public void preprocess(Reader reader) throws IOException {
+		var out = new PrintWriter(
+			this.writer == null
+				? new OutputStreamWriter(System.out)
+				: this.writer);
 		
 		var itor = tokenize(reader).listIterator();
 		
@@ -84,8 +92,6 @@ public class Preprocessor {
 			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
 			}
 		}
-		
-		return writer.toString();
 	}
 	
 	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
