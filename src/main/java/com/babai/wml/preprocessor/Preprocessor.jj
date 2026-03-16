@@ -44,6 +44,8 @@ public class Preprocessor {
 			2  // index by Name column
 	);
 
+	private static List<MacroCall> macroCalls = new ArrayList<>();
+
 	// TODO don't expose this, and just use subparse
 	public Preprocessor(Path filePath) throws IOException {
 		this(Files.newInputStream(filePath));
@@ -224,6 +226,10 @@ public class Preprocessor {
 	
 	public HashSet<Config> getUnitTypeData() {
 		return Preprocessor.unitTypesFull;
+	}
+	
+	public List<MacroCall> getMacroCalls() {
+		return Preprocessor.macroCalls;
 	}
 	
 	public void setDefinesMap(Table defines) {
@@ -494,34 +500,50 @@ String expandAll(Vector<String> possibleArgs) :
 String expand(Vector<String> possibleArgs) :
 {
 	Token name, arg, defarg = null;
+	Token callStart, callEnd;
 	String val;
+	int argStart = 0, argEnd = 0, argLine = -1;
 	var defArgs = new HashMap<String, String>();
-	Vector<String> args = new Vector<>();
+	Vector<MacroArg> args = new Vector<>();
 	StringBuilder sb = new StringBuilder();
 }
 {
 	(
-		(<LBR>) (<SPACE>)* (name=<STRING>) { sb.append("{" + name.image); }
+		(callStart=<LBR>) (<SPACE>)* (name=<STRING>) { sb.append("{" + name.image); }
 		(
 			(<SPACE>|<EOL>)+
 			(defarg=<STRING> <EQL>)?
 			(
-				val=expandAll(possibleArgs)
-			|	(arg=<STRING>|arg=<PATH>|arg=<QUOTED_STRING>) { val = arg.image; }
+				val=expandAll(possibleArgs) {
+					if (defarg != null) {
+						argLine = defarg.beginLine;
+						argStart = defarg.beginColumn;
+						argEnd = defarg.endColumn;
+					}
+				}
+			|	(arg=<STRING>|arg=<PATH>|arg=<QUOTED_STRING>) {
+					val = arg.image;
+					argLine = arg.beginLine;
+					argStart = arg.beginColumn;
+					argEnd = arg.endColumn;
+				}
 			|	(arg=<INBLK>) {
 					val = arg.image.substring(1, arg.image.length()-1);
+					argLine = arg.beginLine;
+					argStart = arg.beginColumn;
+					argEnd = arg.endColumn;
 				} // fix for parens
 			) {
 				sb.append(" " + val);
 				if (defarg == null) {
-					args.add(val);
+					args.add(new MacroArg(val, argLine-1, argStart, argEnd)); // FIXME ad-hoc -1
 				} else {
 					defArgs.put(defarg.image, val);
 				}
 			}
 		)*
 		(<SPACE>|<EOL>)*
-		(<RBR>) { sb.append("}"); }
+		(callEnd=<RBR>) { sb.append("}"); }
 	) {
 		List<Table.Row> rows = defines.getRows("Name", name.image);
 		Definition def = null;
@@ -530,11 +552,19 @@ String expand(Vector<String> possibleArgs) :
 		}
 		
 		if (def != null) {
-			String argsString = Definition.argsAsString(args, defArgs);
+			String argsString = Definition.argsAsString2(args, defArgs);
 			debugPrint("expanding macro " + def.name()
 				+ (!argsString.isEmpty() ? " with " + argsString : ""));
 			try {
-				String res = def.expand(args, defArgs);
+				String res = def.expand2(args, defArgs);
+				macroCalls.add(new MacroCall(
+					name.image,
+					callStart.beginLine-1, //FIXME ad-hoc -1
+					callEnd.beginLine-1, //FIXME ad-hoc -1
+					callStart.beginColumn-1, //FIXME ad-hoc -1
+					callEnd.beginColumn,
+					args,
+					currentPath.toUri().toString()));
 				return res;
 			} catch(IllegalArgumentException e) {
 				errorPrint(e.getMessage());

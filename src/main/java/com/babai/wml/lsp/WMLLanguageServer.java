@@ -6,7 +6,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -36,6 +35,10 @@ import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.HoverParams;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
+import org.eclipse.lsp4j.InlayHint;
+import org.eclipse.lsp4j.InlayHintKind;
+import org.eclipse.lsp4j.InlayHintLabelPart;
+import org.eclipse.lsp4j.InlayHintParams;
 import org.eclipse.lsp4j.InsertTextFormat;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
@@ -46,6 +49,7 @@ import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
+import org.eclipse.lsp4j.SymbolKind;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
@@ -57,6 +61,8 @@ import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
 import com.babai.wml.core.Definition;
+import com.babai.wml.core.MacroArg;
+import com.babai.wml.core.MacroCall;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.FS;
@@ -71,6 +77,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Table defines;
 	private Vector<Path> includePaths = new Vector<>();
 	private List<Path> binaryPaths = new ArrayList<>();
+	private List<MacroCall> calls = new ArrayList<>();
 	private HashSet<String> unitTypes = new HashSet<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
@@ -141,6 +148,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		var capabilities = new ServerCapabilities();
 		capabilities.setDefinitionProvider(true);
 		capabilities.setHoverProvider(true);
+		capabilities.setInlayHintProvider(true);
+		capabilities.setDocumentSymbolProvider(true);
 		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
 		TextDocumentSyncOptions syncOptions = new TextDocumentSyncOptions();
 		syncOptions.setOpenClose(true);
@@ -162,7 +171,10 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		// Send a "ready" message after startup
 		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
+		
 		initParserForLSP();
+		
+		showLSPMessage("Macro calls: " + calls.size());
 
 		return CompletableFuture.completedFuture(result);
 	}
@@ -179,6 +191,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
 				var matches = defines.getRows("Name", word);
+				//FIXME matches could be empty!
 				String targetURI = matches.get(0).getColumn("URI").getValue().toString();
 				int targetLine = (int) matches.get(0).getColumn("Line").getValue();
 				var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
@@ -308,7 +321,84 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	
 	@Override
 	public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
-		return CompletableFuture.completedFuture(Collections.emptyList());
+		List<DocumentSymbol> list = new ArrayList<>();
+		
+		DocumentSymbol mcallRoot = new DocumentSymbol();
+		mcallRoot.setName("Macro Calls");
+		mcallRoot.setKind(SymbolKind.Namespace);
+		mcallRoot.setRange(new Range(
+				new Position(0, 0),
+				new Position(0, 0)));
+		mcallRoot.setSelectionRange(new Range(
+				new Position(0, 0),
+				new Position(0, 0)));
+		
+		for (MacroCall call : calls) {
+			if (!call.uri().equals(params.getTextDocument().getUri())) {
+				continue;
+			}
+			DocumentSymbol sym = new DocumentSymbol();
+			sym.setName(call.name());
+			sym.setKind(SymbolKind.Function);
+			sym.setRange(new Range(
+					new Position(call.startLine(), call.startChar()),
+					new Position(call.endLine(), call.endChar())
+					));
+			sym.setSelectionRange(new Range(
+					new Position(call.startLine(), call.startChar()),
+					new Position(call.startLine(), call.endChar())
+					));
+			list.add(sym);
+		}
+		mcallRoot.setChildren(list);
+		List<Either<SymbolInformation, DocumentSymbol>> root = new ArrayList<>();
+		root.add(Either.forRight(mcallRoot));
+		
+		return CompletableFuture.completedFuture(root);
+	}
+	
+	@Override
+	public CompletableFuture<List<InlayHint>> inlayHint(InlayHintParams params) {
+		String uri = params.getTextDocument().getUri();
+		Range viewRange = params.getRange();
+		List<InlayHint> hints = new ArrayList<>();
+
+		for (MacroCall call : calls) {
+			// skip calls outside the visible range
+//			if (call.startLine() > viewRange.getEnd().getLine()) continue;
+//			if (call.endLine() < viewRange.getStart().getLine()) continue;
+			if (!call.uri().equals(uri)) continue;
+
+			var rows = defines.getRows("Name", call.name()); // your macro index
+			if (rows.isEmpty()) continue;
+			var def = (Definition) rows.get(0).getColumn("Definition").getValue();
+			String defTargetUri = (String) rows.get(0).getColumn("URI").getValue();
+			int targetLine = (int) rows.get(0).getColumn("Line").getValue();
+			var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+			var loc = new Location(defTargetUri, range);
+
+			List<MacroArg> args = call.args();
+			for (int i = 0; i < args.size(); i++) {
+				if (i >= def.getArgs().size()) break;
+
+				var arg = args.get(i);
+				var paramName = def.getArgs().get(i);
+
+				var part = new InlayHintLabelPart(paramName + "=");
+				//	            part.setTooltip(Either.forLeft(def.paramDoc(i))); // optional, null is fine
+				part.setLocation(loc); // ctrl+click jumps to #define
+				part.setTooltip(Either.forLeft(uri + ", " + targetLine + ", " + call.name()));
+
+				var hint = new InlayHint();
+				hint.setPosition(new Position(arg.startLine(), arg.startChar()));
+				hint.setLabel(Either.forRight(List.of(part)));
+				hint.setKind(InlayHintKind.Parameter);
+				hint.setPaddingRight(true);
+				hints.add(hint);
+			}
+		}
+
+		return CompletableFuture.completedFuture(hints);
 	}
 	
 	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
@@ -452,6 +542,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				
 				binaryPaths = p.getBinaryPaths();
 				defines = p.getDefines();
+				calls = p.getMacroCalls();
 				for (var r : defines.getRows()) {
 					CompletionItem item = new CompletionItem();
 					Definition def = (Definition) r.getColumn("Definition").getValue();

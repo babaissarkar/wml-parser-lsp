@@ -7,8 +7,7 @@ import com.babai.wml.core.Config;
 import com.babai.wml.core.ConfigAttributeBase;
 import com.babai.wml.lsp.WMLLanguageServer;
 import com.babai.wml.preprocessor.Preprocessor;
-import com.babai.wml.utils.ArgParser;
-import com.babai.wml.utils.Colors;
+import com.babai.wml.utils.*;
 
 import java.awt.Color;
 import java.io.BufferedWriter;
