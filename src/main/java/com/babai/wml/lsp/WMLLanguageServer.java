@@ -51,6 +51,8 @@ import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.SymbolKind;
 import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceFoldersOptions;
+import org.eclipse.lsp4j.WorkspaceServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -140,10 +142,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 	}
 
-	
-	@SuppressWarnings("deprecation")
 	@Override
-	
+	@SuppressWarnings("deprecation")
 	public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
 		var capabilities = new ServerCapabilities();
 		capabilities.setDefinitionProvider(true);
@@ -151,11 +151,20 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setInlayHintProvider(true);
 		capabilities.setDocumentSymbolProvider(true);
 		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
-		TextDocumentSyncOptions syncOptions = new TextDocumentSyncOptions();
+		
+		var syncOptions = new TextDocumentSyncOptions();
 		syncOptions.setOpenClose(true);
 		syncOptions.setChange(TextDocumentSyncKind.Full);
 		syncOptions.setSave(true);
 		capabilities.setTextDocumentSync(syncOptions);
+		
+		var wfOptions = new WorkspaceFoldersOptions();
+		wfOptions.setSupported(true);
+		wfOptions.setChangeNotifications(false);
+		var workspaceCaps = new WorkspaceServerCapabilities();
+		workspaceCaps.setWorkspaceFolders(wfOptions);
+		capabilities.setWorkspace(workspaceCaps);
+		
 		var result = new InitializeResult(capabilities);
 		
 		if (params.getWorkspaceFolders() != null && !params.getWorkspaceFolders().isEmpty()) {
@@ -173,8 +182,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
 		
 		initParserForLSP();
-		
-		showLSPMessage("Macro calls: " + calls.size());
 
 		return CompletableFuture.completedFuture(result);
 	}
@@ -537,12 +544,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					p.subparse(incpath);
 					unitTypes.addAll(p.getUnitTypes());
 				}
+				
 				p.subparse(inputPath);
 				unitTypes.addAll(p.getUnitTypes());
 				
 				binaryPaths = p.getBinaryPaths();
 				defines = p.getDefines();
 				calls = p.getMacroCalls();
+				
 				for (var r : defines.getRows()) {
 					CompletionItem item = new CompletionItem();
 					Definition def = (Definition) r.getColumn("Definition").getValue();
