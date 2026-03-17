@@ -46,6 +46,7 @@ import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
@@ -406,7 +407,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 //			if (call.endLine() < viewRange.getStart().getLine()) continue;
 			if (!call.uri().equals(uri)) continue;
 
-			var rows = defines.getRows("Name", call.name()); // your macro index
+			var rows = defines.getRows("Name", call.name());
 			if (rows.isEmpty()) continue;
 			var def = (Definition) rows.get(0).getColumn("Definition").getValue();
 			String defTargetUri = (String) rows.get(0).getColumn("URI").getValue();
@@ -476,23 +477,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	@Override
 	public TextDocumentService getTextDocumentService() {
-		return new TextDocumentService() {
-			@Override
-			public void didOpen(DidOpenTextDocumentParams params) {
-			}
-
-			@Override
-			public void didChange(DidChangeTextDocumentParams params) {
-			}
-
-			@Override
-			public void didClose(DidCloseTextDocumentParams params) {
-			}
-
-			@Override
-			public void didSave(DidSaveTextDocumentParams params) {
-			}
-		};
+		return this;
 	}
 
 	@Override
@@ -556,6 +541,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				
 				parseFile(inputPath);
 			}
+			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
 		}
@@ -582,9 +568,12 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			item.setInsertTextFormat(InsertTextFormat.Snippet); //
 			macroCompletions.add(item);
 		}
-
-		showLSPMessage("Included defs: " + baseDefines.rowCount());
-		showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
+		
+		String uri = inputPath.toUri().toString();
+		var errorsList = p.getErrors().get(uri);		
+		if (!(errorsList == null || errorsList.isEmpty())) {
+			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+		}
 	}
 	
 	/** Returns the word under cursor in the file pointed by URI */
