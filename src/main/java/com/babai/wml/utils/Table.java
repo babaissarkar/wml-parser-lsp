@@ -245,6 +245,19 @@ public final class Table {
 		}
 		return sb.toString();
 	}
+	
+	public Table copy() {
+		// find indexed cols
+		int[] indexedCols = indices.keySet().stream().mapToInt(Integer::intValue).toArray();
+		Table copy = new Table(columnTypes, columnNames, indexedCols);
+		for (Row r : rows) {
+			Object[] values = r.cells().stream()
+					.map(c -> c.getValue())
+					.toArray();
+			copy.addRow(values);
+		}
+		return copy;
+	}
 
 	/** --- Example --- */
 	public static void main(String[] args) {
