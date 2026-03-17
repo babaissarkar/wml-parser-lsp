@@ -363,7 +363,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 		
 		// 2. Macro Calls
-		
 		if (!calls.isEmpty()) {
 			List<DocumentSymbol> listCall = new ArrayList<>();
 			DocumentSymbol mcallRoot = new DocumentSymbol();
@@ -510,9 +509,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public void didChange(DidChangeTextDocumentParams arg0) {
-		// TODO Auto-generated method stub
-
+	public void didChange(DidChangeTextDocumentParams params) {
+		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
+		
+		try {
+			parseFile(inputPath);
+		} catch (IOException e) {
+			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
+		}
 	}
 
 	@Override
@@ -528,35 +532,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public void didSave(DidSaveTextDocumentParams saveParams) {
-		// FIXME broken and doesn't work correctly
-		/*
-		String uri = saveParams.getTextDocument().getUri();
-		inputPath = Path.of(URI.create(uri));
-		
-		try {
-			macroCompletions.clear();
-			p.setDefinesMap(defines);
-			p.subparse(inputPath);
-			binaryPaths = p.getBinaryPaths();
-			unitTypes = p.getUnitTypes();
-			defines = p.getDefines();
-			for (var r : defines.getRows()) {
-				CompletionItem item = new CompletionItem();
-				Definition def = (Definition) r.getColumn("Definition").getValue();
-				item.setLabel(def.name());
-				item.setKind(CompletionItemKind.Method);
-				String docs = def.getDocs();
-				item.setDocumentation(def.name() + (!docs.isEmpty() ? ("\n" + docs) : ""));
-				item.setInsertText(item.getLabel());
-				item.setInsertTextFormat(InsertTextFormat.Snippet); //
-				macroCompletions.add(item);
-			}
-			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
-		} catch (IOException e) {
-			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
-		}
-		*/
+	public void didSave(DidSaveTextDocumentParams params) {
+		// TODO Auto-generated method stub
 	}
 
 	private void initParserForLSP() {
@@ -575,30 +552,39 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					unitTypes.addAll(p.getUnitTypes());
 				}
 				
-				p.subparse(inputPath);
-				unitTypes.addAll(p.getUnitTypes());
+				baseDefines = defines.copy();
 				
-				binaryPaths = p.getBinaryPaths();
-				defines = p.getDefines();
-				calls = p.getMacroCalls();
-				
-				for (var r : defines.getRows()) {
-					CompletionItem item = new CompletionItem();
-					Definition def = (Definition) r.getColumn("Definition").getValue();
-					item.setLabel(def.name());
-					item.setKind(CompletionItemKind.Method);
-					String docs = def.getDocs();
-					item.setDocumentation(def.name() + (docs != null && !docs.isEmpty() ? ("\n" + docs) : ""));
-					item.setInsertText(item.getLabel());
-					item.setInsertTextFormat(InsertTextFormat.Snippet); //
-					macroCompletions.add(item);
-				}
-
-				showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
+				parseFile(inputPath);
 			}
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
 		}
+	}
+	
+	private void parseFile(Path inputPath) throws IOException {
+		p.setDefinesMap(baseDefines.copy());
+		p.subparse(inputPath);
+		unitTypes.addAll(p.getUnitTypes());
+		
+		defines = p.getDefines();
+		binaryPaths = p.getBinaryPaths();
+		calls = p.getMacroCalls();
+		
+		macroCompletions.clear();
+		for (var r : defines.getRows()) {
+			CompletionItem item = new CompletionItem();
+			Definition def = (Definition) r.getColumn("Definition").getValue();
+			item.setLabel(def.name());
+			item.setKind(CompletionItemKind.Method);
+			String docs = def.getDocs();
+			item.setDocumentation(def.name() + (docs != null && !docs.isEmpty() ? ("\n" + docs) : ""));
+			item.setInsertText(item.getLabel());
+			item.setInsertTextFormat(InsertTextFormat.Snippet); //
+			macroCompletions.add(item);
+		}
+
+		showLSPMessage("Included defs: " + baseDefines.rowCount());
+		showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 	}
 	
 	/** Returns the word under cursor in the file pointed by URI */
