@@ -33,7 +33,7 @@ public class Preprocessor {
 	private boolean extractUnitTypeData = false;
 	private static HashSet<Config> unitTypesFull = new HashSet<>();
 	
-	private static List<Path> bpaths = new ArrayList<>();
+	private static HashSet<Path> bpaths = new HashSet<>();
 	private static HashSet<String> unitTypes = new HashSet<>();
 
 	private Path currentPath = Path.of(".");
@@ -216,7 +216,7 @@ public class Preprocessor {
 		return this.defines;
 	}
 	
-	public List<Path> getBinaryPaths() {
+	public HashSet<Path> getBinaryPaths() {
 		return Preprocessor.bpaths;
 	}
 	

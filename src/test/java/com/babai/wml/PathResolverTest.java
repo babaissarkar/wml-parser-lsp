@@ -11,7 +11,7 @@ import com.babai.wml.utils.FS;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.Vector;
+import java.util.HashSet;
 
 @AIGenerated
 class PathResolverTest {
@@ -22,7 +22,7 @@ class PathResolverTest {
 	private static Path currentPath;
 	private static Path dataPath;
 	private static Path userDataPath;
-	private static Vector<Path> binaryPaths = new Vector<>();
+	private static HashSet<Path> binaryPaths = new HashSet<>();
 
 	@BeforeAll
 	static void setupDirectories() throws IOException {

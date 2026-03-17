@@ -73,14 +73,14 @@ import com.babai.wml.utils.Table;
 @AIGenerated
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 	public LanguageClient client;
-	private Path inputPath;
-	private Path dataPath;
-	private Path userDataPath;
-	private Table defines;
-	private Vector<Path> includePaths = new Vector<>();
-	private List<Path> binaryPaths = new ArrayList<>();
-	private List<MacroCall> calls = new ArrayList<>();
+	private Path inputPath, dataPath, userDataPath;
+	
+	private Table baseDefines, defines;
+	private HashSet<Path> binaryPaths = new HashSet<>();
 	private HashSet<String> unitTypes = new HashSet<>();
+	
+	private List<MacroCall> calls = new ArrayList<>();
+	private Vector<Path> includePaths = new Vector<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();

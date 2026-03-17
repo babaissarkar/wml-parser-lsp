@@ -2,6 +2,7 @@ package com.babai.wml.utils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +27,7 @@ public final class FS {
 	}
 
 	/** Convert Wesnoth path string to NIO Path object */
-	public static Path resolve(String pathStr, List<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
+	public static Path resolve(String pathStr, HashSet<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
 		if (pathStr.startsWith(".")) {
