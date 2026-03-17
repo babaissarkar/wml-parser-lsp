@@ -17,6 +17,11 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticSeverity;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
+
 import com.babai.wml.core.*;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
@@ -45,6 +50,8 @@ public class Preprocessor {
 	);
 
 	private static List<MacroCall> macroCalls = new ArrayList<>();
+	private static HashMap<String, List<Diagnostic>> errors = new HashMap<>();
+	private List<Diagnostic> errorsList = new ArrayList<>();
 
 	// TODO don't expose this, and just use subparse
 	public Preprocessor(Path filePath) throws IOException {
@@ -210,6 +217,14 @@ public class Preprocessor {
 
 	public void setOutput(PrintStream out) {
 		this.out = out;
+	}
+	
+	public HashMap<String, List<Diagnostic>> getErrors() {
+		return Preprocessor.errors;
+	}
+	
+	public void clearErrors() {
+		Preprocessor.errors.clear();
 	}
 
 	public Table getDefines() {
@@ -451,6 +466,15 @@ void define() :
 		)*
 	) {
 		String[] content = parseBodyUntil(ENDDEF, args);
+		if (!defines.getRows("Name", name.toString()).isEmpty()) {
+			errorsList.add(new Diagnostic(
+					new Range(
+						new Position(name.beginLine-1, name.beginColumn-1),
+						new Position(name.endLine-1, name.endColumn-1)),
+					"Redefining macro without explicit undef.",
+					DiagnosticSeverity.Warning, "none"));
+			errors.put(currentPath.toUri().toString(), errorsList);
+		}
 		def = new Definition(name.toString(), content[0], args, defArgs);
 		def.setDocs(content[1]);
 		debugPrint("defining macro " + colorify(def.name(), macroNameColor));
@@ -575,6 +599,13 @@ String expand(Vector<String> possibleArgs) :
 			return sb.toString();
 		} else {
 			warningPrint(position(name) + " undefined macro " + name.image);
+			errorsList.add(new Diagnostic(
+					new Range(
+							new Position(name.beginLine-1, name.beginColumn-1),
+							new Position(name.endLine-1, name.endColumn-1)),
+						"Calling undefined macro " + name.image,
+						DiagnosticSeverity.Error, "none"));
+			errors.put(currentPath.toUri().toString(), errorsList);
 			return sb.toString();
 		}
 	}
