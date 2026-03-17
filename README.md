@@ -36,6 +36,8 @@ les before the main input.
 * Shows help page link for tag names on hover.
 * Preliminary Wesnoth path autocomplete. (Triggered by '/')
 * Wesnoth Unit Type ids autocomplete. (Triggered by '=')
+* Hints for position macro call arguments.
+* Symbol table (only Macro defs and calls ATM, WIP.)
 
 ### Usage
 * **VSCode**: Use the extension from [here](https://github.com/babaissarkar/wml-extension).

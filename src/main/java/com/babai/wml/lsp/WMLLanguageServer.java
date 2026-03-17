@@ -328,46 +328,74 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	
 	@Override
 	public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
-		List<DocumentSymbol> list = new ArrayList<>();
 		
-		DocumentSymbol mcallRoot = new DocumentSymbol();
-		mcallRoot.setName("Macro Calls");
-		mcallRoot.setKind(SymbolKind.Namespace);
-		mcallRoot.setRange(new Range(
+		String docUri = params.getTextDocument().getUri();
+		var emptyRange = new Range(
 				new Position(0, 0),
-				new Position(0, 0)));
-		mcallRoot.setSelectionRange(new Range(
-				new Position(0, 0),
-				new Position(0, 0)));
+				new Position(0, 0));
+		List<Either<SymbolInformation, DocumentSymbol>> symbolList = new ArrayList<>();
 		
-		for (MacroCall call : calls) {
-			if (!call.uri().equals(params.getTextDocument().getUri())) {
-				continue;
+		// 1. Macro Definitions
+		var matches = defines.getRows("URI", docUri);
+		if (!matches.isEmpty()) {
+			List<DocumentSymbol> listDef = new ArrayList<>();
+			DocumentSymbol mdefRoot = new DocumentSymbol();
+			mdefRoot.setName("Macro Definitions");
+			mdefRoot.setKind(SymbolKind.Namespace);
+			mdefRoot.setRange(emptyRange);
+			mdefRoot.setSelectionRange(emptyRange);
+			for (var match : matches) {
+				String targetName = match.getColumn("Name").getValue().toString();
+				int targetLine = (int) match.getColumn("Line").getValue();
+				var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+				DocumentSymbol sym = new DocumentSymbol();
+				sym.setName(targetName);
+				sym.setKind(SymbolKind.Function);
+				sym.setRange(range);
+				sym.setSelectionRange(range);
+				listDef.add(sym);
 			}
-			DocumentSymbol sym = new DocumentSymbol();
-			sym.setName(call.name());
-			sym.setKind(SymbolKind.Function);
-			sym.setRange(new Range(
-					new Position(call.startLine(), call.startChar()),
-					new Position(call.endLine(), call.endChar())
-					));
-			sym.setSelectionRange(new Range(
-					new Position(call.startLine(), call.startChar()),
-					new Position(call.startLine(), call.endChar())
-					));
-			list.add(sym);
+			mdefRoot.setChildren(listDef);
+			symbolList.add(Either.forRight(mdefRoot));
 		}
-		mcallRoot.setChildren(list);
-		List<Either<SymbolInformation, DocumentSymbol>> root = new ArrayList<>();
-		root.add(Either.forRight(mcallRoot));
 		
-		return CompletableFuture.completedFuture(root);
+		// 2. Macro Calls
+		
+		if (!calls.isEmpty()) {
+			List<DocumentSymbol> listCall = new ArrayList<>();
+			DocumentSymbol mcallRoot = new DocumentSymbol();
+			mcallRoot.setName("Macro Calls");
+			mcallRoot.setKind(SymbolKind.Namespace);
+			mcallRoot.setRange(emptyRange);
+			mcallRoot.setSelectionRange(emptyRange);
+			
+			for (MacroCall call : calls) {
+				if (!call.uri().equals(docUri)) {
+					continue;
+				}
+				DocumentSymbol sym = new DocumentSymbol();
+				sym.setName(call.name());
+				sym.setKind(SymbolKind.Method);
+				sym.setRange(new Range(
+						new Position(call.startLine(), call.startChar()),
+						new Position(call.endLine(), call.endChar())
+						));
+				sym.setSelectionRange(new Range(
+						new Position(call.startLine(), call.startChar()),
+						new Position(call.startLine(), call.endChar())
+						));
+				listCall.add(sym);
+			}
+			mcallRoot.setChildren(listCall);
+			symbolList.add(Either.forRight(mcallRoot));
+		}
+		
+		return CompletableFuture.completedFuture(symbolList);
 	}
 	
 	@Override
 	public CompletableFuture<List<InlayHint>> inlayHint(InlayHintParams params) {
 		String uri = params.getTextDocument().getUri();
-		Range viewRange = params.getRange();
 		List<InlayHint> hints = new ArrayList<>();
 
 		for (MacroCall call : calls) {
