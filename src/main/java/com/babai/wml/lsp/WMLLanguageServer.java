@@ -510,15 +510,25 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	}
 
+	// FIXME still buggy. if you change a file and save, you need to relaunch editor for the diagnostic change to take effect.
+	// putting parsing in didSave doesn't work, either
 	@Override
-	public void didOpen(DidOpenTextDocumentParams arg0) {
-		// TODO Auto-generated method stub
-
+	public void didOpen(DidOpenTextDocumentParams params) {
+		String uri = params.getTextDocument().getUri();
+		var errorsList = p.getErrors().get(uri);		
+		if (!(errorsList == null || errorsList.isEmpty())) {
+			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+		}
 	}
 
 	@Override
 	public void didSave(DidSaveTextDocumentParams params) {
-		// TODO Auto-generated method stub
+		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
+		try {
+			parseFile(inputPath);
+		} catch (IOException e) {
+			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
+		}
 	}
 
 	private void initParserForLSP() {
@@ -538,8 +548,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				}
 				
 				baseDefines = defines.copy();
-				
-				parseFile(inputPath);
+				try {
+					parseFile(inputPath);
+				} catch (IOException e) {
+					showLSPMessage("Parsing " + inputPath.toString() + " failed.");
+				}
 			}
 			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
@@ -567,12 +580,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			item.setInsertText(item.getLabel());
 			item.setInsertTextFormat(InsertTextFormat.Snippet); //
 			macroCompletions.add(item);
-		}
-		
-		String uri = inputPath.toUri().toString();
-		var errorsList = p.getErrors().get(uri);		
-		if (!(errorsList == null || errorsList.isEmpty())) {
-			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
 		}
 	}
 	
