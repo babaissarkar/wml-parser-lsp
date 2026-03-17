@@ -394,7 +394,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				var part = new InlayHintLabelPart(paramName + "=");
 				//	            part.setTooltip(Either.forLeft(def.paramDoc(i))); // optional, null is fine
 				part.setLocation(loc); // ctrl+click jumps to #define
-				part.setTooltip(Either.forLeft(uri + ", " + targetLine + ", " + call.name()));
 
 				var hint = new InlayHint();
 				hint.setPosition(new Position(arg.startLine(), arg.startChar()));

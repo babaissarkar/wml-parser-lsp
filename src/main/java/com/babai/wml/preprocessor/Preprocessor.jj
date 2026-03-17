@@ -536,7 +536,7 @@ String expand(Vector<String> possibleArgs) :
 			) {
 				sb.append(" " + val);
 				if (defarg == null) {
-					args.add(new MacroArg(val, argLine-1, argStart, argEnd)); // FIXME ad-hoc -1
+					args.add(new MacroArg(val, argLine-1, argStart-1, argEnd-1));
 				} else {
 					defArgs.put(defarg.image, val);
 				}
@@ -559,10 +559,10 @@ String expand(Vector<String> possibleArgs) :
 				String res = def.expand2(args, defArgs);
 				macroCalls.add(new MacroCall(
 					name.image,
-					callStart.beginLine-1, //FIXME ad-hoc -1
-					callEnd.beginLine-1, //FIXME ad-hoc -1
-					callStart.beginColumn-1, //FIXME ad-hoc -1
-					callEnd.beginColumn,
+					callStart.beginLine-1,
+					callEnd.beginLine-1,
+					callStart.beginColumn-1,
+					callEnd.beginColumn-1,
 					args,
 					currentPath.toUri().toString()));
 				return res;
