@@ -218,6 +218,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (defines != null) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+				
+				if (word == null || word.isEmpty()) return CompletableFuture.completedFuture(null);
+				
 				if (word.contains("[")) {
 					// Tags
 					String searchWord = word.replaceAll("/", "");
