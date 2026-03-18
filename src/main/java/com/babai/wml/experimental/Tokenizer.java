@@ -9,12 +9,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public final class Tokenizer {	
-	public static List<Token> tokenize(Path inputPath) throws IOException {
+public final class Tokenizer {
+	private List<Integer> semanticData = new ArrayList<>();
+	int prevLine = 0, prevChar = 0;
+	
+	public List<Integer> getSemanticData() {
+		return semanticData;
+	}
+	
+	public List<Token> tokenize(Path inputPath) throws IOException {
 		return tokenize(Files.newBufferedReader(inputPath));
 	}
 
-	public static List<Token> tokenize(Reader reader) throws IOException {
+	public List<Token> tokenize(Reader reader) throws IOException {
 		PushbackReader r = new PushbackReader(reader);
 		List<Token> tokens = new ArrayList<>();
 		StringBuilder buff = new StringBuilder();
@@ -194,7 +201,7 @@ public final class Tokenizer {
 		return buff.toString();
 	}
 
-	private static void handleEOLToken(List<Token> tokens, char c, PushbackReader r, CursorPosition start) throws IOException {
+	private void handleEOLToken(List<Token> tokens, char c, PushbackReader r, CursorPosition start) throws IOException {
 		if (c == '\r') {
 			char c2 = (char) r.read();
 			if (c2 == '\n') {
@@ -206,29 +213,46 @@ public final class Tokenizer {
 			finalizeAndAddToken(tokens, "" + c, Token.Kind.EOL, start);
 		}
 	}
+	
+	private void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, CursorPosition start) {
+		if (!buff.isEmpty()) {
+			finalizeAndAddToken(tokens, buff.toString(), kind, start);
+			buff.delete(0, buff.length());
+		}
+	}
 
-	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, CursorPosition start) {
+	private void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, CursorPosition start) {
 		if (!contents.isEmpty()) {
 			tokens.add(new Token(contents, kind, start.line(), start.col()));
-			// modify start aka current cursor position
+			
+			if(kind == Token.Kind.MACRO || kind == Token.Kind.COMMENT) {
+				int startLine = start.line() - 1;
+				int startCol = start.col() - 1;
+				int deltaLine = startLine - prevLine;
+				int deltaStart = deltaLine == 0 ? startCol - prevChar : startCol;
+				int len = contents.length();
+				int type = switch(kind) {
+					case MACRO -> 0;
+					case COMMENT -> 1;
+					default -> 0; // this line won't run anyway
+				};
+				
+				semanticData.add(deltaLine);
+				semanticData.add(deltaStart);
+				semanticData.add(len);
+				semanticData.add(type);
+				semanticData.add(0);
+				
+				prevLine = startLine;
+				prevChar = startCol;
+			}
+			
+			// move cursor
 			if(kind == Token.Kind.EOL) {
 				start.newline();
 			} else {
 				start.forward(contents.length());
 			}
-		}
-	}
-
-	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, CursorPosition start) {
-		if (!buff.isEmpty()) {
-			tokens.add(new Token(buff.toString(), kind, start.line(), start.col()));
-			// modify start aka current cursor position
-			if(kind == Token.Kind.EOL) {
-				start.newline();
-			} else {
-				start.forward(buff.length());
-			}
-			buff.delete(0, buff.length());
 		}
 	}
 
