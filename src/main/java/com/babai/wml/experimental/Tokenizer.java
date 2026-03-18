@@ -246,19 +246,40 @@ public final class Tokenizer {
 
 	private void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, CursorPosition start) {
 		if (!contents.isEmpty()) {
-			tokens.add(new Token(contents, kind, start.line(), start.col()));
+			var token = new Token(contents, kind, start.line(), start.col());
+			tokens.add(token);
 			
-			if(kind == Token.Kind.MACRO || kind == Token.Kind.COMMENT) {
+			int extraLen = 0; // extra length due to skipped {} <<>> etc.
+			int type = switch(kind) {
+				case MACRO -> {
+					extraLen = 2;
+					yield 0;
+				}
+				case COMMENT -> {
+					extraLen = 1;
+					yield token.isDirective() ? 4 : 1;
+				}
+				case QUOTED -> {
+					extraLen = 2;
+					yield 2;
+				}
+				case ANGLE_QUOTED -> {
+					extraLen = 4;
+					yield 2;
+				}
+				case TAG -> {
+					extraLen = 2;
+					yield 5;
+				}
+				default -> -1; // color not supported yet
+			};
+			
+			if(type != -1) {
 				int startLine = start.line() - 1;
 				int startCol = start.col() - 1;
 				int deltaLine = startLine - prevLine;
 				int deltaStart = deltaLine == 0 ? startCol - prevChar : startCol;
-				int len = contents.length();
-				int type = switch(kind) {
-					case MACRO -> 0;
-					case COMMENT -> 1;
-					default -> 0; // this line won't run anyway
-				};
+				int len = contents.length() + extraLen;
 				
 				semanticData.add(deltaLine);
 				semanticData.add(deltaStart);
