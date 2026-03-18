@@ -61,7 +61,7 @@ public final class Token {
 
 	@Override
 	public String toString() {
-		return "Token[content=" + content + ", kind=" + kind + "]";
+		return "Token[content=" + content + ", kind=" + kind + ", line=" + beginLine + ", char=" + beginColumn + "]";
 	}
 
 	public enum Kind {
