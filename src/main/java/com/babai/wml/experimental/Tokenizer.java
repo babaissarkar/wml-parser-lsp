@@ -124,10 +124,9 @@ public final class Tokenizer {
 			} else if (prevChar != '"' && c == '"') {
 				// terminate quote token
 				char c2 = (char) r.read();
+				r.unread(c2);
 				if (c2 != '"') {
 					break;
-				} else {
-					r.unread(c2);
 				}
 			} else {
 				buff.append(c);
