@@ -65,6 +65,6 @@ public final class Token {
 	}
 
 	public enum Kind {
-		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO
+		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, TAG
 	}
 }
