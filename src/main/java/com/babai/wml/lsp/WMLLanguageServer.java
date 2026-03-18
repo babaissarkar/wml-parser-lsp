@@ -156,7 +156,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setHoverProvider(true);
 		capabilities.setInlayHintProvider(true);
 		capabilities.setDocumentSymbolProvider(true);
-		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
+		capabilities.setCompletionProvider(
+			new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
 		
 		var syncOptions = new TextDocumentSyncOptions();
 		syncOptions.setOpenClose(true);
@@ -171,7 +172,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		workspaceCaps.setWorkspaceFolders(wfOptions);
 		capabilities.setWorkspace(workspaceCaps);
 		
-		final List<String> TOKEN_TYPES = List.of("macro", "comment");
+		final List<String> TOKEN_TYPES = List.of(
+			"macro", "comment", "string", "number", "function", "struct");
 		final List<String> TOKEN_MODIFIERS = List.of();
 		var legend = new SemanticTokensLegend(TOKEN_TYPES, TOKEN_MODIFIERS);
 		var semanticOptions = new SemanticTokensWithRegistrationOptions();
@@ -453,7 +455,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		
 		try {
 			var tokenizer = new Tokenizer();
-			var tokens = tokenizer.tokenize(Path.of(URI.create(docUri)));
+			tokenizer.tokenize(Path.of(URI.create(docUri)));
 			data = tokenizer.getSemanticData();
 			if (!data.isEmpty()) {
 				return CompletableFuture.completedFuture(new SemanticTokens(data));
