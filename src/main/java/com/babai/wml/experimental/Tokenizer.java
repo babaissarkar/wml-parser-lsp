@@ -45,6 +45,9 @@ public final class Tokenizer {
 				} else if (c == '{') {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 					finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO, start);
+				} else if (c == '[') {
+					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, readTagToken(r), Token.Kind.TAG, start);
 				} else {
 					buff.append(c);
 				}
@@ -78,6 +81,8 @@ public final class Tokenizer {
 					finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED, start);
 				} else if (c == '{') {
 					finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO, start);
+				} else if (c == '[') {
+					finalizeAndAddToken(tokens, readTagToken(r), Token.Kind.TAG, start);
 				} else {
 					if (c != '#') {
 						buff.append(c);
@@ -187,6 +192,24 @@ public final class Tokenizer {
 					nlvl--;
 					buff.append(c); // keep inner braces
 				}
+			} else {
+				buff.append(c);
+			}
+		}
+		return buff.toString();
+	}
+	
+	// Note: this assumes that r is currently at the character '['
+	// Note: we are skipping [ and ] from the token text itself, can be deduced from token kind
+	// TODO throw exception if mismatched or prematurely terminates
+	// TODO edge cases...
+	private static String readTagToken(PushbackReader r) throws IOException {
+		var buff = new StringBuilder();
+		int ch;
+		while((ch = r.read()) != -1) {
+			char c = (char) ch;
+			if (c == ']') {
+				break;
 			} else {
 				buff.append(c);
 			}
