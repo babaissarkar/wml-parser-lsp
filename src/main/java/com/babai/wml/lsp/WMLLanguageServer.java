@@ -48,6 +48,10 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.SemanticTokens;
+import org.eclipse.lsp4j.SemanticTokensLegend;
+import org.eclipse.lsp4j.SemanticTokensParams;
+import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.SymbolKind;
@@ -66,6 +70,7 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
+import com.babai.wml.experimental.Tokenizer;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.FS;
@@ -165,6 +170,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		var workspaceCaps = new WorkspaceServerCapabilities();
 		workspaceCaps.setWorkspaceFolders(wfOptions);
 		capabilities.setWorkspace(workspaceCaps);
+		
+		final List<String> TOKEN_TYPES = List.of("macro", "comment");
+		final List<String> TOKEN_MODIFIERS = List.of();
+		var legend = new SemanticTokensLegend(TOKEN_TYPES, TOKEN_MODIFIERS);
+		var semanticOptions = new SemanticTokensWithRegistrationOptions();
+		semanticOptions.setLegend(legend);
+		semanticOptions.setFull(true);
+		capabilities.setSemanticTokensProvider(semanticOptions);
 		
 		var result = new InitializeResult(capabilities);
 		
@@ -433,6 +446,25 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		return CompletableFuture.completedFuture(hints);
 	}
 	
+	public CompletableFuture<SemanticTokens> semanticTokensFull(SemanticTokensParams params) {
+		List<Integer> data = new ArrayList<>();
+		String docUri = params.getTextDocument().getUri();
+		// deltaLine, deltaStart, length, tokenTypeIndex, modifier
+		
+		try {
+			var tokenizer = new Tokenizer();
+			var tokens = tokenizer.tokenize(Path.of(URI.create(docUri)));
+			data = tokenizer.getSemanticData();
+			if (!data.isEmpty()) {
+				return CompletableFuture.completedFuture(new SemanticTokens(data));
+			}
+		} catch(Exception e) {
+			showLSPMessage("Parsing " + docUri + " for semantic tokens failed.");
+		}
+		
+		return CompletableFuture.completedFuture(new SemanticTokens(List.of()));
+	}
+	
 	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
 		CompletionItem item = new CompletionItem(relPath);
 		item.setKind(CompletionItemKind.File); // You could detect folder vs file if you want
@@ -464,6 +496,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		// Add more info if needed, or just return the item as-is
 		return CompletableFuture.completedFuture(item);
 	}
+	
+	
 
 	@Override
 	public TextDocumentService getTextDocumentService() {
