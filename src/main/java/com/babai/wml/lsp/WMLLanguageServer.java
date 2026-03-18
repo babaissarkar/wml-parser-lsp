@@ -188,11 +188,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public CompletableFuture<Object> shutdown() {
-		return CompletableFuture.completedFuture(null);
-	}
-
-	@Override
 	public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(
 			DefinitionParams params) {
 		if (defines != null) {
@@ -471,11 +466,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public void exit() {
-		System.exit(0);
-	}
-
-	@Override
 	public TextDocumentService getTextDocumentService() {
 		return this;
 	}
@@ -492,6 +482,17 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			}
 		};
 	}
+	
+	// FIXME still buggy. if you change a file and save, you need to relaunch editor for the diagnostic change to take effect.
+	// putting parsing in didSave doesn't work, either
+	@Override
+	public void didOpen(DidOpenTextDocumentParams params) {
+		String uri = params.getTextDocument().getUri();
+		var errorsList = p.getErrors().get(uri);		
+		if (!(errorsList == null || errorsList.isEmpty())) {
+			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+		}
+	}
 
 	@Override
 	public void didChange(DidChangeTextDocumentParams params) {
@@ -505,23 +506,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public void didClose(DidCloseTextDocumentParams arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	// FIXME still buggy. if you change a file and save, you need to relaunch editor for the diagnostic change to take effect.
-	// putting parsing in didSave doesn't work, either
-	@Override
-	public void didOpen(DidOpenTextDocumentParams params) {
-		String uri = params.getTextDocument().getUri();
-		var errorsList = p.getErrors().get(uri);		
-		if (!(errorsList == null || errorsList.isEmpty())) {
-			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
-		}
-	}
-
-	@Override
 	public void didSave(DidSaveTextDocumentParams params) {
 		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
 		try {
@@ -529,6 +513,22 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		} catch (IOException e) {
 			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
 		}
+	}
+	
+	@Override
+	public void didClose(DidCloseTextDocumentParams arg0) {
+		// TODO Auto-generated method stub
+
+	}
+	
+	@Override
+	public CompletableFuture<Object> shutdown() {
+		return CompletableFuture.completedFuture(null);
+	}
+	
+	@Override
+	public void exit() {
+		System.exit(0);
 	}
 
 	private void initParserForLSP() {
