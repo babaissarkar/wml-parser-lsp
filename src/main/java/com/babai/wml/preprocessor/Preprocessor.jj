@@ -349,18 +349,17 @@ TOKEN : {
 |	< HASH   : "#" >		{ debugPrint("Hash"); }
 |	< SPACE  : (" "|"\t")+ >	{ debugPrint("Space"); }
 
-|	< QUOTED_STRING: "\"" (~["\""])* "\"" > { debugPrint("quoted string"); }
-|	< INBLK  : <LPAR> (~[")"])+ <RPAR> >
+|	< QUOTED_STRING: "\"" (~["\""])* "\"" > { debugPrint("Quoted: " + image); }
+|	< INBLK  : <LPAR> (~[")"])+ <RPAR> > { debugPrint("Paren Blk: " + image); }
 
-|	< STAG   : <LSB> ("+")? (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag"); }
-|	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag"); }
+|	< STAG   : <LSB> ("+")? (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag: " + image); }
+|	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag: " + image); }
 
-|	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path"); }
-|	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING"); }
+|	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path: " + image); }
+|	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING: " + image); }
 // please, don't go paranoid at this menagerie of characters!
+// JavaCC does not have UTF8 support.
 // turns out Wesnoth had been through bizzare experiences.
-// javacc can't deal comments that can optionally be directives, yet, or
-// I haven't figured out how to yet.
 |	< #LETTER :
 		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"|"`"
 		|"_"|"-"|"'"|"+"|<LANGLE>|<RANGLE>|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
@@ -371,6 +370,8 @@ TOKEN : {
 |	< EOL     : ("\n"|"\r")+ >			{ debugPrint("EOL"); }
 }
 
+//FIXME javacc can't deal comments that can optionally be directives, yet, or
+//I haven't figured out how to yet.
 
 void parse() :
 {
