@@ -564,7 +564,7 @@ String expandAll(Vector<String> possibleArgs) :
 { String content = ""; }
 {
 	(
-		expandPath()
+		expandPath(possibleArgs)
 		| content=expand(possibleArgs)
 	) {
 		return content;
@@ -624,14 +624,22 @@ String expand(Vector<String> possibleArgs) :
 		return handleMacroCall(name, callStart, callEnd, args, defArgs, possibleArgs, sb.toString());
 	}
 }
-void expandPath() :
+void expandPath(Vector<String> possibleArgs) :
 {
 	Token tok;
+	String val;
 	StringBuilder sb = new StringBuilder();
 }
 {
-	(<LBR> (<SPACE>)* (tok=<PATH>) (<SPACE>)* <RBR>) {
-		Path p = FS.resolve(tok.image, bpaths, currentPath, token_source.dataPath, token_source.userDataPath);
+	(
+		<LBR> (<SPACE>)*
+		(
+			(tok=<PATH>) { sb.append(tok.image); }
+			| (val=expand(possibleArgs)) { sb.append(val); }
+		)+
+		(<SPACE>)* <RBR>
+	) {
+		Path p = FS.resolve(sb.toString(), bpaths, currentPath, token_source.dataPath, token_source.userDataPath);
 
 		debugPrint("Trying to include: " + colorify(p.toString(), filePathColor));
 
@@ -642,10 +650,10 @@ void expandPath() :
 			try {
 				subparse(p);
 			} catch(IOException ioe) {
-				errorPrint("Cannot find file/folder " + tok.image);
+				errorPrint("Cannot find file/folder " + sb.toString());
 			}
 		} else {
-			warningPrint(tok.image + " not found");
+			warningPrint(sb.toString() + " not found");
 		}
 	}
 }
