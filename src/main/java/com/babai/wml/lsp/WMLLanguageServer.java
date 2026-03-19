@@ -173,7 +173,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setWorkspace(workspaceCaps);
 		
 		final List<String> TOKEN_TYPES = List.of(
-			"macro", "comment", "string", "number", "function", "struct");
+			"macro", "comment", "string", "number", "function", "type", "property", "keyword");
 		final List<String> TOKEN_MODIFIERS = List.of();
 		var legend = new SemanticTokensLegend(TOKEN_TYPES, TOKEN_MODIFIERS);
 		var semanticOptions = new SemanticTokensWithRegistrationOptions();

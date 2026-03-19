@@ -289,6 +289,25 @@ public final class Tokenizer {
 				
 				prevLine = startLine;
 				prevChar = startCol;
+			} else {
+				if (contents.contains("=")) {
+					String key = contents.split("=", 2)[0];
+					
+					int startLine = start.line() - 1;
+					int startCol = start.col() - 1;
+					int deltaLine = startLine - prevLine;
+					int deltaStart = deltaLine == 0 ? startCol - prevChar : startCol;
+					int len = key.length() + extraLen;
+					
+					semanticData.add(deltaLine);
+					semanticData.add(deltaStart);
+					semanticData.add(len);
+					semanticData.add(6);
+					semanticData.add(0);
+					
+					prevLine = startLine;
+					prevChar = startCol;
+				}
 			}
 			
 			// move cursor
