@@ -327,47 +327,46 @@ TOKEN : {
 |	< ENDARG : "#endarg" >
 }
 
-// Other tokens
+//Other tokens
 TOKEN : {
-	< DEFINE : "define" >	{ debugPrint("DEFINE"); }
-|	< ENDDEF : "enddef" >	{ debugPrint("ENDDEF"); }
-|	< IFDEF  : "ifdef" >	{ debugPrint("IFDEF"); }
-|	< ENDIF  : "endif" >	{ debugPrint("ENDIF"); }
-|	< UNDEF  : "undef" >	{ debugPrint("UNDEF"); }
-|	< TEXTDOMAIN : "textdomain" > { debugPrint("TEXTDOMAIN"); }
+  < DEFINE       : "define"      >  { debugPrint("DEFINE");      }
+| < ENDDEF       : "enddef"      >  { debugPrint("ENDDEF");      }
+| < IFDEF        : "ifdef"       >  { debugPrint("IFDEF");       }
+| < ENDIF        : "endif"       >  { debugPrint("ENDIF");       }
+| < UNDEF        : "undef"       >  { debugPrint("UNDEF");       }
+| < TEXTDOMAIN   : "textdomain"  >  { debugPrint("TEXTDOMAIN");  }
 
-|	< LBR    : "{" >		{ debugPrint("Left Brace"); }
-|	< RBR    : "}" >		{ debugPrint("Right Brace"); }
-|	< LSB    : "[" >		{ debugPrint("Left Sq Bkt"); }
-|	< RSB    : "]" >		{ debugPrint("Right Sq Bkt"); }
-|	< LPAR   : "(" >		{ debugPrint("Left Par"); }
-|	< RPAR   : ")" >		{ debugPrint("Right Par"); }
-|	< LANGLE : "<" >		{ debugPrint("Left Angle"); }
-|	< RANGLE : ">" >		{ debugPrint("Right Angle"); }
-|	< EQL    : "=" >		{ debugPrint("Equals"); }
-|	< SLASH  : "/" >		{ debugPrint("Slash"); }
-|	< HASH   : "#" >		{ debugPrint("Hash"); }
-|	< SPACE  : (" "|"\t")+ >	{ debugPrint("Space"); }
+| < LBR          : "{"           >  { debugPrint("LBR");         }
+| < RBR          : "}"           >  { debugPrint("RBR");         }
+| < LSB          : "["           >  { debugPrint("LSB");         }
+| < RSB          : "]"           >  { debugPrint("RSB");         }
+| < LPAR         : "("           >  { debugPrint("LPAR");        }
+| < RPAR         : ")"           >  { debugPrint("RPAR");        }
+| < LANGLE       : "<"           >  { debugPrint("LANGLE");      }
+| < RANGLE       : ">"           >  { debugPrint("RANGLE");      }
+| < EQL          : "="           >  { debugPrint("EQL");         }
+| < SLASH        : "/"           >  { debugPrint("SLASH");       }
+| < HASH         : "#"           >  { debugPrint("HASH");        }
+| < SPACE        : (" " | "\t")+ >  { debugPrint("SPACE");       }
 
-|	< QUOTED_STRING: "\"" (~["\""])* "\"" > { debugPrint("Quoted: " + image); }
-|	< INBLK  : <LPAR> (~[")"])+ <RPAR> > { debugPrint("Paren Blk: " + image); }
+| < QUOTED_STRING : "\"" (~["\""])* "\"" >       { debugPrint("Quoted: "    + image); }
+| < INBLK         : <LPAR> (~[")"])+ <RPAR> >    { debugPrint("Paren Blk: " + image); }
 
-|	< STAG   : <LSB> ("+")? (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("Start tag: " + image); }
-|	< ETAG   : <LSB> <SLASH> (["a"-"z"]|<DIGIT>|"_")+ <RSB> > { debugPrint("End tag: " + image); }
+| < STAG : <LSB> ("+")? (["a"-"z"] | <DIGIT> | "_")+ <RSB> >       { debugPrint("STAG: " + image); }
+| < ETAG : <LSB> <SLASH> (["a"-"z"] | <DIGIT> | "_")+ <RSB> >      { debugPrint("ETAG: " + image); }
 
-|	< PATH   : (<STRING>) (<SLASH>) (<STRING>|<SLASH>)+ >	{ debugPrint("Path: " + image); }
-|	< STRING : (<LETTER>|<DIGIT>)+ >						{ debugPrint("STRING: " + image); }
-// please, don't go paranoid at this menagerie of characters!
-// JavaCC does not have UTF8 support.
-// turns out Wesnoth had been through bizzare experiences.
-|	< #LETTER :
-		["A"-"Z"]|["a"-"z"]|"?"|"!"|":"|";"|"."|","|"‘"|"’"|"%"|"`"
-		|"_"|"-"|"'"|"+"|<LANGLE>|<RANGLE>|<LPAR>|<RPAR>|"~"|"*"|"^"|"\""
-		|"“"|"”"|"―"|"—"|"|"|"\\"|"$"|"@"|"✘"|"✔"|<LSB>|<RSB>|"&"
-		|["\u00a1"-"\uffff"]
-	>
-|	< #DIGIT  : ["0"-"9"] >
-|	< EOL     : ("\n"|"\r")+ >			{ debugPrint("EOL"); }
+| < PATH   : (<STRING>) (<SLASH>) (<STRING> | <SLASH>)+ >  { debugPrint("PATH: "   + image); }
+| < STRING : (<LETTER> | <DIGIT>)+ >                       { debugPrint("STRING: " + image); }
+
+// JavaCC has no UTF-8 support; Wesnoth's history left behind this menagerie of characters.
+| < #LETTER :
+     ["A"-"Z"] | ["a"-"z"] | "?" | "!" | ":" | ";" | "." | "," | "'" | "'" | "%" | "`"
+   | "_" | "-" | "'" | "+" | <LANGLE> | <RANGLE> | <LPAR> | <RPAR> | "~" | "*" | "^" | "\""
+   | "\u201C" | "\u201D" | "―" | "—" | "|" | "\\" | "$" | "@" | "✘" | "✔" | <LSB> | <RSB> | "&"
+   | ["\u00a1"-"\uffff"]
+ >
+| < #DIGIT : ["0"-"9"] >
+| < EOL    : ("\n" | "\r")+ >  { debugPrint("EOL"); }
 }
 
 //FIXME javacc can't deal comments that can optionally be directives, yet, or
