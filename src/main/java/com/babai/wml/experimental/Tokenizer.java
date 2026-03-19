@@ -114,7 +114,7 @@ public final class Tokenizer {
 		while((ch = r.read()) != -1) {
 			char c = (char) ch;
 			if (prevChar == '"' && c == '"') {
-				if (buff.length() == 1) {
+				if (buff.isEmpty()) {
 					// trivial case: "" (empty string), do nothing, terminate
 					return "";
 				} else {
