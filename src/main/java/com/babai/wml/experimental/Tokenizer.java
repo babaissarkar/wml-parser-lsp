@@ -249,65 +249,54 @@ public final class Tokenizer {
 			var token = new Token(contents, kind, start.line(), start.col());
 			tokens.add(token);
 			
-			int extraLen = 0; // extra length due to skipped {} <<>> etc.
+			int len = contents.length();
+			
+			// assigns lsp token types (int) to Token objects
+			// extra length due to skipped {} <<>> etc added here
 			int type = switch(kind) {
 				case MACRO -> {
-					extraLen = 2;
+					len += 2;
 					yield 0;
 				}
 				case COMMENT -> {
-					extraLen = 1;
+					len += 1;
 					yield token.isDirective() ? 4 : 1;
 				}
 				case QUOTED -> {
-					extraLen = 2;
+					len += 2;
 					yield 2;
 				}
 				case ANGLE_QUOTED -> {
-					extraLen = 4;
+					len += 4;
 					yield 2;
 				}
 				case TAG -> {
-					extraLen = 2;
+					len += 2;
 					yield 5;
 				}
-				default -> -1; // color not supported yet
+				default -> {
+					if (contents.contains("=")) {
+						String[] keyVal = contents.split("=", 2);
+						addDeltaEncodedTokenInfo(
+							start.line() - 1, start.col() -1, keyVal[0].length(), 6);
+						
+						String value = keyVal[1];
+						
+						try {
+							Integer.parseInt(value);
+							addDeltaEncodedTokenInfo(
+									start.line() - 1, start.col() -1, value.length(), 3);
+						} catch(NumberFormatException ne) {
+							// do nothing
+						}
+					}
+					yield -1; // color handled here, and not below
+				}
 			};
 			
+			// calculate and store lsp semantic token delta encoded data
 			if(type != -1) {
-				int startLine = start.line() - 1;
-				int startCol = start.col() - 1;
-				int deltaLine = startLine - prevLine;
-				int deltaStart = deltaLine == 0 ? startCol - prevChar : startCol;
-				int len = contents.length() + extraLen;
-				
-				semanticData.add(deltaLine);
-				semanticData.add(deltaStart);
-				semanticData.add(len);
-				semanticData.add(type);
-				semanticData.add(0);
-				
-				prevLine = startLine;
-				prevChar = startCol;
-			} else {
-				if (contents.contains("=")) {
-					String key = contents.split("=", 2)[0];
-					
-					int startLine = start.line() - 1;
-					int startCol = start.col() - 1;
-					int deltaLine = startLine - prevLine;
-					int deltaStart = deltaLine == 0 ? startCol - prevChar : startCol;
-					int len = key.length() + extraLen;
-					
-					semanticData.add(deltaLine);
-					semanticData.add(deltaStart);
-					semanticData.add(len);
-					semanticData.add(6);
-					semanticData.add(0);
-					
-					prevLine = startLine;
-					prevChar = startCol;
-				}
+				addDeltaEncodedTokenInfo(start.line() - 1, start.col() -1, len, type);
 			}
 			
 			// move cursor
@@ -317,6 +306,20 @@ public final class Tokenizer {
 				start.forward(contents.length());
 			}
 		}
+	}
+
+	private void addDeltaEncodedTokenInfo(int startLine, int startCol, int len, int type) {
+		int deltaLine = startLine - prevLine;
+		int deltaStart = deltaLine == 0 ? startCol - prevChar : startCol;
+		
+		semanticData.add(deltaLine);
+		semanticData.add(deltaStart);
+		semanticData.add(len);
+		semanticData.add(type);
+		semanticData.add(0);
+		
+		prevLine = startLine;
+		prevChar = startCol;
 	}
 
 	public static List<Token> mergeConcatenations(List<Token> tokens) {
