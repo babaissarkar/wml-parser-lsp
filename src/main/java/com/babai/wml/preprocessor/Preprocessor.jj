@@ -536,15 +536,17 @@ String expand(Vector<String> possibleArgs) :
 		(callStart=<LBR>) (<SPACE>)* (name=<STRING>) { sb.append("{" + name.image); }
 		(
 			(<SPACE>|<EOL>)+
-			(defarg=<STRING> <EQL>)?
 			(
-				val=expandAll(possibleArgs) {
+				(defarg=<STRING> <EQL>) {
 					if (defarg != null) {
 						argLine = defarg.beginLine;
 						argStart = defarg.beginColumn;
 						argEnd = defarg.endColumn;
 					}
 				}
+			)?
+			(
+				val=expandAll(possibleArgs)
 			|	(arg=<STRING>|arg=<PATH>|arg=<QUOTED_STRING>) {
 					val = arg.image;
 					argLine = arg.beginLine;
