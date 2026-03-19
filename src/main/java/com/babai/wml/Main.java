@@ -17,7 +17,6 @@ import java.io.OutputStreamWriter;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.logging.*;
 import java.nio.file.Files;
@@ -50,7 +49,7 @@ public class Main {
 		PathContext context = new PathContext(
 			argParse.dataPath,
 			argParse.userDataPath,
-			new ArrayList<Path>());
+			new HashSet<Path>());
 
 		var p = new Preprocessor(context, argParse.predefines);
 		if (argParse.outputPath != null) {
