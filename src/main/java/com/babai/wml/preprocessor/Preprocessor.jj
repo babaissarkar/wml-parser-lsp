@@ -135,6 +135,56 @@ public class Preprocessor {
 		}
 	}
 	
+	private String handleMacroCall(
+			Token name, Token callStart, Token callEnd,
+			Vector<MacroArg> args, HashMap<String, String> defArgs, Vector<String> possibleArgs,
+			String fallback) {
+
+		List<Table.Row> rows = defines.getRows("Name", name.image);
+		if (rows.isEmpty()) {
+			return handleUndefinedMacro(name, possibleArgs, fallback);
+		}
+
+		Definition def = (Definition) rows.get(0).getColumn("Definition").getValue();
+
+		String argsString = Definition.argsAsString2(args, defArgs);
+		debugPrint("expanding macro " + def.name()
+		+ (!argsString.isEmpty() ? " with " + argsString : ""));
+
+		try {
+			String res = def.expand2(args, defArgs);
+			macroCalls.add(new MacroCall(
+					name.image,
+					callStart.beginLine-1,
+					callEnd.beginLine-1,
+					callStart.beginColumn-1,
+					callEnd.beginColumn-1,
+					args,
+					currentPath.toUri().toString()));
+			return res;
+		} catch (IllegalArgumentException e) {
+			errorPrint(e.getMessage());
+			return fallback;
+		}
+	}
+
+	private String handleUndefinedMacro(Token name, Vector<String> possibleArgs, String fallback) {
+		if (possibleArgs.contains(name.image)) {
+			// FIXME: do nothing for now. may need checks later why this is happening.
+			return fallback;
+		}
+
+		warningPrint(position(name) + " undefined macro " + name.image);
+		errorsList.add(new Diagnostic(
+				new Range(
+						new Position(name.beginLine-1, name.beginColumn-1),
+						new Position(name.endLine-1, name.endColumn-1)),
+				"Calling undefined macro " + name.image,
+				DiagnosticSeverity.Error, "none"));
+		errors.put(currentPath.toUri().toString(), errorsList);
+		return fallback;
+	}
+	
 	private final String[] parseBodyUntil(int endTokenType, Vector<String> args) throws ParseException {
 		if (getToken(1).kind != LBR) {
 			// usually it starts with EOL, skip unless
@@ -571,45 +621,7 @@ String expand(Vector<String> possibleArgs) :
 		(<SPACE>|<EOL>)*
 		(callEnd=<RBR>) { sb.append("}"); }
 	) {
-		List<Table.Row> rows = defines.getRows("Name", name.image);
-		Definition def = null;
-		if (!rows.isEmpty()) {
-			def = (Definition) rows.get(0).getColumn("Definition").getValue();
-		}
-		
-		if (def != null) {
-			String argsString = Definition.argsAsString2(args, defArgs);
-			debugPrint("expanding macro " + def.name()
-				+ (!argsString.isEmpty() ? " with " + argsString : ""));
-			try {
-				String res = def.expand2(args, defArgs);
-				macroCalls.add(new MacroCall(
-					name.image,
-					callStart.beginLine-1,
-					callEnd.beginLine-1,
-					callStart.beginColumn-1,
-					callEnd.beginColumn-1,
-					args,
-					currentPath.toUri().toString()));
-				return res;
-			} catch(IllegalArgumentException e) {
-				errorPrint(e.getMessage());
-				return sb.toString();
-			}
-		} else if (possibleArgs.contains(name.image)) {
-			// FIXME: do nothing for now. may need checks later why this is happening.
-			return sb.toString();
-		} else {
-			warningPrint(position(name) + " undefined macro " + name.image);
-			errorsList.add(new Diagnostic(
-					new Range(
-							new Position(name.beginLine-1, name.beginColumn-1),
-							new Position(name.endLine-1, name.endColumn-1)),
-						"Calling undefined macro " + name.image,
-						DiagnosticSeverity.Error, "none"));
-			errors.put(currentPath.toUri().toString(), errorsList);
-			return sb.toString();
-		}
+		return handleMacroCall(name, callStart, callEnd, args, defArgs, possibleArgs, sb.toString());
 	}
 }
 void expandPath() :
