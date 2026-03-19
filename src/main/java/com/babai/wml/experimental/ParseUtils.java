@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
-final class ParseUtils {
+public final class ParseUtils {
 	
 	private ParseUtils() {};
 
@@ -54,6 +54,20 @@ final class ParseUtils {
 		}
 		
 		return parts;
+	}
+	
+	public static String csvEscape(String s) {
+		if (s == null) return "";
+
+		boolean needsQuotes =
+				s.contains(",") ||
+				s.contains("\"") ||
+				s.contains("\n") ||
+				s.contains("\r");
+
+		if (!needsQuotes) return s;
+
+		return "\"" + s.replace("\"", "\"\"") + "\"";
 	}
 
 }

@@ -1,26 +1,28 @@
 package com.babai.wml;
 
-import org.eclipse.lsp4j.jsonrpc.Launcher;
-import org.eclipse.lsp4j.services.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
 
+import org.eclipse.lsp4j.jsonrpc.Launcher;
+import org.eclipse.lsp4j.services.LanguageClient;
+
+import com.babai.wml.core.Config;
+import com.babai.wml.core.ConfigAttributeBase;
+import com.babai.wml.experimental.LogUtils;
+import com.babai.wml.experimental.PathContext;
+import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.lsp.WMLLanguageServer;
-import com.babai.wml.experimental.*;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
 
-import java.awt.Color;
-
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.HashSet;
-import java.util.logging.*;
-import java.nio.file.Path;
-
-import static com.babai.wml.utils.ANSIFormatter.*;
-
+import static com.babai.wml.experimental.ParseUtils.csvEscape;
+import static com.babai.wml.utils.ANSIFormatter.colorify;
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 public class Main {
@@ -31,7 +33,6 @@ public class Main {
 		if (argParse.startLSPServer) {
 			initServer(argParse);
 		} else {
-			setLoggingFormat();
 			try {
 				initParse(argParse);
 			} catch (IOException e) {
@@ -62,7 +63,7 @@ public class Main {
 		}
 
 		for (Path incpath : argParse.includes) {
-			// FIXME this cannot handle directories!!
+			// FIXME recheck directory support
 			p.preprocess(incpath);
 		}
 
@@ -132,42 +133,6 @@ public class Main {
 
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to write unit type CSV", e);
-		}
-	}
-
-	private static String csvEscape(String s) {
-		if (s == null) return "";
-
-		boolean needsQuotes =
-				s.contains(",") ||
-				s.contains("\"") ||
-				s.contains("\n") ||
-				s.contains("\r");
-
-		if (!needsQuotes) return s;
-
-		return "\"" + s.replace("\"", "\"\"") + "\"";
-	}
-
-	private static void setLoggingFormat() {
-		for (var handler : Logger.getLogger("").getHandlers()) {
-			handler.setFormatter(new java.util.logging.Formatter() {
-				@Override
-				public String format(LogRecord r) {
-					// Customize Message for separators between Level and Message
-					Level l = r.getLevel();
-					String lvlStr = "[" + l + "]";
-					if (l == Level.SEVERE) {
-						lvlStr = colorify(lvlStr, Color.RED);
-					} else if (l == Level.WARNING) {
-						lvlStr = colorify(lvlStr, Color.ORANGE);
-					} else if (l == Level.INFO) {
-						lvlStr = colorify(lvlStr, Color.CYAN);
-					}
-
-					return lvlStr + " " + r.getMessage() + "\n";
-				}
-			});
 		}
 	}
 
