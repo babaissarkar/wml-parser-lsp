@@ -26,17 +26,6 @@ public final class FS {
 		return "";
 	}
 
-	/** Convert Wesnoth path string to NIO Path object */
-	public static Path resolve(String pathStr, PathContext context) {
-		return resolve(
-			pathStr,
-			context.binaryPaths(),
-			context.currentPath(),
-			context.dataPath(),
-			context.userDataPath()
-		);
-	}
-
 	public static Path resolve(String pathStr, HashSet<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
