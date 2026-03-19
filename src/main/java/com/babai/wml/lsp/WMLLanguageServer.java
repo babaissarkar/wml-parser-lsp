@@ -209,12 +209,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
 				var matches = defines.getRows("Name", word);
-				//FIXME matches could be empty!
-				String targetURI = matches.get(0).getColumn("URI").getValue().toString();
-				int targetLine = (int) matches.get(0).getColumn("Line").getValue();
-				var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
-				var loc = new Location(targetURI, range);
-				return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
+				if (!matches.isEmpty()) {
+					String targetURI = matches.get(0).getColumn("URI").getValue().toString();
+					int targetLine = (int) matches.get(0).getColumn("Line").getValue();
+					var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+					var loc = new Location(targetURI, range);
+					return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
+				}
 			} catch (IOException e) {
 				showLSPMessage("Can't find word under cursor!");
 			}
