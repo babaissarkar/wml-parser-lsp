@@ -123,11 +123,11 @@ public final class Tokenizer {
 				}
 			} else if (prevChar != '"' && c == '"') {
 				// terminate quote token
-				char c2 = (char) r.read();
-				r.unread(c2);
-				if (c2 != '"') {
-					break;
-				}
+				int c2 = r.read();
+				if (c2 == -1) break;
+				char ch2 = (char) c2;
+				r.unread(ch2);
+				if (ch2 != '"') break;
 			} else {
 				buff.append(c);
 			}
