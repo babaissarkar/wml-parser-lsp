@@ -55,6 +55,7 @@ public class Preprocessor {
 	}
 	
 	// Can handle both file or folder
+	// TODO _initial & _final.cfg
 	public void preprocess(Path path) throws IOException {
 		String coloredPath = colorify(path.toString(), Colors.filePathColor);
 		if (Files.isDirectory(path)) {
@@ -179,7 +180,7 @@ public class Preprocessor {
 	}
 	
 	// TODO This might need to be recursive, like after expansion
-	// if macro exists, expand again and so on until no macro calls remain.
+	// if macro exists after expansion, expand again and so on until no macro calls remain.
 	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
 		var parts = ParseUtils.splitParenQuoted(macroCall.content());
 		if (parts.size() == 1 && isPath(macroCall.content())) {
