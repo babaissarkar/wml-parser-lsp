@@ -30,7 +30,7 @@ public final class ParseUtils {
 		int i = 0;
 		
 		while (i < chars.length) {
-			while (Character.isWhitespace(chars[i])) i++; // skip WS
+			while (i < chars.length && Character.isWhitespace(chars[i])) i++; // skip WS
 			
 			if (i >= chars.length) break;
 			
