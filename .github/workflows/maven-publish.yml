@@ -10,7 +10,7 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -54,6 +54,14 @@ jobs:
       with:
         name: WML-linux.zip
         path: ./WML-linux.zip
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: github.ref == 'refs/heads/master'
+      with:
+        tag_name: latest
+        name: Latest Build
+        files: ./jar/wml.jar
 
   build-windows:
 
