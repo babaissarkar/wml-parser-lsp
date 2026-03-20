@@ -182,7 +182,7 @@ public class Preprocessor {
 	// if macro exists, expand again and so on until no macro calls remain.
 	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
 		var parts = ParseUtils.splitParenQuoted(macroCall.content());
-		if (parts.size() > 1 && isPath(macroCall.toString())) {
+		if (parts.size() == 1 && isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
 			return handleFileInclusion(macroCall, context);
 		} else {
