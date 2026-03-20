@@ -15,41 +15,45 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
-        settings-path: ${{ github.workspace }} # location for the settings.xml file
+        server-id: github
+        settings-path: ${{ github.workspace }}
 
     - name: Build JAR
-      run: ./mvnw -ntp -B clean package jpackage:jpackage@linux
-      
-    - name: Build AppImage
-      uses: babaissarkar/jar-to-executable@v1
-      with:
-       id: "wml"
-       name: "WML"
-       icon: "./src/main/resources/wml.png"
-       desktop-file: "./src/main/resources/wml.desktop"
-       input: "./jar/wml.jar"
-       output: "./WML.AppImage"
+      run: ./mvnw -ntp -B clean package
+
+    - name: Create bundled JRE with jlink
+      run: |
+        jlink \
+          --add-modules java.base,java.logging,java.xml,java.desktop \
+          --strip-debug \
+          --no-header-files \
+          --no-man-pages \
+          --compress=2 \
+          --output ./jre
+
+    - name: Package ZIP (JAR + JRE)
+      run: |
+        mkdir -p zip-staging
+        cp ./jar/wml.jar zip-staging/wml.jar
+        cp -r ./jre zip-staging/jre
+        cd zip-staging
+        zip -r ../WML-linux.zip .
 
     - uses: actions/upload-artifact@v4
       with:
         name: wml.jar
-        path: "./jar/wml.jar"
-        
+        path: ./jar/wml.jar
+
     - uses: actions/upload-artifact@v4
       with:
-        name: wml.deb
-        path: "./*.deb"
-        
-    - uses: actions/upload-artifact@v4
-      with:
-        name: WML.AppImage
-        path: "./WML.AppImage"
+        name: WML-linux.zip
+        path: ./WML-linux.zip
 
   build-windows:
 
@@ -66,23 +70,30 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
-        settings-path: ${{ github.workspace }} # location for the settings.xml file
+        server-id: github
+        settings-path: ${{ github.workspace }}
 
-    - name: Build with Maven
-      run: ./mvnw -ntp -B clean package jpackage:jpackage@win
-       
-    - name: Create portable single-file Executable
-      uses: babaissarkar/jar-to-executable@v1
+    - name: Build JAR
+      run: ./mvnw -ntp -B clean package
+
+    - name: Create bundled JRE with jlink
+      run: |
+        jlink `
+          --add-modules java.base,java.logging,java.xml,java.desktop `
+          --strip-debug `
+          --no-header-files `
+          --no-man-pages `
+          --compress=2 `
+          --output ./jre
+
+    - name: Package ZIP (JAR + JRE)
+      run: |
+        New-Item -ItemType Directory -Force -Path zip-staging
+        Copy-Item ./jar/wml.jar zip-staging/wml.jar
+        Copy-Item -Recurse ./jre zip-staging/jre
+        Compress-Archive -Path zip-staging/* -DestinationPath WML-win.zip
+
+    - uses: actions/upload-artifact@v4
       with:
-       id: "wml"
-       name: "WML"
-       icon: "./src/main/resources/wml.ico"
-       input: "./WML-Parser-LSP"
-       output: "./wml.exe"
-       
-    - name: Upload built portable Executable
-      uses: actions/upload-artifact@v4
-      with:
-        name: wml.exe
-        path: ./wml.exe
+        name: WML-win.zip
+        path: ./WML-win.zip
