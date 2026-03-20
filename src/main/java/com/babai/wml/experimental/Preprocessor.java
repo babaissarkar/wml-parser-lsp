@@ -184,28 +184,31 @@ public class Preprocessor {
 		var parts = ParseUtils.splitParenQuoted(macroCall.content());
 		if (parts.size() == 1 && isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
-			return handleFileInclusion(macroCall, context);
+			return handleInclusion(macroCall, context);
 		} else {
 			return expandMacroCall(macroCall, possibleArgs);
 		}
 	}
 	
-	private String handleFileInclusion(Token macroCall, PathContext context) {
+	private String handleInclusion(Token macroCall, PathContext context) {
 		Path p = context.resolve(macroCall.content(), currentPath);
 
-		debugPrint("Trying to include: " + colorify(p.toString(), Colors.filePathColor));
-
 		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return "";
+		
+		String coloredPathString = colorify(p.toString(), Colors.filePathColor);
+		
+		debugPrint("Trying to include: " + coloredPathString);
 
-		if (Files.exists(p)) {
-			debugPrint("Including: " + colorify(p.toString(), Colors.filePathColor));
-			try {
-				preprocess(p);
-			} catch(IOException ioe) {
-				errorPrint("Cannot find file/folder " + colorify(macroCall.content(), Colors.filePathColor));
-			}
-		} else {
-			warningPrint(macroCall.content() + " not found");
+		if (!Files.exists(p)) {
+			warningPrint(coloredPathString + " does not exist");
+			return "";
+		}
+		
+		debugPrint("Including: " + coloredPathString);
+		try {
+			preprocess(p);
+		} catch(IOException ioe) {
+			errorPrint("Cannot read file/folder " + coloredPathString);
 		}
 		
 		return "";
