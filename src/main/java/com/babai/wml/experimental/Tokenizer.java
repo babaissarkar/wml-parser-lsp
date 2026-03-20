@@ -277,17 +277,33 @@ public final class Tokenizer {
 				default -> {
 					if (contents.contains("=")) {
 						String[] keyVal = contents.split("=", 2);
+						int keyLen = keyVal[0].length();
 						addDeltaEncodedTokenInfo(
-							start.line() - 1, start.col() -1, keyVal[0].length(), 6);
+							start.line() - 1, start.col() -1, keyLen, 6);
 						
+						// Handle RHS of '='
 						String value = keyVal[1];
-						
-						try {
-							Integer.parseInt(value);
+						if (value.strip().matches("(yes|no|true|false)")) {
 							addDeltaEncodedTokenInfo(
-									start.line() - 1, start.col() -1, value.length(), 3);
-						} catch(NumberFormatException ne) {
-							// do nothing
+								start.line() - 1, start.col() + keyLen,
+								value.length(), 8);
+						} else if (keyVal[0].matches("(id|name)")) {
+							addDeltaEncodedTokenInfo(
+									start.line() - 1, start.col() + keyLen,
+									value.length(), 8);
+						} else if (keyVal[0].matches("(type|recruit)")) {
+							addDeltaEncodedTokenInfo(
+									start.line() - 1, start.col() + keyLen,
+									value.length(), 10);
+						} else {
+							try {
+								Integer.parseInt(value);
+								addDeltaEncodedTokenInfo(
+									start.line() - 1, start.col() + keyVal[0].length(),
+									value.length(), 3);
+							} catch(NumberFormatException ne) {
+								// do nothing
+							}
 						}
 					}
 					yield -1; // color handled here, and not below
