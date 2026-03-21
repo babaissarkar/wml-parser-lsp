@@ -136,6 +136,9 @@ public class Main {
 	}
 
 	private static void initServer(ArgParser argParser) {
+		LogUtils.showParseLogs(false);
+		LogUtils.showParseWarnings(false);
+		
 		var server = new WMLLanguageServer(
 			argParser.predefines,
 			argParser.dataPath,
