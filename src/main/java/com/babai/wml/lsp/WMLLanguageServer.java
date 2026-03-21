@@ -1,6 +1,12 @@
 package com.babai.wml.lsp;
 
+import static com.babai.wml.utils.ANSIFormatter.colorify;
+
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -53,8 +59,17 @@ import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
 import com.babai.wml.core.Definition;
+<<<<<<< HEAD
 import com.babai.wml.preprocessor.Preprocessor;
+=======
+import com.babai.wml.core.MacroArg;
+import com.babai.wml.core.MacroCall;
+import com.babai.wml.experimental.LogUtils;
+import com.babai.wml.experimental.PathContext;
+import com.babai.wml.experimental.Preprocessor;
+>>>>>>> 787802a (replace old Preprocessor with the new one)
 import com.babai.wml.utils.AIGenerated;
+import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
 
@@ -101,7 +116,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		make.apply("arg", "Start optional argument in macro definition");
 		make.apply("endarg", "End optional argument in macro definition");
 		make.apply("textdomain", "Define Textdomain");
-		
+
 		// Reference links for tags
 		try {
 			tagLinks.load(getClass().getResourceAsStream("/taglinks.properties"));
@@ -154,13 +169,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		if (start >= end)
 			return null;
-		
+
 		// recognize tags
 		if (start > 0 && (line.charAt(start - 1) == '[') && end < line.length() && (line.charAt(end) == ']')) {
 			start -= 1;
 			end += 1;
 		}
-		
+
 		return line.substring(start, end);
 	}
 
@@ -302,13 +317,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			items.addAll(macroCompletions);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
-		
+
 		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
 				|| (triggerChar != null) && triggerChar.equals("[")) {
 			items.addAll(tags);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
-		
+
 		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
 				|| (triggerChar != null) && triggerChar.equals("="))
 		{
@@ -335,7 +350,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		return CompletableFuture.completedFuture(null);
 	}
-	
+
 	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
 		CompletionItem item = new CompletionItem(relPath);
 		item.setKind(CompletionItemKind.File); // You could detect folder vs file if you want
@@ -348,7 +363,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		item.setTextEdit(Either.forLeft(new TextEdit(replaceRange, relPath)));
 		return item;
 	}
-	
+
 	private static List<CompletionItem> listAll(Path baseDir, String prefix, Position cursor) throws IOException {
 		try (Stream<Path> stream = Files.walk(baseDir)) {
 			return stream
@@ -420,16 +435,19 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public void didOpen(DidOpenTextDocumentParams arg0) {
-		// TODO Auto-generated method stub
-
+	public void didOpen(DidOpenTextDocumentParams params) {
+		String uri = params.getTextDocument().getUri();
+//		var errorsList = p.getErrors().get(uri);
+//		if (!(errorsList == null || errorsList.isEmpty())) {
+//			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+//		}
 	}
 
 	@Override
 	public void didSave(DidSaveTextDocumentParams saveParams) {
 		String uri = saveParams.getTextDocument().getUri();
 		inputPath = Path.of(URI.create(uri));
-		
+
 		try {
 			macroCompletions.clear();
 			p.setDefinesMap(defines);
@@ -456,40 +474,102 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void initParserForLSP() {
 		try {
-			p = new Preprocessor(inputPath);
-			p.showParseLogs(false);
-			p.showWarnLogs(false);
-			p.setOutput(null);
-			p.setDefinesMap(defines);
-			p.token_source.dataPath = dataPath;
-			p.token_source.userDataPath = userDataPath;
-			p.token_source.showLogs = false;
-			if (inputPath != null) {
-				for (Path incpath : includePaths) {
-					p.subparse(incpath);
-					unitTypes.addAll(p.getUnitTypes());
-				}
-				p.subparse(inputPath);
-				unitTypes.addAll(p.getUnitTypes());
-				
-				binaryPaths = p.getBinaryPaths();
-				defines = p.getDefines();
-				for (var r : defines.getRows()) {
-					CompletionItem item = new CompletionItem();
-					Definition def = (Definition) r.getColumn("Definition").getValue();
-					item.setLabel(def.name());
-					item.setKind(CompletionItemKind.Method);
-					String docs = def.getDocs();
-					item.setDocumentation(def.name() + (docs != null && !docs.isEmpty() ? ("\n" + docs) : ""));
-					item.setInsertText(item.getLabel());
-					item.setInsertTextFormat(InsertTextFormat.Snippet); //
-					macroCompletions.add(item);
-				}
+			PathContext context = new PathContext(
+					dataPath,
+					userDataPath,
+					new HashSet<Path>());
+			p = new Preprocessor(context, defines);
+			//FIXME disable output by writing to a fake buffer that will be discard. Find a better way.
+			p.setOutput(new StringWriter());
 
-				showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
+//			p.setExtractData(argParse.extractUnitTypeData);
+
+			for (Path incpath : includePaths) {
+				// FIXME recheck directory support
+				p.preprocess(incpath);
 			}
+
+			baseDefines = defines.copy();
+			if (inputPath != null) {
+				LogUtils.debugPrint("Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
+				parseFile(inputPath);
+			} else {
+				p.preprocess(new InputStreamReader(System.in)); // odd in a LSP
+			}
+
+			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
-			showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
+			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
 		}
+	}
+
+	private void parseFile(Path inputPath) throws IOException {
+		p.setDefines(baseDefines.copy());
+		p.preprocess(inputPath);
+//		unitTypes.addAll(p.getUnitTypes());
+
+		defines = p.getDefines();
+//		binaryPaths = p.getBinaryPaths();
+		calls = p.getMacroCalls();
+
+		macroCompletions.clear();
+		for (var r : defines.getRows()) {
+			CompletionItem item = new CompletionItem();
+			Definition def = (Definition) r.getColumn("Definition").getValue();
+			item.setLabel(def.name());
+			item.setKind(CompletionItemKind.Method);
+			String docs = def.getDocs();
+			item.setDocumentation(def.name() + (docs != null && !docs.isEmpty() ? ("\n" + docs) : ""));
+			item.setInsertText(item.getLabel());
+			item.setInsertTextFormat(InsertTextFormat.Snippet); //
+			macroCompletions.add(item);
+		}
+	}
+
+	/** Returns the word under cursor in the file pointed by URI */
+	private static String getWordAtPosition(String uri, Position pos) throws IOException {
+		// Convert URI to path
+		String pathStr = Path.of(java.net.URI.create(uri)).toString();
+
+		// Read all lines
+		String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
+
+		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.');
+		Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
+
+		int lineNum = pos.getLine();
+		if (lineNum < 0 || lineNum >= lines.length)
+			return null;
+
+		String line = lines[lineNum];
+		int charIndex = pos.getCharacter();
+		if (charIndex < 0)
+			charIndex = 0;
+		if (charIndex >= line.length())
+			charIndex = line.length() - 1;
+
+		// If cursor is on whitespace, move back one char
+		if (!isValid.test(line.charAt(charIndex)) && charIndex > 0) {
+			charIndex--;
+		}
+
+		int start = charIndex;
+		int end = charIndex;
+
+		while (start > 0 && isValid.test(line.charAt(start - 1)))
+			start--;
+		while (end < line.length() && isValid.test(line.charAt(end)))
+			end++;
+
+		if (start >= end)
+			return null;
+
+		// recognize tags
+		if (start > 0 && (line.charAt(start - 1) == '[') && end < line.length() && (line.charAt(end) == ']')) {
+			start -= 1;
+			end += 1;
+		}
+
+		return line.substring(start, end);
 	}
 }

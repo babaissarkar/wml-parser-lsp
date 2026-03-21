@@ -74,49 +74,6 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>javacc-maven-plugin</artifactId>
-				<version>3.1.1</version>
-				<executions>
-					<execution>
-						<id>javacc</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>javacc</goal>
-						</goals>
-						<configuration>
-							<sourceDirectory>
-								${basedir}/src/main/java/com/babai/wml/preprocessor
-							</sourceDirectory>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>net.revelc.code.formatter</groupId>
-				<artifactId>formatter-maven-plugin</artifactId>
-				<version>2.29.0</version>
-				<configuration>
-					<encoding>UTF-8</encoding>
-					<lineEnding>CRLF</lineEnding>
-					<configFile>${basedir}/eclipse-default.xml</configFile>
-					<directories>
-						<directory>${project.build.directory}/generated-sources</directory>
-					</directories>
-				</configuration>
-				<executions>
-					<execution>
-						<id>format-source</id>
-						<phase>process-sources</phase>
-						<goals>
-							<goal>format</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.11.0</version>
@@ -164,48 +121,6 @@
 						<goals>
 							<goal>shade</goal>
 						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>org.panteleyev</groupId>
-				<artifactId>jpackage-maven-plugin</artifactId>
-				<version>1.5.0</version>
-
-				<configuration>
-					<name>${project.name}</name>
-					<description>${project.description}</description>
-					<input>${project.basedir}${file.separator}jar</input>
-					<destination>${project.basedir}</destination>
-					<appVersion>${project.version}</appVersion>
-					<arguments>${jpackage.args}</arguments>
-					<mainClass>com.babai.wml.Main</mainClass>
-					<mainJar>${project.artifactId}.jar</mainJar>
-				</configuration>
-
-				<executions>
-					<execution>
-						<id>win</id>
-						<configuration>
-							<type>APP_IMAGE</type>
-							<icon>src${file.separator}main${file.separator}resources${file.separator}${project.artifactId}.ico</icon>
-							<winConsole>true</winConsole>
-							<!-- <winMenu>true</winMenu>
-							<winMenuGroup>${project.name}</winMenuGroup>
-							<winShortcut>true</winShortcut>
-							<winPerUserInstall>true</winPerUserInstall>
-							<winDirChooser>true</winDirChooser> -->
-						</configuration>
-					</execution>
-					<execution>
-						<id>linux</id>
-						<configuration>
-							<type>DEB</type>
-							<icon>src/main/resources/${project.artifactId}.png</icon>
-							<installDir>/usr</installDir>
-							<linuxAppCategory>Games</linuxAppCategory>
-						</configuration>
 					</execution>
 				</executions>
 			</plugin>

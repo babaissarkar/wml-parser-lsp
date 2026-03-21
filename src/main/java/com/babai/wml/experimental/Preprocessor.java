@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.regex.Pattern;
 import com.babai.wml.core.Definition;
+import com.babai.wml.core.MacroArg;
+import com.babai.wml.core.MacroCall;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
 
@@ -28,6 +30,7 @@ public class Preprocessor {
 	private Table defines;
 	private PathContext context;
 	private Path currentPath = Path.of(".");
+	private List<MacroCall> macroCalls;
 	private Writer writer = null;
 	
 	// toplevel
@@ -38,20 +41,30 @@ public class Preprocessor {
 			new String[]{"Line", "URI", "Name", "Definition"},
 			2  // index by Name column
 		);
+		this.macroCalls = new ArrayList<>();
 	}
 	
 	// usually for child processes
 	public Preprocessor(PathContext context, Table defines) {
 		this.context = context;
 		this.defines = defines;
+		this.macroCalls = new ArrayList<>();
 	}
 	
 	public Table getDefines() {
 		return defines;
 	}
 	
+	public void setDefines(Table t) {
+		this.defines = t;
+	}
+	
+	public List<MacroCall> getMacroCalls() {
+		return macroCalls;
+	}
+
 	public void setOutput(Writer writer) {
-		this.writer  = writer;
+		this.writer = writer;
 	}
 	
 	// Can handle both file or folder
@@ -215,9 +228,10 @@ public class Preprocessor {
 	}
 	
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
-		var parts = ParseUtils.splitQuoted(macroCall.content());
+		final String content = macroCall.content();
+		var parts = ParseUtils.splitQuoted(content);
 		String macroName = parts.get(0);
-		List<String> args = new ArrayList<>();
+		List<MacroArg> args = new ArrayList<>();
 		HashMap<String, String> defArgs = new LinkedHashMap<>();
 		
 		// ---------------------------------------
@@ -236,7 +250,11 @@ public class Preprocessor {
 				
 				// Mandatory positional args
 				if (i-1 < def.getArgCount()) {
-					args.add(str);
+					//FIXME might need adjustments later
+					int argStart = macroCall.beginColumn() + content.indexOf(str);
+					int argEnd = argStart + str.length();
+					int argLine = macroCall.beginLine(); //TODO args may start on a different line
+					args.add(new MacroArg(str, argLine, argStart, argEnd));
 				} else {
 					// Optional keyword args
 					if (str.contains("=")) {
@@ -252,12 +270,21 @@ public class Preprocessor {
 				}
 			}
 			
-			String argsString = Definition.argsAsString(args, defArgs);
+			macroCalls.add(new MacroCall(
+					macroName,
+					macroCall.beginLine(),
+					macroCall.endLine(),
+					macroCall.beginColumn(),
+					macroCall.endColumn(),
+					args,
+					currentPath.toUri().toString()));
+			
+			String argsString = Definition.argsAsString2(args, defArgs);
 			debugPrint("expanding macro "
 				+ def.coloredName()
 				+ (!argsString.isEmpty() ? " with " + colorify(argsString, Colors.macroArgColor) : ""));
 			try {
-				return def.expand(args, defArgs);
+				return def.expand2(args, defArgs);
 			} catch(IllegalArgumentException e) {
 				errorPrint("Error expanding macro " + def.coloredName() + ": " + e.getMessage());
 				return macroCall.toString();

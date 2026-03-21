@@ -126,7 +126,7 @@ public class Definition {
 		return unparsed;
 	}
 
-	public String expand2(Vector<MacroArg> values, HashMap<String, String> keyVals) {
+	public String expand2(List<MacroArg> values, HashMap<String, String> keyVals) {
 		String unparsed = this.value;
 		if (values.size() != args.size()) {
 			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
@@ -149,7 +149,6 @@ public class Definition {
 
 		return unparsed;
 	}
-
 
 	public String expand(Vector<String> values) {
 		return expand(values, new HashMap<>());
@@ -182,13 +181,6 @@ public class Definition {
 	public String coloredName() {
 		return colorify(name(), Colors.macroNameColor);
 	}
-
-	public static String argsAsString(Vector<String> args, Map<String, String> defArgs) {
-		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
-
-		return String.join(", ", args) + (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
-				+ String.join(", ", keyValsStrings);
-	}
 	
 	public static String argsAsString(List<String> args, Map<String, String> defArgs) {
 		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
@@ -197,7 +189,7 @@ public class Definition {
 				+ String.join(", ", keyValsStrings);
 	}
 
-	public static String argsAsString2(Vector<MacroArg> args, Map<String, String> defArgs) {
+	public static String argsAsString2(List<MacroArg> args, Map<String, String> defArgs) {
 		var argStrings = args.stream().map(a -> a.value()).collect(Collectors.toList());
 		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
 
