@@ -12,13 +12,14 @@ import org.junit.jupiter.api.Test;
 class TokenizerTest {
 	@Test
 	void testParenQuotedSplit() {
-		String text = "Hello   (How\n are) you?";
-		var parts = ParseUtils.splitParenQuoted(text);
-		System.out.println("quoted split test: " + parts);
-		assertEquals(3, parts.size());
+		String text = "Hello   (How\n are) you \"Konrad the Second\"";
+		var parts = ParseUtils.splitQuoted(text);
+		System.out.println("Toks(quoted split): " + parts);
+		assertEquals(4, parts.size());
 		assertEquals("Hello", parts.get(0));
 		assertEquals("How\n are", parts.get(1));
-		assertEquals("you?", parts.get(2));
+		assertEquals("you", parts.get(2));
+		assertEquals("\"Konrad the Second\"", parts.get(3));
 	}
 
 	@Test
