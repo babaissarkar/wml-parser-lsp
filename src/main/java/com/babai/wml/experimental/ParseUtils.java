@@ -3,6 +3,7 @@ package com.babai.wml.experimental;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 public final class ParseUtils {
 	
@@ -20,29 +21,35 @@ public final class ParseUtils {
 		}
 	}
 	
-	static List<String> splitParenQuoted(String token) {
+	static List<String> splitQuoted(String token) {
 		List<String> parts = new ArrayList<>();
-		
 		StringBuilder sb = new StringBuilder();
-		
 		char[] chars = token.toCharArray();
-		// Macro Name
+
 		int i = 0;
-		
 		while (i < chars.length) {
 			while (i < chars.length && Character.isWhitespace(chars[i])) i++; // skip WS
 			
 			if (i >= chars.length) break;
 			
 			// parentheses acts as quoting against WS/linebreak
-			if (chars[i] == '(') {
+			var delims = Map.of('(', ')', '\"', '\"');
+			Character startDelim = chars[i];
+			Character endDelim = delims.get(chars[i]); 
+			if (delims.containsKey(startDelim)) {
+				// we want the quotes but not parens
+				if (startDelim == '\"') sb.append(startDelim);
 				i++;
 				if (i >= chars.length) break;
-				while (i < chars.length && chars[i] != ')') {
+				while (i < chars.length && chars[i] != endDelim) {
 					sb.append(chars[i]);
 					i++;
 				}
-				if (chars[i] == ')') i++;
+				if (i >= chars.length) break;
+				if (chars[i] == endDelim) {
+					if (endDelim == '\"') sb.append(endDelim);
+					i++;
+				}
 			} else {
 				while (i < chars.length && !Character.isWhitespace(chars[i])) {
 					sb.append(chars[i]);
