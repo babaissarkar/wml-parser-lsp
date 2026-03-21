@@ -215,19 +215,10 @@ public class Preprocessor {
 	}
 	
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
-		var parts = ParseUtils.splitParenQuoted(macroCall.content());
+		var parts = ParseUtils.splitQuoted(macroCall.content());
 		String macroName = parts.get(0);
 		List<String> args = new ArrayList<>();
 		HashMap<String, String> defArgs = new LinkedHashMap<>();
-		for (int i = 1; i < parts.size(); i++) {
-			String str = parts.get(i);
-			if (str.contains("=")) {
-				String[] keyVal = str.split("=", 2);
-				defArgs.put(keyVal[0], keyVal[1]);
-			} else {
-				args.add(str);
-			}
-		}
 		
 		// ---------------------------------------
 		
@@ -238,6 +229,29 @@ public class Preprocessor {
 		}
 		
 		if (def != null) {
+			
+			// Process macro call args
+			for (int i = 1; i < parts.size(); i++) {
+				String str = parts.get(i);
+				
+				// Mandatory positional args
+				if (i-1 < def.getArgCount()) {
+					args.add(str);
+				} else {
+					// Optional keyword args
+					if (str.contains("=")) {
+						String[] keyVal = str.split("=", 2);
+						if (def.getDefArgs().containsKey(keyVal[0])) {
+							defArgs.put(keyVal[0], keyVal[1]);
+						} else {
+							//TODO error: invalid defarg passed
+						}
+					} else {
+						//TODO error: more defargs passed than needed
+					}
+				}
+			}
+			
 			String argsString = Definition.argsAsString(args, defArgs);
 			debugPrint("expanding macro "
 				+ def.coloredName()
