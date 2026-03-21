@@ -1,6 +1,12 @@
 package com.babai.wml.lsp;
 
+import static com.babai.wml.utils.ANSIFormatter.colorify;
+
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -66,8 +72,11 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
-import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.experimental.LogUtils;
+import com.babai.wml.experimental.PathContext;
+import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
+import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
 
@@ -516,10 +525,10 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	@Override
 	public void didOpen(DidOpenTextDocumentParams params) {
 		String uri = params.getTextDocument().getUri();
-		var errorsList = p.getErrors().get(uri);		
-		if (!(errorsList == null || errorsList.isEmpty())) {
-			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
-		}
+//		var errorsList = p.getErrors().get(uri);		
+//		if (!(errorsList == null || errorsList.isEmpty())) {
+//			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+//		}
 	}
 
 	@Override
@@ -534,40 +543,42 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void initParserForLSP() {
 		try {
-			p = new Preprocessor(inputPath);
-			p.showParseLogs(false);
-			p.showWarnLogs(false);
-			p.setOutput(null);
-			p.setDefinesMap(defines);
-			p.token_source.dataPath = dataPath;
-			p.token_source.userDataPath = userDataPath;
-			p.token_source.showLogs = false;
-			if (inputPath != null) {
-				for (Path incpath : includePaths) {
-					p.subparse(incpath);
-					unitTypes.addAll(p.getUnitTypes());
-				}
-				
-				baseDefines = defines.copy();
-				try {
-					parseFile(inputPath);
-				} catch (IOException e) {
-					showLSPMessage("Parsing " + inputPath.toString() + " failed.");
-				}
+			PathContext context = new PathContext(
+					dataPath,
+					userDataPath,
+					new HashSet<Path>());
+			p = new Preprocessor(context, defines);
+			//FIXME disable output by writing to a fake buffer that will be discard. Find a better way.
+			p.setOutput(new StringWriter());
+			
+//			p.setExtractData(argParse.extractUnitTypeData);
+
+			for (Path incpath : includePaths) {
+				// FIXME recheck directory support
+				p.preprocess(incpath);
 			}
+
+			baseDefines = defines.copy();
+			if (inputPath != null) {
+				LogUtils.debugPrint("Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
+				parseFile(inputPath);
+			} else {
+				p.preprocess(new InputStreamReader(System.in)); // odd in a LSP
+			}
+
 			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
-			showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
+			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
 		}
 	}
 	
 	private void parseFile(Path inputPath) throws IOException {
-		p.setDefinesMap(baseDefines.copy());
-		p.subparse(inputPath);
-		unitTypes.addAll(p.getUnitTypes());
+		p.setDefines(baseDefines.copy());
+		p.preprocess(inputPath);
+//		unitTypes.addAll(p.getUnitTypes());
 		
 		defines = p.getDefines();
-		binaryPaths = p.getBinaryPaths();
+//		binaryPaths = p.getBinaryPaths();
 		calls = p.getMacroCalls();
 		
 		macroCompletions.clear();
