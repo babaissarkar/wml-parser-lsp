@@ -139,8 +139,8 @@ public class Main {
 	}
 
 	private static void initServer(ArgParser argParser) {
-		LogUtils.showParseLogs(false);
-		LogUtils.showParseWarnings(false);
+		LogUtils.showParseLogs(argParser.showParseLogs);
+		LogUtils.showParseWarnings(argParser.warnParseLogs);
 		
 		var server = new WMLLanguageServer(
 			argParser.predefines,
