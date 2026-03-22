@@ -248,15 +248,17 @@ public class Preprocessor {
 		if (def != null) {
 			
 			// Process macro call args
+			int lastPos = 0;
 			for (int i = 1; i < parts.size(); i++) {
 				String str = parts.get(i);
 				
 				// Mandatory positional args
 				if (i-1 < def.getArgCount()) {
-					//FIXME might need adjustments later
-					int argStart = macroCall.beginColumn() + content.indexOf(str);
+					//FIXME multiline arguments, also this should be done in splitQuoted
+					lastPos = content.indexOf(str, lastPos + 1);
+					int argStart = macroCall.beginColumn() + lastPos;
 					int argEnd = argStart + str.length();
-					int argLine = macroCall.beginLine(); //TODO args may start on a different line
+					int argLine = macroCall.beginLine() - 1; //TODO args may start on a different line. why -1?
 					args.add(new MacroArg(str, argLine, argStart, argEnd));
 				} else {
 					// Optional keyword args
