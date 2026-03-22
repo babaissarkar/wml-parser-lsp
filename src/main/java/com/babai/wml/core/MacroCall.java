@@ -33,6 +33,7 @@ public class MacroCall {
 
 	@Override
 	public String toString() {
-		return "{'" + name + "', 'line=" + startLine + "', uri=" + uri + ", args=" + args + "}";
+		return "MacroCall [name=" + name + ", startLine=" + startLine + ", endLine=" + endLine + ", startChar="
+				+ startChar + ", endChar=" + endChar + ", args=" + args + ", uri=" + uri + "]";
 	}
 }
