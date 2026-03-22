@@ -76,6 +76,9 @@ public class Preprocessor {
 			Path main = path.resolve("_main.cfg");
 			if (Files.exists(main)) {
 				path = main;
+				this.currentPath = path;
+				debugPrint("Preprocessing: " + coloredPath);
+				preprocess(Files.newBufferedReader(path));
 			} else {
 				try (var stream = Files.list(path)) {
 					var files = stream.sorted().toList();
