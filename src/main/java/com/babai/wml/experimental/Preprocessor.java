@@ -150,7 +150,7 @@ public class Preprocessor {
 		return body.toString();
 	}
 	
-	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathuri) {
+	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathUri) {
 		var directiveHeader = DirectiveHeader.parse(directiveStart);
 
 		if (directiveHeader.name().equals("define")) {
@@ -180,7 +180,7 @@ public class Preprocessor {
 			// Body
 			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), macroArgs, macroDefaultArgs);
 			debugPrint("defining macro " + def.coloredName());
-			defines.addRow(directiveStart.beginLine(), pathuri, macroName, def);
+			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
 		}
 	}
 	
