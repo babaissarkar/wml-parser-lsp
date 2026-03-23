@@ -15,8 +15,8 @@ public final class ParseUtils {
 		return t;
 	}
 	
-	static void skipEOL(ListIterator<Token> itor) {
-		while (itor.hasNext() && ParseUtils.peek(itor).kind() == Token.Kind.EOL) {
+	static void skip(ListIterator<Token> itor, Token.Kind skipKind) {
+		while (itor.hasNext() && ParseUtils.peek(itor).kind() == skipKind) {
 			itor.next();
 		}
 	}
