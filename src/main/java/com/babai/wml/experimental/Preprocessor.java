@@ -77,7 +77,7 @@ public class Preprocessor {
 			if (Files.exists(main)) {
 				path = main;
 				this.currentPath = path;
-				debugPrint("Preprocessing: " + coloredPath);
+				debugPrint("Preprocessing: " + colorify(path.toString(), Colors.filePathColor));
 				preprocess(Files.newBufferedReader(path));
 			} else {
 				try (var stream = Files.list(path)) {
@@ -124,7 +124,7 @@ public class Preprocessor {
 
 			case COMMENT -> {
 				if (t.isDirective()) {
-					String path = currentPath.toAbsolutePath().toString();
+					String path = currentPath.toUri().toString();
 					handleDirective(t, itor, path);
 				}
 				// otherwise ignore
@@ -153,7 +153,7 @@ public class Preprocessor {
 		return body.toString();
 	}
 	
-	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathname) {
+	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathuri) {
 		var directiveHeader = DirectiveHeader.parse(directiveStart);
 
 		if (directiveHeader.name().equals("define")) {
@@ -182,11 +182,8 @@ public class Preprocessor {
 			
 			// Body
 			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), macroArgs, macroDefaultArgs);
-			
-			// dummy, needs more info
-			//defines.addRow(name.beginLine-1, currentPath.toUri().toString(), name.image, def);
 			debugPrint("defining macro " + def.coloredName());
-			defines.addRow(directiveStart.beginLine(), pathname, macroName, def);
+			defines.addRow(directiveStart.beginLine(), pathuri, macroName, def);
 		}
 	}
 	
