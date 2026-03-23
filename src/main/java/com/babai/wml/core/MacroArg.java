@@ -1,6 +1,8 @@
 package com.babai.wml.core;
 
-// AI-generated: Claude
+import com.babai.wml.utils.AIGenerated;
+
+@AIGenerated // Claude
 public class MacroArg {
 	private final String value;
 	private final int startLine;
