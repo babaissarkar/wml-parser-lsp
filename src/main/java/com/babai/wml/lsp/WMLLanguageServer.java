@@ -3,7 +3,6 @@ package com.babai.wml.lsp;
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -396,8 +395,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 						));
 				listCall.add(sym);
 			}
-			mcallRoot.setChildren(listCall);
-			symbolList.add(Either.forRight(mcallRoot));
+			
+			if (!listCall.isEmpty()) {
+				mcallRoot.setChildren(listCall);
+				symbolList.add(Either.forRight(mcallRoot));
+			}
 		}
 		
 		return CompletableFuture.completedFuture(symbolList);
@@ -559,11 +561,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			if (inputPath != null) {
 				LogUtils.debugPrint("Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
 				parseFile(inputPath);
-			} else {
-				p.preprocess(new InputStreamReader(System.in)); // odd in a LSP
 			}
-
-			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
+			
+//			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
 		}
