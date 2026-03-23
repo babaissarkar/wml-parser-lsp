@@ -146,7 +146,7 @@ public class Preprocessor {
 						+ colorify(directiveName, Colors.directiveColor) + " at " + position(t));
 				break;
 			} else {
-				body.append(t.content());
+				if (t.kind() != Token.Kind.COMMENT) body.append(t.content());
 				t = itor.next();
 			}
 		}
