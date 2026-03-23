@@ -3,7 +3,6 @@ package com.babai.wml.lsp;
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -349,6 +348,80 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		return CompletableFuture.completedFuture(null);
 	}
 
+	@Override
+	public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
+
+		String docUri = params.getTextDocument().getUri();
+		var emptyRange = new Range(
+				new Position(0, 0),
+				new Position(0, 0));
+		List<Either<SymbolInformation, DocumentSymbol>> symbolList = new ArrayList<>();
+
+		// 1. Macro Definitions
+		var matches = defines.getRows("URI", docUri);
+		if (!matches.isEmpty()) {
+			List<DocumentSymbol> listDef = new ArrayList<>();
+			DocumentSymbol mdefRoot = new DocumentSymbol();
+			mdefRoot.setName("Macro Definitions");
+			mdefRoot.setKind(SymbolKind.Namespace);
+			mdefRoot.setRange(emptyRange);
+			mdefRoot.setSelectionRange(emptyRange);
+			for (var match : matches) {
+				String targetName = match.getColumn("Name").getValue().toString();
+				int targetLine = (int) match.getColumn("Line").getValue();
+				var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+				DocumentSymbol sym = new DocumentSymbol();
+				sym.setName(targetName);
+				sym.setKind(SymbolKind.Function);
+				sym.setRange(range);
+				sym.setSelectionRange(range);
+				listDef.add(sym);
+			}
+			mdefRoot.setChildren(listDef);
+			symbolList.add(Either.forRight(mdefRoot));
+		}
+
+		// 2. Macro Calls
+		if (!calls.isEmpty()) {
+			List<DocumentSymbol> listCall = new ArrayList<>();
+			DocumentSymbol mcallRoot = new DocumentSymbol();
+			mcallRoot.setName("Macro Calls");
+			mcallRoot.setKind(SymbolKind.Namespace);
+			mcallRoot.setRange(emptyRange);
+			mcallRoot.setSelectionRange(emptyRange);
+
+			for (MacroCall call : calls) {
+				if (!call.uri().equals(docUri)) {
+					continue;
+				}
+				DocumentSymbol sym = new DocumentSymbol();
+				sym.setName(call.name());
+				sym.setKind(SymbolKind.Method);
+				sym.setRange(new Range(
+						new Position(call.startLine(), call.startChar()),
+						new Position(call.endLine(), call.endChar())
+						));
+				sym.setSelectionRange(new Range(
+						new Position(call.startLine(), call.startChar()),
+						new Position(call.startLine(), call.endChar())
+						));
+				listCall.add(sym);
+			}
+
+			if (!listCall.isEmpty()) {
+				mcallRoot.setChildren(listCall);
+				symbolList.add(Either.forRight(mcallRoot));
+			}
+		}
+
+		return CompletableFuture.completedFuture(symbolList);
+	}
+
+	@Override
+	public CompletableFuture<List<InlayHint>> inlayHint(InlayHintParams params) {
+		String uri = params.getTextDocument().getUri();
+		List<InlayHint> hints = new ArrayList<>();
+
 	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
 		CompletionItem item = new CompletionItem(relPath);
 		item.setKind(CompletionItemKind.File); // You could detect folder vs file if you want
@@ -491,11 +564,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			if (inputPath != null) {
 				LogUtils.debugPrint("Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
 				parseFile(inputPath);
-			} else {
-				p.preprocess(new InputStreamReader(System.in)); // odd in a LSP
 			}
 
-			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
+//			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
 		}
