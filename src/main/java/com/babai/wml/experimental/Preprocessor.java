@@ -110,28 +110,21 @@ public class Preprocessor {
 		
 		while (itor.hasNext()) {
 			Token t = itor.next();
-
-			switch (t.kind()) {
-			case TEXT -> out.print(t.content());
-
-			case WHITESPACE -> out.print(" ");
-
-			case EOL -> out.print("\n");
-
-			case QUOTED -> out.print("\"" + t.content() + "\"");
-
-			case ANGLE_QUOTED -> out.print("<<" + t.content() + ">>");
-
-			case COMMENT -> {
-				if (t.isDirective()) {
-					String path = currentPath.toUri().toString();
-					handleDirective(t, itor, path);
-				}
-				// otherwise ignore
-			}
 			
-			case MACRO -> out.print(expandMacro(t, List.of(), this.context));
-			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
+			switch (t.kind()) {
+				case TEXT, WHITESPACE, EOL -> out.print(t.content());
+				case QUOTED -> out.print("\"" + t.content() + "\"");
+				case ANGLE_QUOTED -> out.print("<<" + t.content() + ">>");
+				case MACRO -> out.print(expandMacro(t, List.of(), this.context));
+				case COMMENT -> {
+					if (t.isDirective()) {
+						String path = currentPath.toUri().toString();
+						handleDirective(t, itor, path);
+					}
+					// otherwise ignore
+				}
+				
+				default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
 			}
 		}
 	}
