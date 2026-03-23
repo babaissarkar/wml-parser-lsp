@@ -16,6 +16,7 @@ class PreprocessorTest {
 	void testDefineExpand() {
 		String defString = """
 			#define MYMACRO2
+			# This is some docs
 			Something#enddef
 			{MYMACRO2}""";
 		try {
@@ -36,6 +37,7 @@ class PreprocessorTest {
 	void testDefineArgs() {
 		String defString = """
 			#define MYMACRO ARG1 ARG2
+			# This is doc
 			#arg DARG1
 			default#endarg
 			
@@ -55,6 +57,7 @@ class PreprocessorTest {
 			var macroDefinition = (Definition) rows.get(0).getColumn("Definition").getValue();
 			assertEquals(2, macroDefinition.getArgCount()); // Has 2 positional args
 			assertEquals(3, macroDefinition.getDefArgCount()); // Has 3 default args
+			assertEquals(" This is doc", macroDefinition.getDocs());
 			System.out.println(macroDefinition);
 		} catch (IOException e) {
 			e.printStackTrace();
