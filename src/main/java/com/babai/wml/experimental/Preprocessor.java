@@ -135,6 +135,7 @@ public class Preprocessor {
 	
 	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
 		StringBuilder body = new StringBuilder();
+		if (!itor.hasNext()) return "";
 		Token t = itor.next();
 		while (!t.isDirectiveName(directiveName, false)) {
 			if (!itor.hasNext()) {
@@ -144,6 +145,7 @@ public class Preprocessor {
 				break;
 			} else {
 				body.append(processToken(itor, t));
+				if (!itor.hasNext()) return body.toString();
 				t = itor.next();
 			}
 		}
@@ -160,9 +162,23 @@ public class Preprocessor {
 			String macroName = directiveArgs[0];
 			List<String> macroArgs = Arrays.asList(directiveArgs).subList(1, directiveArgs.length);
 
-			skipEOL(itor);
+			skip(itor, Token.Kind.EOL);
+			
+			skip(itor, Token.Kind.WHITESPACE);
 
-			// TODO macro documentation comments
+			// macro documentation comments
+			var docBuff = new StringBuilder();
+			while (peek(itor).kind() == Token.Kind.COMMENT && !peek(itor).isDirective()) {
+				Token t = itor.next();
+				docBuff.append(t.content());
+				if(peek(itor).kind() == Token.Kind.EOL) {
+					t = itor.next();
+					docBuff.append(t.content());
+				}
+				skip(itor, Token.Kind.WHITESPACE);
+			}
+			
+			skip(itor, Token.Kind.EOL);
 			
 			// defargs processing
 			var macroDefaultArgs = new LinkedHashMap<String, String>();
@@ -170,15 +186,16 @@ public class Preprocessor {
 				Token t = itor.next();
 				String defArgName = DirectiveHeader.parse(t).args()[0]; // arg NAME
 				
-				skipEOL(itor);
+				skip(itor, Token.Kind.EOL);
 				
 				macroDefaultArgs.put(defArgName, consumeUntilEndDirective("endarg", itor));
 				
-				skipEOL(itor);
+				skip(itor, Token.Kind.EOL);
 			}
 			
 			// Body
 			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), macroArgs, macroDefaultArgs);
+			def.setDocs(docBuff.toString().stripTrailing());
 			debugPrint("defining macro " + def.coloredName());
 			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
 		}
