@@ -229,6 +229,7 @@ public class Preprocessor {
 	
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
 		final String content = macroCall.content();
+		final String fallback = "{" + content + "}";
 		var parts = ParseUtils.splitQuoted(content);
 		String macroName = parts.get(0);
 		List<MacroArg> args = new ArrayList<>();
@@ -282,21 +283,21 @@ public class Preprocessor {
 					currentPath.toUri().toString()));
 			
 			String argsString = Definition.argsAsString2(args, defArgs);
-			debugPrint("expanding macro "
-				+ def.coloredName()
+			debugPrint("expanding macro " + def.coloredName()
 				+ (!argsString.isEmpty() ? " with " + colorify(argsString, Colors.macroArgColor) : ""));
+			
 			try {
 				return def.expand2(args, defArgs);
 			} catch(IllegalArgumentException e) {
 				errorPrint("Error expanding macro " + def.coloredName() + ": " + e.getMessage());
-				return macroCall.toString();
+				return fallback;
 			}
 		} else if (possibleArgs.contains(macroName)) {
-			// FIXME: do nothing for now. may need checks later why this is happening.
-			return macroCall.toString();
+			// FIXME: do nothing for now. may need checks later.
+			return fallback;
 		} else {
 			warningPrint(position(macroCall) + " undefined macro " + colorify(macroName, Color.RED));
-			return macroCall.toString();
+			return fallback;
 		}
 	}
 	
