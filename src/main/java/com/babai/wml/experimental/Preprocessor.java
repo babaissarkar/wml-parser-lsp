@@ -140,8 +140,9 @@ public class Preprocessor {
 		while (!t.isDirectiveName(directiveName, false)) {
 			if (!itor.hasNext()) {
 				// terminated before define completed, error
-				errorPrint("Incomplete macro definition for "
-						+ colorify(directiveName, Colors.directiveColor) + " at " + position(t));
+				errorPrint("End directive "
+						+ colorify(directiveName, Colors.directiveColor)
+						+ " not found. Pos: " + position(t));
 				break;
 			} else {
 				body.append(processToken(itor, t));
@@ -152,18 +153,36 @@ public class Preprocessor {
 		return body.toString();
 	}
 	
+	private void skipUntilEndDirective2(String endDir1, String endDir2, ListIterator<Token> itor) {
+		if (!itor.hasNext()) return;
+		Token t = itor.next();
+		while (!(t.isDirectiveName(endDir1, false) || t.isDirectiveName(endDir2, false))) {
+			if (!itor.hasNext()) {
+				// terminated before define completed, error
+				errorPrint("End directives "
+						+ colorify(endDir1, Colors.directiveColor) + " or "
+						+ colorify(endDir2, Colors.directiveColor)
+						+ " not found. Pos: " + position(t));
+				break;
+			} else {
+				if (!itor.hasNext()) return;
+				t = itor.next();
+			}
+		}
+		return;
+	}
+	
 	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathUri) {
 		var directiveHeader = DirectiveHeader.parse(directiveStart);
+		var directiveArgs = directiveHeader.args();
 
 		if (directiveHeader.name().equals("define")) {
-			var directiveArgs = directiveHeader.args();
-			
 			// Macro name
 			String macroName = directiveArgs[0];
 			List<String> macroArgs = Arrays.asList(directiveArgs).subList(1, directiveArgs.length);
 
 			skip(itor, Token.Kind.EOL);
-			
+
 			skip(itor, Token.Kind.WHITESPACE);
 
 			// macro documentation comments
@@ -198,7 +217,23 @@ public class Preprocessor {
 			def.setDocs(docBuff.toString().stripTrailing());
 			debugPrint("defining macro " + def.coloredName());
 			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
+			
+		} else if (directiveHeader.name().equals("ifdef")) {
+			// TODO complain if ifdef does not exactly has one arg (macroname)
+			boolean hasMacro = !defines.getRows("Name", directiveArgs[0]).isEmpty();
+			if (!hasMacro) {
+				// skip upto #else or #endif
+				skipUntilEndDirective2("else", "endif", itor);
+			}
+		} else if (directiveHeader.name().equals("ifndef")) {
+			// TODO complain if ifndef does not exactly has one arg (macroname)
+			boolean hasMacro = !defines.getRows("Name", directiveArgs[0]).isEmpty();
+			if (hasMacro) {
+				// skip upto #else or #endif
+				skipUntilEndDirective2("else", "endif", itor);
+			}
 		}
+		// TODO ifdef/ifndef "else" block handling
 	}
 	
 	private final static Pattern wspattern = Pattern.compile("\\s+");
