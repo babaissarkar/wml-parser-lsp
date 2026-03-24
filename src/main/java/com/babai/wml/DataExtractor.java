@@ -5,10 +5,12 @@ import static com.babai.wml.experimental.ParseUtils.csvEscape;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.LinkedHashMap;
 
 import com.babai.wml.core.Config;
 import com.babai.wml.core.ConfigAttributeBase;
@@ -67,29 +69,58 @@ public class DataExtractor {
 
 	public static void generateMacroRef(Path macroRefPath, Table defines) {
 		try (BufferedWriter writer = Files.newBufferedWriter(macroRefPath)) {
-			HashSet<String> uriList = new HashSet<>();
+			writer.write("<p class='macro-ref-toc'>Documented files:</p>");
+			writer.write("<div class='filelist'><ul>");
+			
+			HashMap<String, String> uriList = new LinkedHashMap<>();
 			// URI column contains duplicates, suppress them.
 			// we only need unique values for getRows() below.
+			// List of parsed files at top
 			for (var uriObj : defines.getColumn("URI")) {
-				uriList.add((String) uriObj);
+				String uriStr = (String) uriObj;
+				String name = Path.of(URI.create(uriStr)).getFileName().toString();
+				var success = uriList.put(name, uriStr);
+				if (success == null) {
+					writer.write("<li><a href='" + uriStr + "'><code class='noframe'>" + name + "</code></a></li>");
+				}
 			}
 			
-			for (String uri : uriList) {
-				writer.write("URI: " + uri);
+			writer.write("</div></ul>");
+			writer.newLine();
+			writer.write("<p class='toplink'>[ <a href='#content'>top</a> ]</p>");
+			writer.newLine();
+			
+			// File sections with macros
+			for (var entry : uriList.entrySet()) {
+				String name = entry.getKey();
+				String uriStr = entry.getValue();
+				writer.write("<h2 id='" + uriStr + "' class='file_header'>From file: <code class='noframe'>" + name + "</code></h2>");
 				writer.newLine();
-				for (var row : defines.getRows("URI", uri)) {
+				writer.write("<dl>");
+				
+				//TODO top of file docs: <p class="file_explanation"> 
+				
+				for (var row : defines.getRows("URI", uriStr)) {
 					String macroName = (String) row.getColumn("Name").getValue();
 					if (macroName.startsWith("INTERNAL:")) continue;
 					Definition def = (Definition) row.getColumn("Definition").getValue();
-					writer.write("\tMacro: " + macroName);
+					
+					writer.write("<dt id='" + macroName + "'>");
+					writer.write("<code class='noframe'><span class='macro-name'>" + macroName + "</code></dt>");
+					writer.newLine();
+					
 					String docs = def.getDocs();
 					if (!docs.isEmpty()) {
-						writer.write("\t" + docs);
+						writer.write("<dd><p class=\"macro-explanation\">" + docs + "</p></dd>");
 					} else {
-						writer.write("\t No documentation found");
+						writer.write("<dd><p class=\"macro-explanation\"><i>No documentation found</i></p></dd>");
 					}
 					writer.newLine();
 				}
+				
+				writer.write("</dl>");
+				writer.newLine();
+				writer.write("<p class='toplink'>[ <a href='#content'>top</a> ]</p>");
 				writer.newLine();
 			}
 		} catch (IOException e) {
