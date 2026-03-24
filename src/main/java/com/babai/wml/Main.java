@@ -20,6 +20,7 @@ import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.lsp.WMLLanguageServer;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
+import com.babai.wml.utils.Table;
 
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
@@ -31,14 +32,17 @@ public class Main {
 			initServer(argParse);
 		} else {
 			try {
-				initParse(argParse);
+				Table defines = initParse(argParse);
+				if (argParse.generateMacroRef) {
+					DataExtractor.generateMacroRef(argParse.macroRefPath, defines);
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	private static void initParse(ArgParser argParse) throws IOException {
+	private static Table initParse(ArgParser argParse) throws IOException {
 		LogUtils.showParseLogs(argParse.showParseLogs);
 		LogUtils.showParseWarnings(argParse.warnParseLogs);
 
@@ -82,6 +86,7 @@ public class Main {
 //		}
 
 		LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
+		return p.getDefines();
 	}
 
 	private static void initServer(ArgParser argParser) {
