@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import com.babai.wml.utils.Colors;
 
 public class Definition {
-	private String name, value, docs;
+	private String name, value, docs = "";
 	private Vector<String> args = new Vector<>();
 	private HashMap<String, String> defArgs = new HashMap<>();
 

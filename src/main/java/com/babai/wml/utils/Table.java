@@ -160,6 +160,17 @@ public final class Table {
 				return i;
 		throw new IllegalArgumentException("Unknown column: " + colName);
 	}
+	
+	public List<Object> getColumn(String colName) {
+		int cidx = getColumnIndex(colName);
+		int rows = rowCount();
+		
+		List<Object> col = new ArrayList<>();
+		for (int i = 0; i < rows; i++) {
+			col.add(get(i, cidx).getValue());
+		}
+		return col;
+	}
 
 	/** Fast lookup by indexed column */
 	public List<Row> getRows(String colName, Object value) {
