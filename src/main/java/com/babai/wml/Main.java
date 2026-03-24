@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UncheckedIOException;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,8 +14,6 @@ import java.util.concurrent.ExecutionException;
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-import com.babai.wml.core.Config;
-import com.babai.wml.core.ConfigAttributeBase;
 import com.babai.wml.experimental.LogUtils;
 import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
@@ -24,7 +21,6 @@ import com.babai.wml.lsp.WMLLanguageServer;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
 
-import static com.babai.wml.experimental.ParseUtils.csvEscape;
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
 public class Main {
@@ -86,55 +82,6 @@ public class Main {
 //		}
 
 		LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
-	}
-
-	@SuppressWarnings("unused")
-	private static void writeUnitTypeData(HashSet<Config> unitTypeData, Path unitTypeOutPath) {
-		final String[] UNIT_TYPE_COLUMNS = {
-			"id",
-			"race",
-			"gender",
-			"hitpoints",
-			"movement_type",
-			"movement",
-			"experience",
-			"level",
-			"alignment",
-			"advances_to",
-			"cost",
-			"usage",
-			"name",
-			"image",
-			"profile",
-			"description"
-		};
-
-		try (BufferedWriter writer = Files.newBufferedWriter(unitTypeOutPath)) {
-
-			// Header
-			writer.write(String.join(",", UNIT_TYPE_COLUMNS));
-			writer.newLine();
-
-			for (Config cfg : unitTypeData) {
-				StringBuilder row = new StringBuilder();
-
-				for (int i = 0; i < UNIT_TYPE_COLUMNS.length; i++) {
-					if (i > 0) row.append(',');
-
-					String key = UNIT_TYPE_COLUMNS[i];
-					ConfigAttributeBase attr = cfg.getAttr(key);
-
-					String value = (attr == null) ? "" : attr.stringValue();
-					row.append(csvEscape(value));
-				}
-
-				writer.write(row.toString());
-				writer.newLine();
-			}
-
-		} catch (IOException e) {
-			throw new UncheckedIOException("Failed to write unit type CSV", e);
-		}
 	}
 
 	private static void initServer(ArgParser argParser) {
