@@ -4,13 +4,13 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import com.babai.wml.core.Definition;
 
 public class ArgParser {
-	public boolean showParseLogs = false;
+	public Level logLevel = Level.INFO;
 	public boolean showJsonLogs =  false;
-	public boolean warnParseLogs = false;
 	public boolean extractUnitTypeData = false;
 	public boolean startLSPServer = false;
 	public boolean generateMacroRef = false;
@@ -32,8 +32,8 @@ public class ArgParser {
 				-datadir [path]         Absolute Path to Wesnoth's data directory
 				-userdatadir [path]     Absolute Path to Wesnoth's userdata directory
 				-log-parse/-log-p       Print all parser logs
-				-log-json/-log-j        Print all LSP JsonRpc logs
 				-warn-parse/-warn-p     Print parser warnings only
+				-log-json/-log-j        Print all LSP JsonRpc logs
 				-include [path]         Preprocess the given file/folder beforehand and collect macro definitions from it.
 				                        Can be used multiple times to include multiple files before the main input.
 				-define/-d [macroname]  [body]
@@ -90,15 +90,16 @@ public class ArgParser {
 				predefines.addRow(0, "predefined", name, new Definition(name, value));
 			}
 
-			case "log-parse", "log-p" -> showParseLogs = true;
-			case "log-json", "log-j" -> {
-				if(startLSPServer) {
-					showJsonLogs = true;
-				} else {
-					showJsonLogs = false;
-				}
-			}
-			case "warn-parse", "warn-p" -> warnParseLogs = true;
+			case "log-parse", "log-p" -> logLevel = Level.FINER;
+			case "warn-parse", "warn-p" -> logLevel = Level.WARNING;
+			case "log-level" -> logLevel = switch(args[++i]) {
+				case "severe" -> Level.SEVERE;
+				case "warn" -> Level.WARNING;
+				case "info" -> Level.INFO;
+				case "debug" -> Level.FINER;
+				default -> Level.INFO;
+			};
+			case "log-json", "log-j" -> showJsonLogs = startLSPServer;
 			case "server", "s" -> startLSPServer = true;
 			case "extract", "e" -> {
 				extractUnitTypeData = true;

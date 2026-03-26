@@ -43,8 +43,7 @@ public class Main {
 	}
 
 	private static Table initParse(ArgParser argParse) throws IOException {
-		LogUtils.showParseLogs(argParse.showParseLogs);
-		LogUtils.showParseWarnings(argParse.warnParseLogs);
+		LogUtils.setLogLevel(argParse.logLevel);
 
 		PathContext context = new PathContext(
 			argParse.dataPath,
@@ -85,13 +84,12 @@ public class Main {
 //			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 
-		LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros defined.");
+		LogUtils.infoPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 		return p.getDefines();
 	}
 
 	private static void initServer(ArgParser argParser) {
-		LogUtils.showParseLogs(argParser.showParseLogs);
-		LogUtils.showParseWarnings(argParser.warnParseLogs);
+		LogUtils.setLogLevel(argParser.logLevel);
 		
 		var server = new WMLLanguageServer(
 			argParser.predefines,

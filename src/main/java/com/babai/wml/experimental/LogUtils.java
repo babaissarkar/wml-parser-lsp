@@ -1,6 +1,8 @@
 package com.babai.wml.experimental;
 
 import java.awt.Color;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -11,48 +13,42 @@ import static com.babai.wml.utils.ANSIFormatter.*;
 public final class LogUtils {
 	private final static Logger pL = Logger.getLogger("preprocessor.parse");
 	
-	private static volatile boolean showParseLogs = true;
-	private static volatile boolean warnParseLogs = true;
-	private static volatile boolean disableErrors = false;
-	
 	static {
-		setLoggingFormat();
-	}
-	
-	public static void showParseLogs(boolean showParseLogs) {
-		LogUtils.showParseLogs = showParseLogs;
-	}
-
-	public static void showParseWarnings(boolean warnParseLogs) {
-		LogUtils.warnParseLogs = warnParseLogs;
-	}
-
-	public static void disableErrors(boolean disableErrors) {
-		LogUtils.disableErrors = disableErrors;
+		setupLogger();
 	}
 	
 	private LogUtils() {}
 	
-	private static void setLoggingFormat() {
-		for (var handler : Logger.getLogger("").getHandlers()) {
-			handler.setFormatter(new java.util.logging.Formatter() {
-				@Override
-				public String format(LogRecord r) {
-					// Customize Message for separators between Level and Message
-					Level l = r.getLevel();
-					String lvlStr = "[" + l + "]";
-					if (l == Level.SEVERE) {
-						lvlStr = colorify(lvlStr, Color.RED);
-					} else if (l == Level.WARNING) {
-						lvlStr = colorify(lvlStr, Color.ORANGE);
-					} else if (l == Level.INFO) {
-						lvlStr = colorify(lvlStr, Color.CYAN);
-					}
-
-					return lvlStr + " " + r.getMessage() + "\n";
-				}
-			});
+	public static void setLogLevel(Level lvl) {
+		pL.setLevel(lvl);
+		for (var handler : pL.getHandlers()) {
+			handler.setLevel(lvl);
 		}
+	}
+	
+	private static void setupLogger() {
+		pL.setUseParentHandlers(false);
+		ConsoleHandler handler = new ConsoleHandler();
+		handler.setFormatter(new Formatter() {
+			@Override
+			public String format(LogRecord record) {
+				// Customize Message for separators between Level and Message
+				Level l = record.getLevel();
+				String lvlStr = "[" + l + "]";
+				if (l == Level.SEVERE) {
+					lvlStr = colorify(lvlStr, Color.RED);
+				} else if (l == Level.WARNING) {
+					lvlStr = colorify(lvlStr, Color.ORANGE);
+				} else if (l == Level.INFO) {
+					lvlStr = colorify(lvlStr, Color.GREEN);
+				} else if (l == Level.FINER) {
+					lvlStr = colorify("[DEBUG]", Color.CYAN);
+				}
+				
+				return lvlStr + " " + record.getMessage() + "\n";
+			}
+		});
+		pL.addHandler(handler);
 	}
 	
 	@SuppressWarnings("unused")
@@ -69,23 +65,20 @@ public final class LogUtils {
 		System.out.println("[" + frame.getMethodName() +":L" + frame.getLineNumber() + "]: " + str);
 	}
 	
+	public static void infoPrint(String s) {
+		pL.info(s);
+	}
+	
 	public static void debugPrint(String s) {
-		if (showParseLogs) {
-			pL.info(s);
-		}
+		pL.finer(s);
 	}
 
 	public static void warningPrint(String s) {
-		if (showParseLogs || warnParseLogs) {
-			pL.warning(s);
-		}
+		pL.warning(s);
 	}
 	
 	public static void errorPrint(String s) {
-		// temporary, to test lsp
-		if (!disableErrors) {
-			pL.severe(s);
-		}
+		pL.severe(s);
 	}
 
 	public static String position(Token tok) {
