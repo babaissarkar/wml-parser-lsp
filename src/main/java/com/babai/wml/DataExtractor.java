@@ -81,7 +81,7 @@ public class DataExtractor {
 				String name = Path.of(URI.create(uriStr)).getFileName().toString();
 				var success = uriList.put(name, uriStr);
 				if (success == null) {
-					writer.write("<li><a href='" + uriStr + "'><code class='noframe'>" + name + "</code></a></li>");
+					writer.write("<li><a href='#file:" + name + "'><code class='noframe'>" + name + "</code></a></li>");
 				}
 			}
 			
@@ -94,7 +94,7 @@ public class DataExtractor {
 			for (var entry : uriList.entrySet()) {
 				String name = entry.getKey();
 				String uriStr = entry.getValue();
-				writer.write("<h2 id='" + uriStr + "' class='file_header'>From file: <code class='noframe'>" + name + "</code></h2>");
+				writer.write("<h2 id='#file:" + name + "' class='file_header'>From file: <code class='noframe'><a href='" + uriStr + "'>" + name + "</a></code></h2>");
 				writer.newLine();
 				writer.write("<dl>");
 				
