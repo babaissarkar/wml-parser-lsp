@@ -57,7 +57,7 @@ class PreprocessorTest {
 			var macroDefinition = (Definition) rows.get(0).getColumn("Definition").getValue();
 			assertEquals(2, macroDefinition.getArgCount()); // Has 2 positional args
 			assertEquals(3, macroDefinition.getDefArgCount()); // Has 3 default args
-			assertEquals(" This is doc", macroDefinition.getDocs());
+			assertEquals("This is doc", macroDefinition.getDocs());
 			System.out.println(macroDefinition);
 		} catch (IOException e) {
 			e.printStackTrace();
