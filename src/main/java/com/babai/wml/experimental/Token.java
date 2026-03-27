@@ -43,7 +43,8 @@ public final class Token {
 			"ifnver",
 			"error",
 			"warning",
-			"deprecated"
+			"deprecated",
+			"textdomain"
 		};
 
 		for (String d : directives) {

@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
 
@@ -25,6 +26,8 @@ import com.babai.wml.utils.Table;
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
 public class Main {
+	private static Table defines;
+	private static HashMap<String, String> fileExplanations;
 
 	public static void main(String[] args) {
 		var argParse = new ArgParser();
@@ -33,9 +36,9 @@ public class Main {
 			initServer(argParse);
 		} else {
 			try {
-				Table defines = initParse(argParse);
+				initParse(argParse);
 				if (argParse.generateMacroRef) {
-					DataExtractor.generateMacroRef(argParse.macroRefPath, defines);
+					DataExtractor.generateMacroRef(argParse.macroRefPath, defines, fileExplanations);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -43,7 +46,7 @@ public class Main {
 		}
 	}
 
-	private static Table initParse(ArgParser argParse) throws IOException {
+	private static void initParse(ArgParser argParse) throws IOException {
 		LogUtils.setLogLevel(argParse.logLevel);
 
 		PathContext context = new PathContext(
@@ -86,12 +89,13 @@ public class Main {
 //		}
 
 		LogUtils.infoPrint("Total " + p.getDefines().rowCount() + " macros defined.");
-		return p.getDefines();
+		defines = p.getDefines();
+		fileExplanations = p.getFileExplanations();
 	}
 
 	private static void initServer(ArgParser argParser) {
 		LogUtils.setLogLevel(argParser.logLevel);
-		
+
 		var server = new WMLLanguageServer(
 			argParser.predefines,
 			argParser.inputPath,
@@ -107,7 +111,7 @@ public class Main {
 					.setRemoteInterface(LanguageClient.class)
 					.setInput(clientSocket.getInputStream())
 					.setOutput(clientSocket.getOutputStream());
-			
+
 			if (argParser.showJsonLogs) {
 				launcherBuilder = launcherBuilder.traceMessages(traceJsonStream);  // dumps every JSON message
 			}
