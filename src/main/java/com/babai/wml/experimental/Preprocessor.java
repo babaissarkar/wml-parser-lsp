@@ -6,6 +6,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
@@ -76,32 +78,41 @@ public class Preprocessor {
 			debugPrint("Including directory: " + coloredPath);
 			Path main = path.resolve("_main.cfg");
 			if (Files.exists(main)) {
-				path = main;
-				this.currentPath = path;
-				debugPrint("Preprocessing: " + colorify(path.toString(), Colors.filePathColor));
-				preprocess(Files.newBufferedReader(path));
+				preprocessFile(main);
 			} else {
+				Predicate<? super Path> filter = entry ->
+					Files.isDirectory(entry)
+					|| entry.getFileName().toString().endsWith(".cfg");
+					
 				try (var stream = Files.list(path)) {
-					var files = stream.sorted().toList();
-					for (Path f : files) {
-						if (Files.isDirectory(f) || !f.toString().endsWith(".cfg"))
-							return;
-						preprocess(f);
-					}
+					stream
+						.filter(filter)
+						.sorted()
+						.forEach(this::preprocessFile);
 				} catch (IOException e) {
 					errorPrint("Cannot find " + path + ", skipping.");
 				}
-				return;
 			}
 		} else {
-			this.currentPath = path;
-			debugPrint("Preprocessing: " + coloredPath);
-			preprocess(Files.newBufferedReader(path));
+			preprocessFile(path);
 		}
 	}
 	
+	public void preprocessFile(Path path) {
+		int prevMacroCount = this.defines.rowCount();
+		String coloredPath = colorify(path.toAbsolutePath().toString(), Colors.filePathColor);
+		this.currentPath = path;
+		debugPrint("Preprocessing: " + coloredPath);
+		try {
+			preprocessFile(Files.newBufferedReader(path));
+		} catch (IOException e) {
+			errorPrint("Cannot find " + path + ", skipping.");
+		}
+		infoPrint(coloredPath + ": " + (this.defines.rowCount() - prevMacroCount) + " macros");
+	}
+	
 	// Can only deal with a file
-	public void preprocess(Reader reader) throws IOException {
+	public void preprocessFile(Reader reader) throws IOException {
 		var out = new PrintWriter(
 			this.writer == null
 				? new OutputStreamWriter(System.out)
