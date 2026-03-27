@@ -72,7 +72,7 @@ public class Preprocessor {
 	
 	// Can handle both file or folder
 	// TODO _initial & _final.cfg
-	public void preprocess(Path path) throws IOException {
+	public void preprocess(Path path) {
 		String coloredPath = colorify(path.toString(), Colors.filePathColor);
 		if (Files.isDirectory(path)) {
 			debugPrint("Including directory: " + coloredPath);
@@ -88,7 +88,7 @@ public class Preprocessor {
 					stream
 						.filter(filter)
 						.sorted()
-						.forEach(this::preprocessFile);
+						.forEach(this::preprocess);
 				} catch (IOException e) {
 					errorPrint("Cannot find " + path + ", skipping.");
 				}
@@ -108,7 +108,10 @@ public class Preprocessor {
 		} catch (IOException e) {
 			errorPrint("Cannot find " + path + ", skipping.");
 		}
-		infoPrint(coloredPath + ": " + (this.defines.rowCount() - prevMacroCount) + " macros");
+		int newMacroCount = this.defines.rowCount() - prevMacroCount;
+		if (newMacroCount > 0) {
+			infoPrint(coloredPath + ": " + newMacroCount + " macros");
+		}
 	}
 	
 	// Can only deal with a file
@@ -274,16 +277,17 @@ public class Preprocessor {
 	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
 		if (isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
-			return handleInclusion(macroCall, context);
+			handleInclusion(macroCall, context);
+			return "";
 		} else {
 			return expandMacroCall(macroCall, possibleArgs);
 		}
 	}
 	
-	private String handleInclusion(Token macroCall, PathContext context) {
+	private void handleInclusion(Token macroCall, PathContext context) {
 		Path p = context.resolve(macroCall.content(), currentPath);
 
-		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return "";
+		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return;
 		
 		String coloredPathString = colorify(p.toString(), Colors.filePathColor);
 		
@@ -291,17 +295,12 @@ public class Preprocessor {
 
 		if (!Files.exists(p)) {
 			warningPrint(coloredPathString + " does not exist");
-			return "";
+			return;
 		}
 		
 		debugPrint("Including: " + coloredPathString);
-		try {
-			preprocess(p);
-		} catch(IOException ioe) {
-			errorPrint("Cannot read file/folder " + coloredPathString);
-		}
 		
-		return "";
+		preprocess(p);
 	}
 	
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
