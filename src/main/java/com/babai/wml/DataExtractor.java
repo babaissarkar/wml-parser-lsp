@@ -67,7 +67,7 @@ public class DataExtractor {
 		}
 	}
 
-	public static void generateMacroRef(Path macroRefPath, Table defines) {
+	public static void generateMacroRef(Path macroRefPath, Table defines, HashMap<String, String> fileExplanations) {
 		try (BufferedWriter writer = Files.newBufferedWriter(macroRefPath)) {
 			writer.write("<p class='macro-ref-toc'>Documented files:</p>");
 			writer.write("<div class='filelist'><ul>");
@@ -94,13 +94,20 @@ public class DataExtractor {
 			for (var entry : uriList.entrySet()) {
 				String name = entry.getKey();
 				String uriStr = entry.getValue();
-				writer.write("<h2 id='file:" + name + "' class='file_header'>From file: <code class='noframe'><a href='" + uriStr + "'>" + name + "</a></code></h2>");
+				writer.write("<h2 id='file:" + name
+					+ "' class='file_header'>From file: <code class='noframe'><a href='" + uriStr + "'>"
+					+ name + "</a></code></h2>");
 				writer.newLine();
+				
+				String fileDoc = fileExplanations.get(uriStr);
+				writer.write("<p class=\"file_explanation\">" + fileDoc);
+				writer.newLine();
+				writer.write("</p>");
+				writer.newLine();
+				
 				writer.write("<dl>");
 				writer.newLine();
 				writer.newLine();
-				
-				//TODO top of file docs: <p class="file_explanation"> 
 				
 				for (var row : defines.getRows("URI", uriStr)) {
 					String macroName = (String) row.getColumn("Name").getValue();

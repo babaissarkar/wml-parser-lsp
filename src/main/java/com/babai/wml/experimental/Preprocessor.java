@@ -34,6 +34,7 @@ public class Preprocessor {
 	private Path currentPath = Path.of(".");
 	private List<String> currentDefineArgs = new ArrayList<>();
 	private List<MacroCall> macroCalls;
+	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
 	private Writer writer = null;
 	
 	// toplevel
@@ -64,6 +65,10 @@ public class Preprocessor {
 	
 	public List<MacroCall> getMacroCalls() {
 		return macroCalls;
+	}
+	
+	public HashMap<String, String> getFileExplanations() {
+		return fileExplanations;
 	}
 
 	public void setOutput(Writer writer) {
@@ -122,6 +127,36 @@ public class Preprocessor {
 				: this.writer);
 		
 		var itor = tokenize(reader).listIterator();
+		
+		skip(itor, Token.Kind.EOL);
+
+		skip(itor, Token.Kind.WHITESPACE);
+		
+		String textdomain;
+		if (peek(itor).isDirectiveName("textdomain", true)) {
+			Token t = itor.next();
+			var directiveHeader = DirectiveHeader.parse(t, currentPath.toString());
+			textdomain = directiveHeader.args()[0];
+			infoPrint("Textdomain: " + textdomain);
+		}
+		
+		skip(itor, Token.Kind.EOL);
+
+		skip(itor, Token.Kind.WHITESPACE);
+
+		// file documentation comments
+		var docBuff = new StringBuilder();
+		while (peek(itor).kind() == Token.Kind.COMMENT && !peek(itor).isDirective()) {
+			Token t = itor.next();
+			docBuff.append(t.content().trim());
+			if (peek(itor).kind() == Token.Kind.EOL) {
+				t = itor.next();
+				docBuff.append(t.content());
+			}
+			skip(itor, Token.Kind.WHITESPACE);
+		}
+		fileExplanations.put(currentPath.toUri().toString(), docBuff.toString().trim());
+		
 		while (itor.hasNext()) {
 			Token t = itor.next();
 			out.print(processToken(itor, t, true));
