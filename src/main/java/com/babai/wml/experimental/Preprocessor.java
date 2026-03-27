@@ -30,6 +30,7 @@ public class Preprocessor {
 	private Table defines;
 	private PathContext context;
 	private Path currentPath = Path.of(".");
+	private List<String> currentDefineArgs = new ArrayList<>();
 	private List<MacroCall> macroCalls;
 	private Writer writer = null;
 	
@@ -109,21 +110,26 @@ public class Preprocessor {
 		var itor = tokenize(reader).listIterator();
 		while (itor.hasNext()) {
 			Token t = itor.next();
-			out.print(processToken(itor, t));
+			out.print(processToken(itor, t, true));
 		}
 	}
 
-	private String processToken(ListIterator<Token> itor, Token t) {
+	private String processToken(ListIterator<Token> itor, Token t, boolean expandMacro) {
 		var buff = new StringBuilder();
 		switch (t.kind()) {
 			case TEXT, WHITESPACE, EOL -> buff.append(t.content());
 			case QUOTED -> buff.append("\"" + t.content() + "\"");
 			case ANGLE_QUOTED -> buff.append("<<" + t.content() + ">>");
-			case MACRO -> buff.append(expandMacro(t, List.of(), this.context));
+			case MACRO -> {
+				if(expandMacro) {
+					buff.append(expandMacro(t, currentDefineArgs, this.context));
+				} else {
+					buff.append("{" + t.content() + "}");
+				}
+			}
 			case COMMENT -> {
 				if (t.isDirective()) {
-					String path = currentPath.toUri().toString();
-					handleDirective(t, itor, path);
+					handleDirective(t, itor, currentPath.toUri().toString());
 				}
 				// otherwise ignore
 			}
@@ -145,7 +151,9 @@ public class Preprocessor {
 						+ " not found. Pos: " + position(t));
 				break;
 			} else {
-				body.append(processToken(itor, t));
+				// we don't want to expand any macro calls in body when consuming directive body,
+				// but rather when that directive is called later on. (ie. lazy not eager behavior)
+				body.append(processToken(itor, t, false));
 				if (!itor.hasNext()) return body.toString();
 				t = itor.next();
 			}
@@ -213,7 +221,14 @@ public class Preprocessor {
 			}
 			
 			// Body
+			// Collect args in context, used in processToken macroExpansion
+			currentDefineArgs.clear();
+			currentDefineArgs.addAll(macroArgs);
+			macroDefaultArgs.forEach((k, v) -> currentDefineArgs.add(k));
+			
 			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), macroArgs, macroDefaultArgs);
+			
+			currentDefineArgs.clear(); // clear arg context
 			def.setDocs(docBuff.toString().stripTrailing());
 			debugPrint("defining macro " + def.coloredName());
 			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
