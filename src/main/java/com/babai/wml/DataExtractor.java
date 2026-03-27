@@ -85,7 +85,7 @@ public class DataExtractor {
 				}
 			}
 			
-			writer.write("</div></ul>");
+			writer.write("</ul></div>");
 			writer.newLine();
 			writer.write("<p class='toplink'>[ <a href='#content'>top</a> ]</p>");
 			writer.newLine();
@@ -94,9 +94,11 @@ public class DataExtractor {
 			for (var entry : uriList.entrySet()) {
 				String name = entry.getKey();
 				String uriStr = entry.getValue();
-				writer.write("<h2 id='#file:" + name + "' class='file_header'>From file: <code class='noframe'><a href='" + uriStr + "'>" + name + "</a></code></h2>");
+				writer.write("<h2 id='file:" + name + "' class='file_header'>From file: <code class='noframe'><a href='" + uriStr + "'>" + name + "</a></code></h2>");
 				writer.newLine();
 				writer.write("<dl>");
+				writer.newLine();
+				writer.newLine();
 				
 				//TODO top of file docs: <p class="file_explanation"> 
 				
@@ -106,15 +108,28 @@ public class DataExtractor {
 					Definition def = (Definition) row.getColumn("Definition").getValue();
 					
 					writer.write("<dt id='" + macroName + "'>");
-					writer.write("<code class='noframe'><span class='macro-name'>" + macroName + "</code></dt>");
+					writer.newLine();
+					writer.write("<code class='noframe'><span class='macro-name'>" + macroName + "</span>");
+					if (def.getArgCount() > 0) {
+						writer.write(" <var class='macro-formals'>" + String.join(" ", def.getArgs()) + "</var>");
+					}
+					writer.newLine();
+					writer.write("</code></dt>");
 					writer.newLine();
 					
-					String docs = def.getDocs();
+					writer.write("<dd>");
+					writer.newLine();
+					String docs = def.getDocs().trim();
 					if (!docs.isEmpty()) {
-						writer.write("<dd><p class=\"macro-explanation\">" + docs + "</p></dd>");
+						writer.write("<p class=\"macro-explanation\">" + docs);
+						writer.newLine();
+						writer.write("</p>");
 					} else {
-						writer.write("<dd><p class=\"macro-explanation\"><i>No documentation found</i></p></dd>");
+						writer.write("<p class='macro-missing-docs'><em>No documentation available for this macro.</em></p>");
 					}
+					writer.newLine();
+					writer.write("</dd>");
+					writer.newLine();
 					writer.newLine();
 				}
 				
