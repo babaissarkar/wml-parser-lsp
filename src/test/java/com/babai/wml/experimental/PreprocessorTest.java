@@ -23,7 +23,7 @@ class PreprocessorTest {
 			var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 			var writer = new StringWriter();
 			preproc.setOutput(writer);
-			preproc.preprocess(new StringReader(defString));
+			preproc.preprocessFile(new StringReader(defString));
 			String str = writer.toString();
 			System.out.println(str);
 			assertEquals(true, !str.isEmpty());
@@ -49,7 +49,7 @@ class PreprocessorTest {
 			Something#enddef""";
 		try {
 			var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-			preproc.preprocess(new StringReader(defString));
+			preproc.preprocessFile(new StringReader(defString));
 			var defines = preproc.getDefines();
 			assertEquals(1, defines.rowCount()); // Only 1 macro defined
 			var rows = defines.getRows("Name", "MYMACRO");
