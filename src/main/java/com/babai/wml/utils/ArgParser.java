@@ -40,8 +40,10 @@ public class ArgParser {
 				-define/-d [macroname] [body]   Define this macro before parsing
 				-extract-unit-type/-eut [path]  Extract full unit type data and write it as CSV to the given path
 				-generate-macro-ref/-gmr [path] Generate HTML macro reference file (like `wmlscope`)
-				-input/-i [path]                Preprocess the main input file (ignored in LSP server mode `-s`)
-				-output/-o [path]               Write output to the given file
+				-input/-i [path]                Preprocess the main input file. Ignored in LSP server mode `-s`.
+				                                (Default: stdin if unspecified.)
+				-output/-o [path]               Write output to the given file.
+				                                (Default: stdout if unspecified)
 				-help/-?/-h                     Print this help""";
 
 	public void parseArgs(String[] args) {
