@@ -129,28 +129,27 @@ public class Preprocessor {
 	}
 
 	private String processToken(ListIterator<Token> itor, Token t, boolean expandMacro) {
-		var buff = new StringBuilder();
-		switch (t.kind()) {
-			case TEXT, WHITESPACE, EOL -> buff.append(t.content());
-			case QUOTED -> buff.append("\"" + t.content() + "\"");
-			case ANGLE_QUOTED -> buff.append("<<" + t.content() + ">>");
-			case MACRO -> {
-				if(expandMacro) {
-					buff.append(expandMacro(t, currentDefineArgs, this.context));
-				} else {
-					buff.append("{" + t.content() + "}");
-				}
+		return switch (t.kind()) {
+		case TEXT, WHITESPACE, EOL -> t.content();
+		case QUOTED -> "\"" + t.content() + "\"";
+		case ANGLE_QUOTED -> "<<" + t.content() + ">>";
+		case MACRO -> {
+			if (expandMacro) {
+				yield expandMacro(t, currentDefineArgs, this.context);
+			} else {
+				yield "{" + t.content() + "}";
 			}
-			case COMMENT -> {
-				if (t.isDirective()) {
-					handleDirective(t, itor, currentPath.toUri().toString());
-				}
-				// otherwise ignore
+		}
+		case COMMENT -> {
+			if (t.isDirective()) {
+				handleDirective(t, itor, currentPath.toUri().toString());
 			}
 			
-			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
+			yield "";
 		}
-		return buff.toString();
+
+		default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
+		};
 	}
 	
 	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
@@ -212,7 +211,7 @@ public class Preprocessor {
 			var docBuff = new StringBuilder();
 			while (peek(itor).kind() == Token.Kind.COMMENT && !peek(itor).isDirective()) {
 				Token t = itor.next();
-				docBuff.append(t.content());
+				docBuff.append(t.content().trim());
 				if(peek(itor).kind() == Token.Kind.EOL) {
 					t = itor.next();
 					docBuff.append(t.content());
