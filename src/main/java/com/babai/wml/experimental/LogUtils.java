@@ -81,12 +81,12 @@ public final class LogUtils {
 		pL.severe(s);
 	}
 
-	public static String position(Token tok) {
-		return position(tok.beginLine(), tok.beginColumn());
+	public static String position(Token tok, String path) {
+		return colorify(path + ":" + "(" + tok.beginLine() + "," + tok.beginColumn() + ")", Colors.lineNumColor);
 	}
 
 	public static String position(int line, int col) {
-		return colorify("(" + line + ":" + col + ")", Colors.lineNumColor);
+		return colorify("(" + line + "," + col + ")", Colors.lineNumColor);
 	}
 
 }

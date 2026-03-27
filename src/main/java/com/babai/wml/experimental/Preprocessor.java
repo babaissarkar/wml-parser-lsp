@@ -148,7 +148,7 @@ public class Preprocessor {
 				// terminated before define completed, error
 				errorPrint("End directive "
 						+ colorify(directiveName, Colors.directiveColor)
-						+ " not found. Pos: " + position(t));
+						+ " not found. Pos: " + position(t, currentPath.toString()));
 				break;
 			} else {
 				// we don't want to expand any macro calls in body when consuming directive body,
@@ -168,9 +168,10 @@ public class Preprocessor {
 			if (!itor.hasNext()) {
 				// terminated before define completed, error
 				errorPrint("End directives "
-						+ colorify(endDir1, Colors.directiveColor) + " or "
+						+ colorify(endDir1, Colors.directiveColor)
+						+ " or "
 						+ colorify(endDir2, Colors.directiveColor)
-						+ " not found. Pos: " + position(t));
+						+ " not found. Pos: " + position(t, currentPath.toString()));
 				break;
 			} else {
 				if (!itor.hasNext()) return;
@@ -181,7 +182,7 @@ public class Preprocessor {
 	}
 	
 	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathUri) {
-		var directiveHeader = DirectiveHeader.parse(directiveStart);
+		var directiveHeader = DirectiveHeader.parse(directiveStart, currentPath.toString());
 		var directiveArgs = directiveHeader.args();
 
 		if (directiveHeader.name().equals("define")) {
@@ -211,7 +212,7 @@ public class Preprocessor {
 			var macroDefaultArgs = new LinkedHashMap<String, String>();
 			while (peek(itor).isDirectiveName("arg", true)) {
 				Token t = itor.next();
-				String defArgName = DirectiveHeader.parse(t).args()[0]; // arg NAME
+				String defArgName = DirectiveHeader.parse(t, currentPath.toString()).args()[0]; // arg NAME
 				
 				skip(itor, Token.Kind.EOL);
 				
@@ -229,6 +230,7 @@ public class Preprocessor {
 			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), macroArgs, macroDefaultArgs);
 			
 			currentDefineArgs.clear(); // clear arg context
+			
 			def.setDocs(docBuff.toString().stripTrailing());
 			debugPrint("defining macro " + def.coloredName());
 			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
@@ -353,23 +355,26 @@ public class Preprocessor {
 			try {
 				return def.expand2(args, defArgs);
 			} catch(IllegalArgumentException e) {
-				errorPrint("Error expanding macro " + def.coloredName() + ": " + e.getMessage());
+				errorPrint("Error expanding macro " + def.coloredName()
+					+ " in "
+					+ colorify(currentPath.toString(), Colors.filePathColor)
+					+ ": " + e.getMessage());
 				return fallback;
 			}
 		} else if (possibleArgs.contains(macroName)) {
 			// FIXME: do nothing for now. may need checks later.
 			return fallback;
 		} else {
-			warningPrint(position(macroCall) + " undefined macro " + colorify(macroName, Color.RED));
+			warningPrint(position(macroCall, currentPath.toString()) + " undefined macro " + colorify(macroName, Color.RED));
 			return fallback;
 		}
 	}
 	
 	private record DirectiveHeader(String name, String[] args) {
 		// processDirectiveNameAndArgs
-		public static DirectiveHeader parse(Token token) {
+		public static DirectiveHeader parse(Token token, String pathStr) {
 			if (!token.isDirective()) {
-				errorPrint("Unknown directive found at " + position(token));
+				errorPrint("Unknown directive found at " + position(token, pathStr));
 			}
 			
 			String[] parts = token.content().split("\\s+", 2);
