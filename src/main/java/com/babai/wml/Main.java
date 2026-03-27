@@ -70,7 +70,7 @@ public class Main {
 		if (argParse.inputPath != null) {
 			p.preprocess(argParse.inputPath);
 		} else {
-			p.preprocess(new InputStreamReader(System.in));
+			p.preprocessFile(new InputStreamReader(System.in));
 		}
 
 //		var unitTypes = p.getUnitTypes();
