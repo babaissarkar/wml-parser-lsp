@@ -41,6 +41,7 @@ public final class Token {
 			"ifnhave",
 			"ifver",
 			"ifnver",
+			"else",
 			"error",
 			"warning",
 			"deprecated",
