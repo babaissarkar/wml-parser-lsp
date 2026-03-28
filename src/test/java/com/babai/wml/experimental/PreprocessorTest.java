@@ -63,5 +63,31 @@ class PreprocessorTest {
 			e.printStackTrace();
 		}
 	}
+	
+	@Test
+	void testIfdef() {
+		String defString = """
+			#define MYMACRO2
+			Something#enddef
+			
+			#ifdef MYMACRO2
+			{MYMACRO2}
+			#else
+			"Nodef"
+			#endif
+			""";
+		try {
+			var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+			var writer = new StringWriter();
+			preproc.setOutput(writer);
+			preproc.preprocessFile(new StringReader(defString));
+			String str = writer.toString();
+			System.out.println(str);
+			assertEquals(true, !str.isEmpty());
+			assertEquals("\nSomething", str);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 }

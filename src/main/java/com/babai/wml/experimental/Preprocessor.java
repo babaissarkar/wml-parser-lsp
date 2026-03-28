@@ -36,6 +36,7 @@ public class Preprocessor {
 	private List<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
 	private Writer writer = null;
+	private boolean skipElse = true;
 	
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -140,11 +141,19 @@ public class Preprocessor {
 			infoPrint("Textdomain: " + textdomain);
 		}
 		
+		fileExplanations.put(currentPath.toUri().toString(), handleDocComment(itor));
+		
+		while (itor.hasNext()) {
+			Token t = itor.next();
+			out.print(processToken(itor, t, true));
+		}
+	}
+
+	private String handleDocComment(ListIterator<Token> itor) {
 		skip(itor, Token.Kind.EOL);
 
 		skip(itor, Token.Kind.WHITESPACE);
 
-		// file documentation comments
 		var docBuff = new StringBuilder();
 		while (peek(itor).kind() == Token.Kind.COMMENT && !peek(itor).isDirective()) {
 			Token t = itor.next();
@@ -155,12 +164,7 @@ public class Preprocessor {
 			}
 			skip(itor, Token.Kind.WHITESPACE);
 		}
-		fileExplanations.put(currentPath.toUri().toString(), docBuff.toString().trim());
-		
-		while (itor.hasNext()) {
-			Token t = itor.next();
-			out.print(processToken(itor, t, true));
-		}
+		return docBuff.toString().trim();
 	}
 
 	private String processToken(ListIterator<Token> itor, Token t, boolean expandMacro) {
@@ -209,6 +213,10 @@ public class Preprocessor {
 		return body.toString();
 	}
 	
+	private void skipUntilEndDirective(String endDir, ListIterator<Token> itor) {
+		skipUntilEndDirective2(endDir, endDir, itor);
+	}
+	
 	private void skipUntilEndDirective2(String endDir1, String endDir2, ListIterator<Token> itor) {
 		if (!itor.hasNext()) return;
 		Token t = itor.next();
@@ -220,7 +228,7 @@ public class Preprocessor {
 						+ " or "
 						+ colorify(endDir2, Colors.directiveColor)
 						+ " not found. Pos: " + position(t, currentPath.toString()));
-				break;
+				return;
 			} else {
 				if (!itor.hasNext()) return;
 				t = itor.next();
@@ -238,21 +246,7 @@ public class Preprocessor {
 			String macroName = directiveArgs[0];
 			List<String> macroArgs = Arrays.asList(directiveArgs).subList(1, directiveArgs.length);
 
-			skip(itor, Token.Kind.EOL);
-
-			skip(itor, Token.Kind.WHITESPACE);
-
-			// macro documentation comments
-			var docBuff = new StringBuilder();
-			while (peek(itor).kind() == Token.Kind.COMMENT && !peek(itor).isDirective()) {
-				Token t = itor.next();
-				docBuff.append(t.content().trim());
-				if(peek(itor).kind() == Token.Kind.EOL) {
-					t = itor.next();
-					docBuff.append(t.content());
-				}
-				skip(itor, Token.Kind.WHITESPACE);
-			}
+			String doc = handleDocComment(itor);
 			
 			skip(itor, Token.Kind.EOL);
 			
@@ -279,16 +273,19 @@ public class Preprocessor {
 			
 			currentDefineArgs.clear(); // clear arg context
 			
-			def.setDocs(docBuff.toString().stripTrailing());
+			def.setDocs(doc);
 			debugPrint("defining macro " + def.coloredName());
 			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
 			
 		} else if (directiveHeader.name().equals("ifdef")) {
 			// TODO complain if ifdef does not exactly has one arg (macroname)
 			boolean hasMacro = !defines.getRows("Name", directiveArgs[0]).isEmpty();
-			if (!hasMacro) {
+			if (hasMacro) {
+				skipElse = true;
+			} else {
 				// skip upto #else or #endif
 				skipUntilEndDirective2("else", "endif", itor);
+				skipElse = false;
 			}
 		} else if (directiveHeader.name().equals("ifndef")) {
 			// TODO complain if ifndef does not exactly has one arg (macroname)
@@ -296,6 +293,14 @@ public class Preprocessor {
 			if (hasMacro) {
 				// skip upto #else or #endif
 				skipUntilEndDirective2("else", "endif", itor);
+				skipElse = false;
+			} else {
+				skipElse = true;
+			}
+		} else if (directiveHeader.name().equals("else")) {
+			if (skipElse) {
+				skipUntilEndDirective("endif", itor);
+				skipElse = false;
 			}
 		}
 		// TODO ifdef/ifndef "else" block handling
