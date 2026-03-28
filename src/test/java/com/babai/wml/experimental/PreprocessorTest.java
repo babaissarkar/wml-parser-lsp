@@ -69,13 +69,11 @@ class PreprocessorTest {
 		String defString = """
 			#define MYMACRO2
 			Something#enddef
-			
 			#ifdef MYMACRO2
 			{MYMACRO2}
 			#else
 			"Nodef"
-			#endif
-			""";
+			#endif""";
 		try {
 			var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 			var writer = new StringWriter();
@@ -84,7 +82,7 @@ class PreprocessorTest {
 			String str = writer.toString();
 			System.out.println(str);
 			assertEquals(true, !str.isEmpty());
-			assertEquals("\nSomething", str);
+			assertEquals("\n\nSomething\n", str);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
