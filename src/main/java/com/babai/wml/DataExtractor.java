@@ -8,6 +8,7 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -120,6 +121,11 @@ public class DataExtractor {
 					if (def.getArgCount() > 0) {
 						writer.write(" <var class='macro-formals'>" + String.join(" ", def.getArgs()) + "</var>");
 					}
+					if (def.getDefArgCount() > 0) {
+						var defArgList = new ArrayList<String>();
+						def.getDefArgs().forEach((k, v) -> defArgList.add(k));
+						writer.write(" Optional Arguments: <var class='macro-formals'>" + String.join(" ", defArgList) + "</var>");
+					}
 					writer.newLine();
 					writer.write("</code></dt>");
 					writer.newLine();
@@ -128,9 +134,7 @@ public class DataExtractor {
 					writer.newLine();
 					String docs = def.getDocs().trim();
 					if (!docs.isEmpty()) {
-						writer.write("<p class=\"macro-explanation\">" + docs);
-						writer.newLine();
-						writer.write("</p>");
+						writer.write(processDoc(docs));
 					} else {
 						writer.write("<p class='macro-missing-docs'><em>No documentation available for this macro.</em></p>");
 					}
@@ -148,5 +152,40 @@ public class DataExtractor {
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to write macro reference html", e);
 		}
+	}
+
+	/** Convert docstring lines -> html output */
+	private static String processDoc(String docs) {
+		var docBuff = new StringBuilder();
+		docBuff.append("<p class=\"macro-explanation\">");
+		boolean isCodeBlock = false;
+		for (String line : docs.split("\\R")) {
+			if (line.startsWith("!")) {
+				if (!isCodeBlock) {
+					docBuff.append("</p>");
+					docBuff.append("\n<pre class='listing'>");
+					isCodeBlock = true;
+				}
+				docBuff.append(line.substring(1, line.length()));
+			} else {
+				if (isCodeBlock) {
+					isCodeBlock = false;
+					docBuff.append("\n</pre>");
+				}
+				docBuff.append(line);
+			}
+			docBuff.append("\n");
+		}
+		
+		if (isCodeBlock) {
+			isCodeBlock = false;
+			docBuff.append("</pre>");
+		}
+		
+		if (!docBuff.toString().contains("</p>")) {
+			docBuff.append("</p>");
+		}
+		
+		return docBuff.toString();
 	}
 }
