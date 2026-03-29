@@ -73,41 +73,39 @@ public class DataExtractor {
 			writer.write("<p class='macro-ref-toc'>Documented files:</p>");
 			writer.write("<div class='filelist'><ul>");
 			
+			// File list at top
 			HashMap<String, String> uriList = new LinkedHashMap<>();
 			// URI column contains duplicates, suppress them.
 			// we only need unique values for getRows() below.
 			// List of parsed files at top
 			for (var uriObj : defines.getColumn("URI")) {
 				String uriStr = (String) uriObj;
-				String name = Path.of(URI.create(uriStr)).getFileName().toString();
-				var success = uriList.put(name, uriStr);
-				if (success == null) {
-					writer.write("<li><a href='#file:" + name + "'><code class='noframe'>" + name + "</code></a></li>");
+				String filename = Path.of(URI.create(uriStr)).getFileName().toString();
+				if (!uriList.containsKey(filename)) {
+					uriList.put(filename, uriStr);
+					writer.write(
+						"<li><a href='#file:%s'><code class='noframe'>%s</code></a></li>"
+						.formatted(filename, filename));
 				}
 			}
 			
-			writer.write("</ul></div>");
-			writer.newLine();
-			writer.write("<p class='toplink'>[ <a href='#content'>top</a> ]</p>");
-			writer.newLine();
+			writeln(writer, "</ul></div>");
+			writeln(writer, "<p class='toplink'>[ <a href='#content'>top</a> ]</p>");
 			
 			// File sections with macros
 			for (var entry : uriList.entrySet()) {
 				String name = entry.getKey();
 				String uriStr = entry.getValue();
-				writer.write("<h2 id='file:" + name
-					+ "' class='file_header'>From file: <code class='noframe'><a href='" + uriStr + "'>"
-					+ name + "</a></code></h2>");
-				writer.newLine();
+				writeln(writer,
+					"<h2 id='file:%s' class='file_header'>From file: " +
+					"<code class='noframe'><a href='%s'>%s</a></code></h2>"
+					.formatted(name, uriStr, name));
 				
 				String fileDoc = fileExplanations.get(uriStr);
-				writer.write("<p class=\"file_explanation\">" + fileDoc);
-				writer.newLine();
-				writer.write("</p>");
-				writer.newLine();
+				writeln(writer, "<p class='file_explanation'>" + fileDoc);
+				writeln(writer, "</p>");
 				
-				writer.write("<dl>");
-				writer.newLine();
+				writeln(writer, "<dl>");
 				writer.newLine();
 				
 				for (var row : defines.getRows("URI", uriStr)) {
@@ -115,43 +113,45 @@ public class DataExtractor {
 					if (macroName.startsWith("INTERNAL:")) continue;
 					Definition def = (Definition) row.getColumn("Definition").getValue();
 					
-					writer.write("<dt id='" + macroName + "'>");
-					writer.newLine();
+					// Macro name and arguments
+					writeln(writer, "<dt id='" + macroName + "'>");
 					writer.write("<code class='noframe'><span class='macro-name'>" + macroName + "</span>");
 					if (def.getArgCount() > 0) {
 						writer.write(" <var class='macro-formals'>" + String.join(" ", def.getArgs()) + "</var>");
 					}
 					if (def.getDefArgCount() > 0) {
-						var defArgList = new ArrayList<String>();
-						def.getDefArgs().forEach((k, v) -> defArgList.add(k));
-						writer.write(" Optional Arguments: <var class='macro-formals'>" + String.join(" ", defArgList) + "</var>");
+						var defArgList = def.getDefArgs().keySet();
+						writer.write(
+							" Optional Arguments: <var class='macro-formals'>"
+							+ String.join(" ", defArgList) + "</var>");
 					}
 					writer.newLine();
-					writer.write("</code></dt>");
-					writer.newLine();
+					writeln(writer, "</code></dt>");
 					
-					writer.write("<dd>");
-					writer.newLine();
+					// Macro docstring body
+					writeln(writer, "<dd>");
 					String docs = def.getDocs().trim();
 					if (!docs.isEmpty()) {
-						writer.write(processDoc(docs));
+						writeln(writer, processDoc(docs));
 					} else {
-						writer.write("<p class='macro-missing-docs'><em>No documentation available for this macro.</em></p>");
+						writeln(writer, "<p class='macro-missing-docs'><em>No documentation available for this macro.</em></p>");
 					}
-					writer.newLine();
-					writer.write("</dd>");
-					writer.newLine();
+					writeln(writer, "</dd>");
+					
 					writer.newLine();
 				}
 				
-				writer.write("</dl>");
-				writer.newLine();
-				writer.write("<p class='toplink'>[ <a href='#content'>top</a> ]</p>");
-				writer.newLine();
+				writeln(writer, "</dl>");
+				writeln(writer, "<p class='toplink'>[ <a href='#content'>top</a> ]</p>");
 			}
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to write macro reference html", e);
 		}
+	}
+
+	private static void writeln(BufferedWriter writer, String str) throws IOException {
+		writer.write(str);
+		writer.newLine();
 	}
 
 	/** Convert docstring lines -> html output */
