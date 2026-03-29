@@ -97,8 +97,7 @@ public class DataExtractor {
 				String name = entry.getKey();
 				String uriStr = entry.getValue();
 				writeln(writer,
-					"<h2 id='file:%s' class='file_header'>From file: " +
-					"<code class='noframe'><a href='%s'>%s</a></code></h2>"
+					"<h2 id='file:%s' class='file_header'>From file: <code class='noframe'><a href='%s'>%s</a></code></h2>"
 					.formatted(name, uriStr, name));
 				
 				String fileDoc = fileExplanations.get(uriStr);
@@ -130,6 +129,23 @@ public class DataExtractor {
 					
 					// Macro docstring body
 					writeln(writer, "<dd>");
+					
+					// Deprecation message
+					if (def.isDeprecated()) {
+						int deprLevel = def.getDeprecationLevel();
+						if (deprLevel == 2 | deprLevel == 3) {
+							writeln(writer,
+								"<p class='macro-deprecated'><strong>Deprecated macro.</strong> " +
+								"<em>Deprecation level: %d. Scheduled for removal in %s.</em></p>"
+								.formatted(def.getDeprecationLevel(), def.getDeprecationRemovalVersion()));
+						} else if (deprLevel == 1 | deprLevel == 4) {
+							writeln(writer,
+								"<p class='macro-deprecated'><strong>Deprecated macro.</strong> " +
+								"<em>Deprecation level: %d.</em></p>"
+								.formatted(def.getDeprecationLevel()));
+						}
+					}
+					
 					String docs = def.getDocs().trim();
 					if (!docs.isEmpty()) {
 						writeln(writer, processDoc(docs));
