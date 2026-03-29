@@ -241,10 +241,40 @@ public class Preprocessor {
 		var directiveHeader = DirectiveHeader.parse(directiveStart, currentPath.toString());
 		var directiveArgs = directiveHeader.args();
 
-		if (directiveHeader.name().equals("define")) {
+		if (directiveHeader.head().equals("define")) {
 			// Macro name
 			String macroName = directiveArgs[0];
 			List<String> macroArgs = Arrays.asList(directiveArgs).subList(1, directiveArgs.length);
+			
+			skip(itor, Token.Kind.EOL);
+			
+			// Macro deprecation messages
+			boolean isDeprecated = false;
+			int depreLevel = 0;
+			String removalVersion = "";
+			String depreMessage = "";
+			while (peek(itor).isDirectiveName("deprecated", true)) {
+				warningPrint("Deprecated macro: " + macroName);
+				Token t = itor.next();
+				isDeprecated = true;
+				var deprecationHeader = DirectiveHeader.parse(t, currentPath.toString());
+				var depreArgs = deprecationHeader.args();
+				depreLevel = Integer.parseInt(depreArgs[0]);
+				if (depreLevel == 2 || depreLevel == 3) {
+					if (depreArgs.length > 1) {
+						removalVersion = depreArgs[1];
+					}
+					if (depreArgs.length > 2) {
+						depreMessage = depreArgs[2];
+					}
+				} else if (depreLevel == 1 || depreLevel == 4) {
+					if (depreArgs.length > 1) {
+						depreMessage = depreArgs[1];
+					}
+				}
+				
+				skip(itor, Token.Kind.EOL);
+			}
 
 			String doc = handleDocComment(itor);
 			
@@ -274,10 +304,15 @@ public class Preprocessor {
 			currentDefineArgs.clear(); // clear arg context
 			
 			def.setDocs(doc);
+			def.setDeprecated(isDeprecated);
+			def.setDeprecationLevel(depreLevel);
+			def.setDeprecationRemovalVersion(removalVersion);
+			def.setDeprecationMessage(depreMessage);
+			
 			debugPrint("defining macro " + def.coloredName());
 			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
 			
-		} else if (directiveHeader.name().equals("ifdef")) {
+		} else if (directiveHeader.head().equals("ifdef")) {
 			// TODO complain if ifdef does not exactly has one arg (macroname)
 			boolean hasMacro = !defines.getRows("Name", directiveArgs[0]).isEmpty();
 			if (hasMacro) {
@@ -287,7 +322,7 @@ public class Preprocessor {
 				skipUntilEndDirective2("else", "endif", itor);
 				skipElse = false;
 			}
-		} else if (directiveHeader.name().equals("ifndef")) {
+		} else if (directiveHeader.head().equals("ifndef")) {
 			// TODO complain if ifndef does not exactly has one arg (macroname)
 			boolean hasMacro = !defines.getRows("Name", directiveArgs[0]).isEmpty();
 			if (hasMacro) {
@@ -297,7 +332,7 @@ public class Preprocessor {
 			} else {
 				skipElse = true;
 			}
-		} else if (directiveHeader.name().equals("else")) {
+		} else if (directiveHeader.head().equals("else")) {
 			if (skipElse) {
 				skipUntilEndDirective("endif", itor);
 				skipElse = false;
@@ -419,7 +454,7 @@ public class Preprocessor {
 		}
 	}
 	
-	private record DirectiveHeader(String name, String[] args) {
+	private record DirectiveHeader(String head, String[] args) {
 		// processDirectiveNameAndArgs
 		public static DirectiveHeader parse(Token token, String pathStr) {
 			if (!token.isDirective()) {

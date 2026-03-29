@@ -14,6 +14,10 @@ public class Definition {
 	private String name, value, docs = "";
 	private Vector<String> args = new Vector<>();
 	private HashMap<String, String> defArgs = new HashMap<>();
+	private boolean deprecated;
+	private int deprecationLevel;
+	private String deprecationRemovalVersion;
+	private String deprecationMessage;
 
 	public Definition(String name, String value) {
 		this.name = name;
@@ -197,5 +201,38 @@ public class Definition {
 				+ (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
 				+ String.join(", ", keyValsStrings);
 	}
+	
+	// Deprecation related methods
+	
+	public void setDeprecated(boolean isDeprecated) {
+		this.deprecated = isDeprecated;
+	}
 
+	public void setDeprecationLevel(int depreLevel) {
+		this.deprecationLevel = depreLevel;
+	}
+	
+	public void setDeprecationRemovalVersion(String removalVersion) {
+		this.deprecationRemovalVersion = removalVersion;
+	}
+	
+	public void setDeprecationMessage(String deprecationMessage) {
+		this.deprecationMessage = deprecationMessage;
+	}
+
+	public boolean isDeprecated() {
+		return deprecated;
+	}
+
+	public int getDeprecationLevel() {
+		return deprecationLevel;
+	}
+
+	public String getDeprecationRemovalVersion() {
+		return deprecationRemovalVersion;
+	}
+
+	public String getDeprecationMessage() {
+		return deprecationMessage;
+	}
 }
