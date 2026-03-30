@@ -131,6 +131,7 @@ public class DataExtractor {
 					writeln(writer, "<dd>");
 					
 					// Deprecation message
+					boolean hasDoc = false;
 					if (def.isDeprecated()) {
 						int deprLevel = def.getDeprecationLevel();
 						if (deprLevel == 2 | deprLevel == 3) {
@@ -144,13 +145,20 @@ public class DataExtractor {
 								"<em>Deprecation level: %d.</em></p>"
 								.formatted(def.getDeprecationLevel()));
 						}
+						
+						String msg = def.getDeprecationMessage();
+						if (!msg.isEmpty()) {
+							hasDoc = true;
+							writeln(writer, processDoc(msg));
+						}
 					}
 					
 					String docs = def.getDocs().trim();
-					if (!docs.isEmpty()) {
-						writeln(writer, processDoc(docs));
-					} else {
+					hasDoc = hasDoc || !docs.isEmpty();
+					if (!hasDoc) {
 						writeln(writer, "<p class='macro-missing-docs'><em>No documentation available for this macro.</em></p>");
+					} else if (!docs.isEmpty()) {
+						writeln(writer, processDoc(docs));
 					}
 					writeln(writer, "</dd>");
 					
@@ -173,7 +181,7 @@ public class DataExtractor {
 	/** Convert docstring lines -> html output */
 	private static String processDoc(String docs) {
 		var docBuff = new StringBuilder();
-		docBuff.append("<p class=\"macro-explanation\">");
+		docBuff.append("<p class='macro-explanation'>");
 		boolean isCodeBlock = false;
 		for (String line : docs.split("\\R")) {
 			if (line.startsWith("!")) {

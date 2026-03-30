@@ -138,7 +138,7 @@ public class Preprocessor {
 			Token t = itor.next();
 			var directiveHeader = DirectiveHeader.parse(t, currentPath.toString());
 			textdomain = directiveHeader.args()[0];
-			infoPrint("Textdomain: " + textdomain);
+			debugPrint("Textdomain: " + textdomain);
 		}
 		
 		fileExplanations.put(currentPath.toUri().toString(), handleDocComment(itor));
@@ -254,7 +254,7 @@ public class Preprocessor {
 			String removalVersion = "";
 			String depreMessage = "";
 			while (peek(itor).isDirectiveName("deprecated", true)) {
-				warningPrint("Deprecated macro: " + macroName);
+				debugPrint("Deprecated macro: " + macroName);
 				Token t = itor.next();
 				isDeprecated = true;
 				var deprecationHeader = DirectiveHeader.parse(t, currentPath.toString());
@@ -264,12 +264,17 @@ public class Preprocessor {
 					if (depreArgs.length > 1) {
 						removalVersion = depreArgs[1];
 					}
+
+					// Rest of args are actually the message in this case that got split
+					// join back.
 					if (depreArgs.length > 2) {
-						depreMessage = depreArgs[2];
+						depreMessage = String.join(" ", Arrays.copyOfRange(depreArgs, 2, depreArgs.length));
 					}
 				} else if (depreLevel == 1 || depreLevel == 4) {
+					// Rest of args are actually the message in this case that got split
+					// join back.
 					if (depreArgs.length > 1) {
-						depreMessage = depreArgs[1];
+						depreMessage = String.join(" ", Arrays.copyOfRange(depreArgs, 1, depreArgs.length));
 					}
 				}
 				
@@ -303,6 +308,7 @@ public class Preprocessor {
 			
 			currentDefineArgs.clear(); // clear arg context
 			
+			// Extra stuff
 			def.setDocs(doc);
 			def.setDeprecated(isDeprecated);
 			def.setDeprecationLevel(depreLevel);
