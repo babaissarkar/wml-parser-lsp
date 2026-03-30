@@ -181,12 +181,28 @@ public class DataExtractor {
 	/** Convert docstring lines -> html output */
 	private static String processDoc(String docs) {
 		var docBuff = new StringBuilder();
-		docBuff.append("<p class='macro-explanation'>");
 		boolean isCodeBlock = false;
+		
+		boolean paraStarted = true;
+		docBuff.append("<p class='macro-explanation'>");
 		for (String line : docs.split("\\R")) {
+			if (line.isEmpty()) {
+				// insert para break
+				docBuff.append("</p><p>");
+				paraStarted = true;
+				continue;
+			}
+			
+			// restart para after codelisting if more content found
+			if (docBuff.toString().endsWith("</pre>")) {
+				docBuff.append("<p>");
+				paraStarted = true;
+			}
+			
 			if (line.startsWith("!")) {
 				if (!isCodeBlock) {
 					docBuff.append("</p>");
+					paraStarted = false;
 					docBuff.append("\n<pre class='listing'>");
 					isCodeBlock = true;
 				}
@@ -206,7 +222,7 @@ public class DataExtractor {
 			docBuff.append("</pre>");
 		}
 		
-		if (!docBuff.toString().contains("</p>")) {
+		if (paraStarted) {
 			docBuff.append("</p>");
 		}
 		
