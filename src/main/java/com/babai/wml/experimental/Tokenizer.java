@@ -208,7 +208,7 @@ public final class Tokenizer {
 	}
 
 	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start) {
-		if (!contents.isEmpty()) {
+		if (!contents.isEmpty() || kind == Token.Kind.COMMENT) {
 			tokens.add(new Token(contents, kind, start.line(), start.col()));
 			// modify start aka current cursor position
 			if(kind == Token.Kind.EOL) {
@@ -220,7 +220,7 @@ public final class Tokenizer {
 	}
 
 	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start) {
-		if (!buff.isEmpty()) {
+		if (!buff.isEmpty()|| kind == Token.Kind.COMMENT) {
 			tokens.add(new Token(buff.toString(), kind, start.line(), start.col()));
 			// modify start aka current cursor position
 			if(kind == Token.Kind.EOL) {
