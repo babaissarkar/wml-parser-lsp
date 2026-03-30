@@ -38,6 +38,8 @@ class PreprocessorTest {
 		String defString = """
 			#define MYMACRO ARG1 ARG2
 			# This is doc
+			# 
+			# Doc para 2
 			#arg DARG1
 			default#endarg
 			
@@ -57,7 +59,7 @@ class PreprocessorTest {
 			var macroDefinition = (Definition) rows.get(0).getColumn("Definition").getValue();
 			assertEquals(2, macroDefinition.getArgCount()); // Has 2 positional args
 			assertEquals(3, macroDefinition.getDefArgCount()); // Has 3 default args
-			assertEquals("This is doc", macroDefinition.getDocs());
+			assertEquals("This is doc\n\nDoc para 2", macroDefinition.getDocs());
 			System.out.println(macroDefinition);
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -45,11 +45,13 @@ public final class Token {
 			"error",
 			"warning",
 			"deprecated",
-			"textdomain"
+			"textdomain",
+			"wmlscope",
+			"wmllint"
 		};
 
 		for (String d : directives) {
-			if (content.startsWith(d)) {
+			if (content.stripLeading().startsWith(d)) {
 				return true;
 			}
 		}

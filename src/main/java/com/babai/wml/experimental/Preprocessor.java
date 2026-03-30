@@ -157,6 +157,7 @@ public class Preprocessor {
 		var docBuff = new StringBuilder();
 		while (peek(itor).kind() == Token.Kind.COMMENT && !peek(itor).isDirective()) {
 			Token t = itor.next();
+			if (t.isDirective()) break;
 			docBuff.append(t.content().trim());
 			if (peek(itor).kind() == Token.Kind.EOL) {
 				t = itor.next();
