@@ -6,6 +6,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.LinkedHashMap;
 import com.babai.wml.core.Config;
 import com.babai.wml.core.ConfigAttributeBase;
 import com.babai.wml.core.Definition;
+import com.babai.wml.experimental.PathContext;
 import com.babai.wml.utils.Table;
 
 public class DataExtractor {
@@ -68,7 +70,12 @@ public class DataExtractor {
 		}
 	}
 
-	public static void generateMacroRef(Path macroRefPath, Table defines, HashMap<String, String> fileExplanations) {
+	public static void generateMacroRef(
+			Path macroRefPath,
+			Table defines,
+			HashMap<String, String> fileExplanations,
+			PathContext pathContext)
+	{
 		try (BufferedWriter writer = Files.newBufferedWriter(macroRefPath)) {
 			writer.write("<p class='macro-ref-toc'>Documented files:</p>");
 			writer.write("<div class='filelist'><ul>");
@@ -98,7 +105,7 @@ public class DataExtractor {
 				String uriStr = entry.getValue();
 				writeln(writer,
 					"<h2 id='file:%s' class='file_header'>From file: <code class='noframe'><a href='%s'>%s</a></code></h2>"
-					.formatted(name, uriStr, name));
+					.formatted(name, toFileWebLink(uriStr, pathContext), name));
 				
 				String fileDoc = fileExplanations.get(uriStr);
 				writeln(writer, "<p class='file_explanation'>" + fileDoc);
@@ -114,7 +121,11 @@ public class DataExtractor {
 					
 					// Macro name and arguments
 					writeln(writer, "<dt id='" + macroName + "'>");
-					writer.write("<code class='noframe'><span class='macro-name'>" + macroName + "</span>");
+					int lineNum = (Integer) row.getColumn("Line").getValue();
+					writer.write(
+						"<code class='noframe'><span class='macro-name'><a href='%s'>%s</a></span>"
+						.formatted(
+							toWebLinkWithLine(uriStr, pathContext, lineNum), macroName));
 					if (def.getArgCount() > 0) {
 						writer.write(" <var class='macro-formals'>" + String.join(" ", def.getArgs()) + "</var>");
 					}
@@ -171,6 +182,20 @@ public class DataExtractor {
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to write macro reference html", e);
 		}
+	}
+
+	//FIXME only works for macros under datadir
+	private static String toFileWebLink(String uriStr, PathContext pathContext) {
+		String UrlBase = "https://github.com/wesnoth/wesnoth/tree/master/data";
+		Path p = Path.of(URI.create(uriStr));
+		String sep = FileSystems.getDefault().getSeparator();
+		String relPath = pathContext.dataPath().relativize(p)
+			.toString().replaceAll(sep, "/");
+		return UrlBase + "/" + relPath;
+	}
+	
+	private static String toWebLinkWithLine(String uriStr, PathContext pathContext, int line) {
+		return toFileWebLink(uriStr, pathContext) + "#L" + line;
 	}
 
 	private static void writeln(BufferedWriter writer, String str) throws IOException {
