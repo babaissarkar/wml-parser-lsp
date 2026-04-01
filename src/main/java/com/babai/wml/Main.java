@@ -28,6 +28,7 @@ import static com.babai.wml.utils.ANSIFormatter.colorify;
 public class Main {
 	private static Table defines;
 	private static HashMap<String, String> fileExplanations;
+	private static PathContext context;
 
 	public static void main(String[] args) {
 		var argParse = new ArgParser();
@@ -38,7 +39,8 @@ public class Main {
 			try {
 				initParse(argParse);
 				if (argParse.generateMacroRef) {
-					DataExtractor.generateMacroRef(argParse.macroRefPath, defines, fileExplanations);
+					DataExtractor.generateMacroRef(
+						argParse.macroRefPath, defines, fileExplanations, context);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -49,7 +51,7 @@ public class Main {
 	private static void initParse(ArgParser argParse) throws IOException {
 		LogUtils.setLogLevel(argParse.logLevel);
 
-		PathContext context = new PathContext(
+		context = new PathContext(
 			argParse.dataPath,
 			argParse.userDataPath,
 			new HashSet<Path>());

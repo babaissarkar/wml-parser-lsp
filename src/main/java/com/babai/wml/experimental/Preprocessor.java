@@ -6,7 +6,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+
 import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
