@@ -33,7 +33,7 @@ public class ArgParser {
 				-userdatadir [path]             Absolute path to Wesnoth's userdata directory
 				-log-parse/-log-p               Print all parser logs (Same as -log-level debug)
 				-warn-parse/-warn-p             Print parser warnings only (Same as -log-level warn)
-				-log-level [level]              Set log level explicitly (level values = severe|warn|info|debug)
+				-log-level [level]              Set log level explicitly (level values = severe|warn|info|debug|off)
 				-log-json/-log-j                Print all LSP JsonRpc logs
 				-include [path]                 Preprocess the given file/folder beforehand and collect macro definitions from it.
 				                                Can be used multiple times to include multiple files before the main input.
@@ -103,6 +103,7 @@ public class ArgParser {
 				case "warn" -> Level.WARNING;
 				case "info" -> Level.INFO;
 				case "debug" -> Level.FINER;
+				case "off" -> Level.OFF;
 				default -> Level.INFO;
 			};
 			case "log-json", "log-j" -> showJsonLogs = startLSPServer;
