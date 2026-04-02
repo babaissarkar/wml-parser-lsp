@@ -63,12 +63,26 @@ public final class Token {
 		// TODO throw error if hasArg = false & content.startsWith(directiveName) passes.
 	}
 
-	@Override
-	public String toString() {
-		return "Token[content=" + content + ", kind=" + kind + "]";
-	}
-
 	public enum Kind {
 		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Token [content=");
+		builder.append(content);
+		builder.append(", kind=");
+		builder.append(kind);
+		builder.append(", beginLine=");
+		builder.append(beginLine);
+		builder.append(", endLine=");
+		builder.append(endLine);
+		builder.append(", beginColumn=");
+		builder.append(beginColumn);
+		builder.append(", endColumn=");
+		builder.append(endColumn);
+		builder.append("]");
+		return builder.toString();
 	}
 }
