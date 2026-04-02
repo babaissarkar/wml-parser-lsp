@@ -210,24 +210,24 @@ public final class Tokenizer {
 	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start) {
 		if (!contents.isEmpty() || kind == Token.Kind.COMMENT) {
 			tokens.add(new Token(contents, kind, start.line(), start.col()));
-			// modify start aka current cursor position
-			if(kind == Token.Kind.EOL) {
-				start.newline();
-			} else {
+
+			// -1 is needed so trailing lines aren't lost
+			String[] parts = contents.split("\\R", -1);
+
+			if (parts.length == 1) {
 				start.forward(contents.length());
+			} else {
+				for (int i = 0; i < parts.length - 1; i++) {
+					start.newline();
+				}
+				start.forward(parts[parts.length - 1].length());
 			}
 		}
 	}
 
 	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start) {
-		if (!buff.isEmpty()|| kind == Token.Kind.COMMENT) {
-			tokens.add(new Token(buff.toString(), kind, start.line(), start.col()));
-			// modify start aka current cursor position
-			if(kind == Token.Kind.EOL) {
-				start.newline();
-			} else {
-				start.forward(buff.length());
-			}
+		finalizeAndAddToken(tokens, buff.toString(), kind, start);
+		if (!buff.isEmpty()) {
 			buff.delete(0, buff.length());
 		}
 	}
