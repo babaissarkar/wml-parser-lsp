@@ -4,18 +4,16 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.services.LanguageClient;
 
+import com.babai.wml.core.Definition;
 import com.babai.wml.experimental.LogUtils;
 import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
@@ -50,33 +48,35 @@ public class Main {
 		}
 	}
 
-	private static void initParse(ArgParser argParse) throws IOException {
-		LogUtils.setLogLevel(argParse.logLevel);
+	private static void initParse(ArgParser argParser) throws IOException {
+		LogUtils.setLogLevel(argParser.logLevel);
 
 		context = new PathContext(
-			argParse.dataPath,
-			argParse.userDataPath,
+			argParser.dataPath,
+			argParser.userDataPath,
 			new HashSet<Path>());
 
-		var p = new Preprocessor(context, argParse.predefines);
-		if (argParse.outputPath != null) {
-			p.setOutput(Files.newBufferedWriter(argParse.outputPath));
+		argParser.predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
+		
+		var p = new Preprocessor(context, argParser.predefines);
+		if (argParser.outputPath != null) {
+			p.setOutput(Files.newBufferedWriter(argParser.outputPath));
 		} else {
 			p.setOutput(new BufferedWriter(new OutputStreamWriter(System.out)));
 		}
 //		p.setExtractData(argParse.extractUnitTypeData);
 
-		if (argParse.inputPath != null) {
-			LogUtils.debugPrint("Parsing " + colorify(argParse.inputPath.toString(), Colors.filePathColor));
+		if (argParser.inputPath != null) {
+			LogUtils.debugPrint("Parsing " + colorify(argParser.inputPath.toString(), Colors.filePathColor));
 		}
 
-		for (Path incpath : argParse.includes) {
+		for (Path incpath : argParser.includes) {
 			// FIXME recheck directory support
 			p.preprocess(incpath);
 		}
 
-		if (argParse.inputPath != null) {
-			p.preprocess(argParse.inputPath);
+		if (argParser.inputPath != null) {
+			p.preprocess(argParser.inputPath);
 		} else {
 			p.preprocessFile(new InputStreamReader(System.in));
 		}
@@ -99,6 +99,8 @@ public class Main {
 
 	private static void initServer(ArgParser argParser) {
 		LogUtils.setLogLevel(Level.OFF);
+		
+		argParser.predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
 
 		var server = new WMLLanguageServer(
 			argParser.predefines,

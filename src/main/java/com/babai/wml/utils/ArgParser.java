@@ -46,7 +46,7 @@ public class ArgParser {
 				                                (Default: stdout if unspecified)
 				-help/-?/-h                     Print this help""";
 
-	public void parseArgs(String[] args) {
+	public void parseArgs(String[] args) {		
 		for (int i = 0; i < args.length; i++) {
 			String arg = args[i];
 			if (arg.startsWith("--")) {
