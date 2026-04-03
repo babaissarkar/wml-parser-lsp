@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -29,7 +30,7 @@ public class Main {
 	private static Table defines;
 	private static HashMap<String, String> fileExplanations;
 	private static PathContext context;
-	
+
 	public static void main(String[] args) {
 		var argParse = new ArgParser();
 		argParse.parseArgs(args);
@@ -96,8 +97,8 @@ public class Main {
 	}
 
 	private static void initServer(ArgParser argParser) {
-		LogUtils.setLogLevel(argParser.logLevel);
-		
+		LogUtils.setLogLevel(Level.OFF);
+
 		var server = new WMLLanguageServer(
 			argParser.predefines,
 			argParser.dataPath,
@@ -112,7 +113,7 @@ public class Main {
 					.setRemoteInterface(LanguageClient.class)
 					.setInput(clientSocket.getInputStream())
 					.setOutput(clientSocket.getOutputStream());
-			
+
 			if (argParser.showJsonLogs) {
 				launcherBuilder = launcherBuilder.traceMessages(traceJsonStream);  // dumps every JSON message
 			}
