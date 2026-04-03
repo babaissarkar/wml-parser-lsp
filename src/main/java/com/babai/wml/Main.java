@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
-import org.eclipse.lsp4j.launch.LSPLauncher;
+import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import com.babai.wml.experimental.LogUtils;
@@ -25,6 +25,7 @@ import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
 
 import static com.babai.wml.utils.ANSIFormatter.colorify;
+import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 public class Main {
 	private static Table defines;
@@ -105,23 +106,11 @@ public class Main {
 			argParser.userDataPath,
 			argParser.includes);
 
-		try (var serverSocket = new ServerSocket(9007)) {
-			var clientSocket = serverSocket.accept();
-			var traceJsonStream = new PrintWriter(System.err, true);
-			var launcherBuilder = new LSPLauncher.Builder<LanguageClient>()
-					.setLocalService(server)
-					.setRemoteInterface(LanguageClient.class)
-					.setInput(clientSocket.getInputStream())
-					.setOutput(clientSocket.getOutputStream());
+		// Initialize a simple JSON-RPC connection over stdin/stdout
+		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);
+		LanguageClient client = launcher.getRemoteProxy();
 
-			if (argParser.showJsonLogs) {
-				launcherBuilder = launcherBuilder.traceMessages(traceJsonStream);  // dumps every JSON message
-			}
-			var launcher = launcherBuilder.create();
-			server.connect(launcher.getRemoteProxy());
-			launcher.startListening().get(); // blocks; JVM stays alive, exits when client disconnects
-		} catch(IOException | InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
+		server.connect(client);
+		launcher.startListening();
 	}
 }
