@@ -2,6 +2,7 @@ package com.babai.wml.lsp;
 
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URI;
@@ -43,15 +44,16 @@ import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.SymbolKind;
-import org.eclipse.lsp4j.TextDocumentSyncKind;
-import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.WorkspaceFoldersOptions;
 import org.eclipse.lsp4j.WorkspaceServerCapabilities;
+import org.eclipse.lsp4j.TextDocumentSyncKind;
+import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -73,10 +75,13 @@ import com.babai.wml.utils.Table;
 @AIGenerated
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 	public LanguageClient client;
-	private Path inputPath;
-	private Path dataPath;
-	private Path userDataPath;
-	private Table defines;
+	private Path inputPath, dataPath, userDataPath;
+
+	private Table baseDefines, defines;
+	private HashSet<Path> binaryPaths = new HashSet<>();
+	private HashSet<String> unitTypes = new HashSet<>();
+
+	private List<MacroCall> calls = new ArrayList<>();
 	private Vector<Path> includePaths = new Vector<>();
 	private Vector<Path> binaryPaths = new Vector<>();
 	private HashSet<String> unitTypes = new HashSet<>();
@@ -195,15 +200,36 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setDefinitionProvider(true);
 		capabilities.setHoverProvider(true);
 		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
-		TextDocumentSyncOptions syncOptions = new TextDocumentSyncOptions();
+
+		var syncOptions = new TextDocumentSyncOptions();
 		syncOptions.setOpenClose(true);
 		syncOptions.setChange(TextDocumentSyncKind.Full);
 		syncOptions.setSave(true);
 		capabilities.setTextDocumentSync(syncOptions);
+
+		var wfOptions = new WorkspaceFoldersOptions();
+		wfOptions.setSupported(true);
+		wfOptions.setChangeNotifications(false);
+		var workspaceCaps = new WorkspaceServerCapabilities();
+		workspaceCaps.setWorkspaceFolders(wfOptions);
+		capabilities.setWorkspace(workspaceCaps);
+
 		var result = new InitializeResult(capabilities);
 
+		if (params.getWorkspaceFolders() != null && !params.getWorkspaceFolders().isEmpty()) {
+			// 1. Multi-root workspaces (modern)
+			inputPath = Path.of(URI.create(params.getWorkspaceFolders().get(0).getUri()));
+		} else if (params.getRootUri() != null) {
+			// 2. Single-root URI
+			inputPath = Path.of(URI.create(params.getRootUri()));
+		} else if (params.getRootPath() != null) {
+			// 3. Old deprecated rootPath
+			inputPath = Path.of(params.getRootPath());
+		}
+
 		// Send a "ready" message after startup
-		showLSPMessage("WML LSP Server ready!");
+		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
+
 		initParserForLSP();
 
 		return CompletableFuture.completedFuture(result);
@@ -240,6 +266,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (defines != null) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+
+				if (word == null || word.isEmpty()) return CompletableFuture.completedFuture(null);
+
 				if (word.contains("[")) {
 					// Tags
 					String searchWord = word.replaceAll("/", "");
@@ -422,6 +451,43 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		String uri = params.getTextDocument().getUri();
 		List<InlayHint> hints = new ArrayList<>();
 
+		for (MacroCall call : calls) {
+			// skip calls outside the visible range
+//			if (call.startLine() > viewRange.getEnd().getLine()) continue;
+//			if (call.endLine() < viewRange.getStart().getLine()) continue;
+			if (!call.uri().equals(uri)) continue;
+
+			var rows = defines.getRows("Name", call.name());
+			if (rows.isEmpty()) continue;
+			var def = (Definition) rows.get(0).getColumn("Definition").getValue();
+			String defTargetUri = (String) rows.get(0).getColumn("URI").getValue();
+			int targetLine = (int) rows.get(0).getColumn("Line").getValue();
+			var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+			var loc = new Location(defTargetUri, range);
+
+			List<MacroArg> args = call.args();
+			for (int i = 0; i < args.size(); i++) {
+				if (i >= def.getArgs().size()) break;
+
+				var arg = args.get(i);
+				var paramName = def.getArgs().get(i);
+
+				var part = new InlayHintLabelPart(paramName + "=");
+				//	            part.setTooltip(Either.forLeft(def.paramDoc(i))); // optional, null is fine
+				part.setLocation(loc); // ctrl+click jumps to #define
+
+				var hint = new InlayHint();
+				hint.setPosition(new Position(arg.startLine(), arg.startChar()));
+				hint.setLabel(Either.forRight(List.of(part)));
+				hint.setKind(InlayHintKind.Parameter);
+				hint.setPaddingRight(true);
+				hints.add(hint);
+			}
+		}
+
+		return CompletableFuture.completedFuture(hints);
+	}
+
 	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
 		CompletionItem item = new CompletionItem(relPath);
 		item.setKind(CompletionItemKind.File); // You could detect folder vs file if you want
@@ -494,9 +560,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public void didChange(DidChangeTextDocumentParams arg0) {
-		// TODO Auto-generated method stub
+	public void didChange(DidChangeTextDocumentParams params) {
+		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
 
+		try {
+			parseFile(inputPath);
+		} catch (IOException e) {
+			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
+		}
 	}
 
 	@Override
