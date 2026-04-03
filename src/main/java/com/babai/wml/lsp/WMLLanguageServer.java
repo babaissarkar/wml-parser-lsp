@@ -649,7 +649,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 //		unitTypes.addAll(p.getUnitTypes());
 
 		defines = p.getDefines();
-//		binaryPaths = p.getBinaryPaths();
+		binaryPaths = p.getBpaths();
 		calls = p.getMacroCalls();
 
 		macroCompletions.clear();

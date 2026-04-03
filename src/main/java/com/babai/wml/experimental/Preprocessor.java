@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -36,6 +37,7 @@ public class Preprocessor {
 	private List<String> currentDefineArgs = new ArrayList<>();
 	private List<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
+
 	private Writer writer = null;
 	private boolean skipElse = true;
 	private Stack<String> tagStack = new Stack<>();
@@ -72,6 +74,10 @@ public class Preprocessor {
 	
 	public HashMap<String, String> getFileExplanations() {
 		return fileExplanations;
+	}
+	
+	public HashSet<Path> getBpaths() {
+		return context.binaryPaths();
 	}
 
 	public void setOutput(Writer writer) {
@@ -172,26 +178,40 @@ public class Preprocessor {
 
 	private String processToken(ListIterator<Token> itor, Token t, boolean expandMacro) {
 		return switch (t.kind()) {
-		case TEXT, WHITESPACE, EOL -> t.content();
+		case TEXT -> {
+			String line = t.content().strip();
+			if (!tagStack.isEmpty() && tagStack.peek().equals("binary_path")) {
+				if (line.startsWith("path=")) {
+					String value = line.split("=", 2)[1];
+					if (!value.isEmpty()) {
+						Path bpath = Path.of(value);
+						context.binaryPaths().add(bpath);
+						debugPrint("Binary Path found: " + bpath);
+					}
+				}
+			}
+			yield t.content();
+		}
+		case WHITESPACE, EOL -> t.content();
 		case TAG -> {
 			String tagName = t.content().strip();
 			if (tagName.startsWith("+")) {
 				// appending tag, like [+units]
 				tagName = tagName.substring(1, tagName.length());
-				this.tagStack.push(tagName);
+				tagStack.push(tagName);
 			} else if (tagName.startsWith("/")) {
 				// end tag
 				tagName = tagName.substring(1, tagName.length());
-				if (this.tagStack.peek().equals(tagName)) {
+				if (tagStack.peek().equals(tagName)) {
 					debugPrint("Read Tag: " + colorify("[" + tagName + "]", Colors.tagColor));
-					this.tagStack.pop();
+					tagStack.pop();
 				} else {
 					errorPrint("Wrong end tag " + colorify(this.tagStack.peek(), Color.RED)
 						+ " found for tag "
 						+ colorify("[" + tagName + "]", Colors.tagColor));
 				}
 			} else {
-				this.tagStack.push(tagName);
+				tagStack.push(tagName);
 			}
 			yield "[" + t.content() + "]";
 		}
