@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -96,7 +97,7 @@ public class Main {
 	}
 
 	private static void initServer(ArgParser argParser) {
-		LogUtils.setLogLevel(argParser.logLevel);
+		LogUtils.setLogLevel(Level.OFF);
 
 		var server = new WMLLanguageServer(
 			argParser.predefines,
