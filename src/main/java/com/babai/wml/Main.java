@@ -92,6 +92,7 @@ public class Main {
 //			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 
+		LogUtils.infoPrint("Binary Paths: " + p.getBpaths());
 		LogUtils.infoPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 		defines = p.getDefines();
 		fileExplanations = p.getFileExplanations();
