@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Stack;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -37,6 +38,7 @@ public class Preprocessor {
 	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
 	private Writer writer = null;
 	private boolean skipElse = true;
+	private Stack<String> tagStack = new Stack<>();
 	
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -171,6 +173,28 @@ public class Preprocessor {
 	private String processToken(ListIterator<Token> itor, Token t, boolean expandMacro) {
 		return switch (t.kind()) {
 		case TEXT, WHITESPACE, EOL -> t.content();
+		case TAG -> {
+			String tagName = t.content().strip();
+			if (tagName.startsWith("+")) {
+				// appending tag, like [+units]
+				tagName = tagName.substring(1, tagName.length());
+				this.tagStack.push(tagName);
+			} else if (tagName.startsWith("/")) {
+				// end tag
+				tagName = tagName.substring(1, tagName.length());
+				if (this.tagStack.peek().equals(tagName)) {
+					debugPrint("Read Tag: " + colorify("[" + tagName + "]", Colors.tagColor));
+					this.tagStack.pop();
+				} else {
+					errorPrint("Wrong end tag " + colorify(this.tagStack.peek(), Color.RED)
+						+ " found for tag "
+						+ colorify("[" + tagName + "]", Colors.tagColor));
+				}
+			} else {
+				this.tagStack.push(tagName);
+			}
+			yield "[" + t.content() + "]";
+		}
 		case QUOTED -> "\"" + t.content() + "\"";
 		case ANGLE_QUOTED -> "<<" + t.content() + ">>";
 		case MACRO -> {
