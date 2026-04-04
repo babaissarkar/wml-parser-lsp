@@ -42,6 +42,8 @@ public class Preprocessor {
 	private boolean skipElse = true;
 	private Stack<String> tagStack = new Stack<>();
 	
+	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d");
+	
 	// toplevel
 	public Preprocessor(PathContext context) {
 		this.context = context;
@@ -194,23 +196,29 @@ public class Preprocessor {
 		}
 		case WHITESPACE, EOL -> t.content();
 		case TAG -> {
+			//FIXME should probably not be in preprocessor...
 			String tagName = t.content().strip();
 			if (tagName.startsWith("+")) {
 				// appending tag, like [+units]
 				tagName = tagName.substring(1, tagName.length());
-				tagStack.push(tagName);
+				if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
+					tagStack.push(tagName);
+				}
 			} else if (tagName.startsWith("/")) {
 				// end tag
 				tagName = tagName.substring(1, tagName.length());
-				if (tagStack.peek().equals(tagName)) {
+				if (tagStack.isEmpty()) {
+					errorPrint("End tag without matching start tag.");
+				} else if (tagStack.peek().equals(tagName)) {
 					debugPrint("Read Tag: " + colorify("[" + tagName + "]", Colors.tagColor));
 					tagStack.pop();
 				} else {
-					errorPrint("Wrong end tag " + colorify(this.tagStack.peek(), Color.RED)
-						+ " found for tag "
-						+ colorify("[" + tagName + "]", Colors.tagColor));
+					errorPrint("Wrong end tag " + colorify(tagName, Color.RED)
+					+ " found for tag "
+					+ colorify("[" + this.tagStack.peek() + "]", Colors.tagColor));
 				}
-			} else {
+			// needs better handling
+			} else if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
 				tagStack.push(tagName);
 			}
 			yield "[" + t.content() + "]";
