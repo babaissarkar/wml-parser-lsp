@@ -3,6 +3,7 @@ package com.babai.wml.experimental;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.ListIterator;
 import java.util.Stack;
 import java.util.regex.Pattern;
@@ -14,13 +15,9 @@ import static com.babai.wml.experimental.LogUtils.*;
 import static com.babai.wml.experimental.ParseUtils.skip;
 
 public class Parser {
-	private PathContext context = null;
 	private Stack<String> tagStack = new Stack<>();
+	private HashSet<Path> binaryPaths = new HashSet<>();
 	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d");
-	
-	public Parser(PathContext context) {
-		this.context = context;
-	}
 	
 	public void parse(String text) throws IOException {
 		var itor = tokenize(new StringReader(text)).listIterator();
@@ -53,7 +50,7 @@ public class Parser {
 					}
 					
 					Path bpath = Path.of(value);
-					context.binaryPaths().add(bpath);
+					binaryPaths.add(bpath);
 					debugPrint("Binary Path found: " + bpath);
 				}
 			}
@@ -88,5 +85,9 @@ public class Parser {
 		case MACRO -> throw new IllegalArgumentException("Unexpected macro during parse: {" + t.content() + "}");
 		default -> throw new IllegalArgumentException("Unexpected value: " + t.content());
 		}
+	}
+
+	public HashSet<Path> getBinaryPaths() {
+		return binaryPaths;
 	}	
 }
