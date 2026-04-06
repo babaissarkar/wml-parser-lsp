@@ -2,9 +2,7 @@ package com.babai.wml.lsp;
 
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -50,7 +48,6 @@ import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
@@ -549,8 +546,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					userDataPath,
 					new HashSet<Path>());
 			p = new Preprocessor(context, defines);
-			//FIXME disable output by writing to a fake buffer that will be discard. Find a better way.
-			p.setOutput(new StringWriter());
 
 //			p.setExtractData(argParse.extractUnitTypeData);
 

@@ -2,11 +2,8 @@ package com.babai.wml.experimental;
 
 import java.awt.Color;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,7 +36,6 @@ public class Preprocessor {
 	private List<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
 
-	private Writer writer = null;
 	private boolean skipElse = true;
 	
 	// toplevel
@@ -79,20 +75,17 @@ public class Preprocessor {
 	public HashSet<Path> getBpaths() {
 		return context.binaryPaths();
 	}
-
-	public void setOutput(Writer writer) {
-		this.writer = writer;
-	}
 	
 	// Can handle both file or folder
 	// TODO _initial & _final.cfg
-	public void preprocess(Path path) {
+	public String preprocess(Path path) {
+		StringBuilder out = new StringBuilder();
 		String coloredPath = colorify(path.toString(), Colors.filePathColor);
 		if (Files.isDirectory(path)) {
 			debugPrint("Including directory: " + coloredPath);
 			Path main = path.resolve("_main.cfg");
 			if (Files.exists(main)) {
-				preprocessFile(main);
+				out.append(preprocessFile(main));
 			} else {
 				Predicate<? super Path> filter = entry ->
 					Files.isDirectory(entry)
@@ -102,28 +95,27 @@ public class Preprocessor {
 					stream
 						.filter(filter)
 						.sorted()
-						.forEach(this::preprocess);
+						.forEach(p -> out.append(preprocess(p)));
 				} catch (IOException e) {
 					errorPrint("Cannot find " + path + ", skipping.");
 				}
 			}
 		} else {
-			preprocessFile(path);
+			out.append(preprocessFile(path));
 		}
+		
+		// linebreak so outputs from different files are separated
+		return out.toString() + "\n";
 	}
 	
-	public void preprocessFile(Path path) {
+	public String preprocessFile(Path path) {
 		int prevMacroCount = this.defines.rowCount();
 		String coloredPath = colorify(path.toAbsolutePath().toString(), Colors.filePathColor);
 		this.currentPath = path;
 		debugPrint("Preprocessing: " + coloredPath);
+		String out = "";
 		try {
-			var out = new PrintWriter(
-					this.writer == null
-						? new OutputStreamWriter(System.out)
-						: this.writer);
-			out.print(preprocessFile(Files.newBufferedReader(path)));
-			out.close();
+			out = preprocessFile(Files.newBufferedReader(path));
 		} catch (IOException e) {
 			errorPrint("Cannot find " + path + ", skipping.");
 		}
@@ -131,6 +123,7 @@ public class Preprocessor {
 		if (newMacroCount > 0) {
 			infoPrint(coloredPath + ": " + newMacroCount + " macros");
 		}
+		return out;
 	}
 	
 	// Can only deal with a file

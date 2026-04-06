@@ -59,10 +59,11 @@ public class Main {
 		argParser.predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
 		
 		var p = new Preprocessor(context, argParser.predefines);
+		BufferedWriter writer = null;
 		if (argParser.outputPath != null) {
-			p.setOutput(Files.newBufferedWriter(argParser.outputPath));
+			writer = Files.newBufferedWriter(argParser.outputPath);
 		} else {
-			p.setOutput(new BufferedWriter(new OutputStreamWriter(System.out)));
+			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 //		p.setExtractData(argParse.extractUnitTypeData);
 
@@ -75,11 +76,13 @@ public class Main {
 			p.preprocess(incpath);
 		}
 
+		String out = "";
 		if (argParser.inputPath != null) {
-			p.preprocess(argParser.inputPath);
+			out = p.preprocess(argParser.inputPath);
 		} else {
-			p.preprocessFile(new InputStreamReader(System.in));
+			out = p.preprocessFile(new InputStreamReader(System.in));
 		}
+		writer.write(out);
 
 //		var unitTypes = p.getUnitTypes();
 //		p.debugPrint("Binary Paths: " + p.getBinaryPaths());
