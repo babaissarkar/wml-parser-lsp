@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,7 +16,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Stack;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -40,9 +41,6 @@ public class Preprocessor {
 
 	private Writer writer = null;
 	private boolean skipElse = true;
-	private Stack<String> tagStack = new Stack<>();
-	
-	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d");
 	
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -120,7 +118,12 @@ public class Preprocessor {
 		this.currentPath = path;
 		debugPrint("Preprocessing: " + coloredPath);
 		try {
-			preprocessFile(Files.newBufferedReader(path));
+			var out = new PrintWriter(
+					this.writer == null
+						? new OutputStreamWriter(System.out)
+						: this.writer);
+			out.print(preprocessFile(Files.newBufferedReader(path)));
+			out.close();
 		} catch (IOException e) {
 			errorPrint("Cannot find " + path + ", skipping.");
 		}
@@ -131,11 +134,8 @@ public class Preprocessor {
 	}
 	
 	// Can only deal with a file
-	public void preprocessFile(Reader reader) throws IOException {
-		var out = new PrintWriter(
-			this.writer == null
-				? new OutputStreamWriter(System.out)
-				: this.writer);
+	public String preprocessFile(Reader reader) throws IOException {
+		var buff = new StringBuilder();
 		
 		var itor = tokenize(reader).listIterator();
 		
@@ -153,11 +153,64 @@ public class Preprocessor {
 		
 		fileExplanations.put(currentPath.toUri().toString(), handleDocComment(itor));
 		
+		// Initial pass
+		Boolean hasMacro = false;
 		while (itor.hasNext()) {
 			Token t = itor.next();
-			out.print(processToken(itor, t, true));
+			if (t.kind() == Token.Kind.MACRO) {
+				hasMacro = true;
+			}
+			buff.append(processToken(itor, t, true));
 		}
+		String out = buff.toString();
+		
+		// Nested passes
+		Function<String, Pair<String, Boolean>> preprocessQuick = str -> {
+			boolean hasMacro2 = false;
+			var reader2 = new StringReader(str);
+			var buff2 = new StringBuilder();
+			ListIterator<Token> itor2;
+			try {
+				itor2 = tokenize(reader2).listIterator();
+				
+				skip(itor2, Token.Kind.EOL);
+				skip(itor2, Token.Kind.WHITESPACE);
+				
+				while (itor2.hasNext()) {
+					Token t2 = itor2.next();
+					if (t2.kind() == Token.Kind.MACRO) {
+						hasMacro2 = true;
+					}
+					buff2.append(processToken(itor2, t2, true));
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			return new Pair<String, Boolean>(buff2.toString(), hasMacro2);
+		};
+		
+		int depth = 0;
+		while (hasMacro && depth < 50) {
+			var outPair = preprocessQuick.apply(out);
+			out = outPair.first();
+			hasMacro = outPair.second();
+			depth++;
+		}
+		
+		Parser parser = new Parser(context);
+		if (!hasMacro) {
+			// FIXME decouple this
+			parser.parse(out);
+		} else {
+			errorPrint("Maximum macro nesting depth exceeded!");
+		}
+		
+		return out;
 	}
+	
+	// recursively expand nested macros
 
 	private String handleDocComment(ListIterator<Token> itor) {
 		skip(itor, Token.Kind.EOL);
@@ -180,54 +233,14 @@ public class Preprocessor {
 
 	private String processToken(ListIterator<Token> itor, Token t, boolean expandMacro) {
 		return switch (t.kind()) {
-		case TEXT -> {
-			String line = t.content().strip();
-			if (!tagStack.isEmpty() && tagStack.peek().equals("binary_path")) {
-				if (line.startsWith("path=")) {
-					String value = line.split("=", 2)[1];
-					if (!value.isEmpty()) {
-						Path bpath = Path.of(value);
-						context.binaryPaths().add(bpath);
-						debugPrint("Binary Path found: " + bpath);
-					}
-				}
-			}
-			yield t.content();
-		}
+		case TEXT -> t.content();
 		case WHITESPACE, EOL -> t.content();
-		case TAG -> {
-			//FIXME should probably not be in preprocessor...
-			String tagName = t.content().strip();
-			if (tagName.startsWith("+")) {
-				// appending tag, like [+units]
-				tagName = tagName.substring(1, tagName.length());
-				if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
-					tagStack.push(tagName);
-				}
-			} else if (tagName.startsWith("/")) {
-				// end tag
-				tagName = tagName.substring(1, tagName.length());
-				if (tagStack.isEmpty()) {
-					errorPrint("End tag without matching start tag.");
-				} else if (tagStack.peek().equals(tagName)) {
-					debugPrint("Read Tag: " + colorify("[" + tagName + "]", Colors.tagColor));
-					tagStack.pop();
-				} else {
-					errorPrint("Wrong end tag " + colorify(tagName, Color.RED)
-					+ " found for tag "
-					+ colorify("[" + this.tagStack.peek() + "]", Colors.tagColor));
-				}
-			// needs better handling
-			} else if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
-				tagStack.push(tagName);
-			}
-			yield "[" + t.content() + "]";
-		}
+		case TAG -> "[" + t.content() + "]";
 		case QUOTED -> "\"" + t.content() + "\"";
 		case ANGLE_QUOTED -> "<<" + t.content() + ">>";
 		case MACRO -> {
 			if (expandMacro) {
-				yield expandMacro(t, currentDefineArgs, this.context);
+				yield expandMacro(t, currentDefineArgs, context);
 			} else {
 				yield "{" + t.content() + "}";
 			}
@@ -512,6 +525,8 @@ public class Preprocessor {
 			return fallback;
 		}
 	}
+	
+	private record Pair<F, S>(F first, S second) {};
 	
 	private record DirectiveHeader(String head, String[] args) {
 		// processDirectiveNameAndArgs
