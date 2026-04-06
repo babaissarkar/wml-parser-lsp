@@ -1,6 +1,5 @@
 package com.babai.wml.experimental;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -20,9 +19,9 @@ import java.util.regex.Pattern;
 import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
-import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
 
+import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 import static com.babai.wml.experimental.LogUtils.*;
 import static com.babai.wml.experimental.ParseUtils.*;
@@ -80,7 +79,7 @@ public class Preprocessor {
 	// TODO _initial & _final.cfg
 	public String preprocess(Path path) {
 		StringBuilder out = new StringBuilder();
-		String coloredPath = colorify(path.toString(), Colors.filePathColor);
+		String coloredPath = colorify(path.toString(), filePathColor);
 		if (Files.isDirectory(path)) {
 			debugPrint("Including directory: " + coloredPath);
 			Path main = path.resolve("_main.cfg");
@@ -110,7 +109,7 @@ public class Preprocessor {
 	
 	public String preprocessFile(Path path) {
 		int prevMacroCount = this.defines.rowCount();
-		String coloredPath = colorify(path.toAbsolutePath().toString(), Colors.filePathColor);
+		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 		this.currentPath = path;
 		debugPrint("Preprocessing: " + coloredPath);
 		String out = "";
@@ -258,7 +257,7 @@ public class Preprocessor {
 			if (!itor.hasNext()) {
 				// terminated before define completed, error
 				errorPrint("End directive "
-						+ colorify(directiveName, Colors.directiveColor)
+						+ colorify(directiveName, directiveColor)
 						+ " not found. Pos: " + position(t, currentPath.toString()));
 				break;
 			} else {
@@ -283,9 +282,9 @@ public class Preprocessor {
 			if (!itor.hasNext()) {
 				// terminated before define completed, error
 				errorPrint("End directives "
-						+ colorify(endDir1, Colors.directiveColor)
+						+ colorify(endDir1, directiveColor)
 						+ " or "
-						+ colorify(endDir2, Colors.directiveColor)
+						+ colorify(endDir2, directiveColor)
 						+ " not found. Pos: " + position(t, currentPath.toString()));
 				return;
 			} else {
@@ -428,7 +427,7 @@ public class Preprocessor {
 
 		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return;
 		
-		String coloredPathString = colorify(p.toString(), Colors.filePathColor);
+		String coloredPathString = colorify(p.toString(), filePathColor);
 		
 		debugPrint("Trying to include: " + coloredPathString);
 
@@ -499,14 +498,14 @@ public class Preprocessor {
 			
 			String argsString = Definition.argsAsString2(args, defArgs);
 			debugPrint("expanding macro " + def.coloredName()
-				+ (!argsString.isEmpty() ? " with " + colorify(argsString, Colors.macroArgColor) : ""));
+				+ (!argsString.isEmpty() ? " with " + colorify(argsString, macroArgColor) : ""));
 			
 			try {
 				return def.expand2(args, defArgs);
 			} catch(IllegalArgumentException e) {
 				errorPrint("Error expanding macro " + def.coloredName()
 					+ " in "
-					+ colorify(currentPath.toString(), Colors.filePathColor)
+					+ colorify(currentPath.toString(), filePathColor)
 					+ ": " + e.getMessage());
 				return fallback;
 			}
@@ -514,7 +513,7 @@ public class Preprocessor {
 			// FIXME: do nothing for now. may need checks later.
 			return fallback;
 		} else {
-			warningPrint(position(macroCall, currentPath.toString()) + " undefined macro " + colorify(macroName, Color.RED));
+			warningPrint(position(macroCall, currentPath.toString()) + " undefined macro " + colorify(macroName, RED));
 			return fallback;
 		}
 	}

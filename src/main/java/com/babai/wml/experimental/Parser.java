@@ -1,6 +1,5 @@
 package com.babai.wml.experimental;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Path;
@@ -76,7 +75,7 @@ public class Parser {
 					debugPrint("Read Tag: " + colorify("[" + tagName + "]", tagColor));
 					tagStack.pop();
 				} else {
-					errorPrint("Wrong end tag " + colorify(tagName, Color.RED)
+					errorPrint("Wrong end tag " + colorify(tagName, RED)
 					+ " found for tag "
 					+ colorify("[" + tagStack.peek() + "]", tagColor));
 				}

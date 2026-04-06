@@ -1,6 +1,6 @@
 package com.babai.wml.utils;
 
-import java.awt.Color;
+import com.babai.wml.utils.Colors.Color;
 
 /**
  * ANSI escape code utility for coloring terminal output using true RGB color.
@@ -15,7 +15,7 @@ public interface ANSIFormatter {
 	}
 
 	public static String fg(Color c) {
-		return fg(c.getRed(), c.getGreen(), c.getBlue());
+		return fg(c.r(), c.g(), c.b());
 	}
 
 	/**
