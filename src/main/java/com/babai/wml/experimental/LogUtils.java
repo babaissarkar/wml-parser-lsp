@@ -1,13 +1,12 @@
 package com.babai.wml.experimental;
 
-import java.awt.Color;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import com.babai.wml.utils.Colors;
 
+import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.ANSIFormatter.*;
 
 public final class LogUtils {
@@ -36,13 +35,13 @@ public final class LogUtils {
 				Level l = record.getLevel();
 				String lvlStr = "[" + l + "]";
 				if (l == Level.SEVERE) {
-					lvlStr = colorify(lvlStr, Color.RED);
+					lvlStr = colorify(lvlStr, RED);
 				} else if (l == Level.WARNING) {
-					lvlStr = colorify(lvlStr, Color.ORANGE);
+					lvlStr = colorify(lvlStr, ORANGE);
 				} else if (l == Level.INFO) {
-					lvlStr = colorify(lvlStr, Color.GREEN);
+					lvlStr = colorify(lvlStr, GREEN);
 				} else if (l == Level.FINER) {
-					lvlStr = colorify("[DEBUG]", Color.CYAN);
+					lvlStr = colorify("[DEBUG]", CYAN);
 				}
 				
 				return lvlStr + " " + record.getMessage() + "\n";
@@ -82,11 +81,11 @@ public final class LogUtils {
 	}
 
 	public static String position(Token tok, String path) {
-		return colorify(path + ":" + "(" + tok.beginLine() + "," + tok.beginColumn() + ")", Colors.lineNumColor);
+		return colorify(path + ":" + "(" + tok.beginLine() + "," + tok.beginColumn() + ")", lineNumColor);
 	}
 
 	public static String position(int line, int col) {
-		return colorify("(" + line + "," + col + ")", Colors.lineNumColor);
+		return colorify("(" + line + "," + col + ")", lineNumColor);
 	}
 
 }
