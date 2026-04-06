@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -69,10 +68,6 @@ public class Preprocessor {
 	
 	public HashMap<String, String> getFileExplanations() {
 		return fileExplanations;
-	}
-	
-	public HashSet<Path> getBpaths() {
-		return context.binaryPaths();
 	}
 	
 	// Can handle both file or folder
@@ -191,11 +186,7 @@ public class Preprocessor {
 			depth++;
 		}
 		
-		Parser parser = new Parser(context);
 		if (!hasMacro) {
-			// FIXME decouple this
-			parser.parse(out);
-		} else {
 			errorPrint("Maximum macro nesting depth exceeded!");
 		}
 		
