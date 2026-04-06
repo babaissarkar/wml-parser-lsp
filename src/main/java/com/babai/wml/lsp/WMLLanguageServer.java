@@ -62,6 +62,7 @@ import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
 import com.babai.wml.experimental.LogUtils;
+import com.babai.wml.experimental.Parser;
 import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
@@ -87,6 +88,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private List<CompletionItem> tags = new ArrayList<>();
 	private Properties tagLinks = new Properties();
 	private Preprocessor p;
+	private Parser parser = new Parser();
 
 	public WMLLanguageServer(Table predefines, Path inputPath, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 		this.inputPath = inputPath;
@@ -640,12 +642,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void parseFile(Path inputPath) throws IOException {
 		p.setDefines(baseDefines.copy());
-		p.preprocess(inputPath);
+		String out = p.preprocess(inputPath);
+		parser.parse(out);
+		
 //		unitTypes.addAll(p.getUnitTypes());
 
 		defines = p.getDefines();
-		binaryPaths = p.getBpaths();
 		calls = p.getMacroCalls();
+		binaryPaths = parser.getBinaryPaths();
 
 		macroCompletions.clear();
 		for (var r : defines.getRows()) {

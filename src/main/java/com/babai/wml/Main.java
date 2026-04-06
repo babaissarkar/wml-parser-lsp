@@ -15,6 +15,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 
 import com.babai.wml.core.Definition;
 import com.babai.wml.experimental.LogUtils;
+import com.babai.wml.experimental.Parser;
 import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.lsp.WMLLanguageServer;
@@ -83,9 +84,11 @@ public class Main {
 			out = p.preprocessFile(new InputStreamReader(System.in));
 		}
 		writer.write(out);
+		
+		Parser parser = new Parser();
+		parser.parse(out);
 
 //		var unitTypes = p.getUnitTypes();
-//		p.debugPrint("Binary Paths: " + p.getBinaryPaths());
 //		if (argParse.extractUnitTypeData) {
 //			HashSet<Config> unitTypeData = p.getUnitTypeData();
 //			writeUnitTypeData(unitTypeData, argParse.unitTypeOutPath);
@@ -95,7 +98,7 @@ public class Main {
 //			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 
-		LogUtils.infoPrint("Binary Paths: " + p.getBpaths());
+		LogUtils.infoPrint("Binary Paths: " + parser.getBinaryPaths());
 		LogUtils.infoPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 		defines = p.getDefines();
 		fileExplanations = p.getFileExplanations();
