@@ -19,6 +19,7 @@ import com.babai.wml.experimental.Parser;
 import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.lsp.WMLLanguageServer;
+import com.babai.wml.utils.ANSIFormatter;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
@@ -34,6 +35,7 @@ public class Main {
 	public static void main(String[] args) {
 		var argParse = new ArgParser();
 		argParse.parseArgs(args);
+		ANSIFormatter.setColorsEnabled(argParse.enableColors);
 		if (argParse.startLSPServer) {
 			initServer(argParse);
 		} else {

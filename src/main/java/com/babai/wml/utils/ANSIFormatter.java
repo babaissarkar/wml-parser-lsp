@@ -8,10 +8,17 @@ import com.babai.wml.utils.Colors.Color;
  * include modern Linux terminals, macOS Terminal, iTerm2, Windows Terminal,
  * etc.
  */
-public interface ANSIFormatter {
+public final class ANSIFormatter {	
+	public static boolean enableColors = true;
+	
+	private ANSIFormatter() {};
+
+	public static void setColorsEnabled(boolean enableColors) {
+		ANSIFormatter.enableColors = enableColors;
+	}
 
 	public static String colorify(String text, Color c) {
-		return fg(c) + text + RESET;
+		return enableColors ? fg(c) + text + RESET : text;
 	}
 
 	public static String fg(Color c) {
