@@ -231,6 +231,9 @@ public class Preprocessor {
 		case COMMENT -> {
 			if (t.isDirective()) {
 				handleDirective(t, itor, currentPath.toUri().toString());
+				// suppress empty whitespace & linebreaks after directive lines
+				skip(itor, Token.Kind.WHITESPACE);
+				skip(itor, Token.Kind.EOL);
 			}
 			
 			yield "";
