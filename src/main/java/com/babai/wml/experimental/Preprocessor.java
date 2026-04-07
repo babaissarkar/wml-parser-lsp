@@ -471,7 +471,11 @@ public class Preprocessor {
 					if (str.contains("=")) {
 						String[] keyVal = str.split("=", 2);
 						if (def.getDefArgs().containsKey(keyVal[0])) {
-							defArgs.put(keyVal[0], keyVal[1]);
+							//FIXME eliminate stripMatchingQuotes later
+							//we want to pass the value verbatim, but this is dropping quotes
+							//hint: multiple preprocessing passes can accidentally collapse
+							// "" -> " in some case, gotta handle those carefully
+							defArgs.put(keyVal[0], stripMatchingQuotes(keyVal[1]));
 						} else {
 							//TODO error: invalid defarg passed
 						}
@@ -510,6 +514,15 @@ public class Preprocessor {
 			warningPrint(position(macroCall, currentPath.toString()) + " undefined macro " + colorify(macroName, RED));
 			return fallback;
 		}
+	}
+	
+	private String stripMatchingQuotes(String argVal) {
+		// Keyword args are parsed from raw macro text and may carry wrapper quotes
+		// (e.g. KEY="value"). Keep inner content and drop only a matching outer pair.
+		if (argVal != null && argVal.length() >= 2 && argVal.startsWith("\"") && argVal.endsWith("\"")) {
+			return argVal.substring(1, argVal.length() - 1);
+		}
+		return argVal;
 	}
 	
 	private record Pair<F, S>(F first, S second) {};

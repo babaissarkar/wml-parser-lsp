@@ -3,7 +3,6 @@ package com.babai.wml.experimental;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
 public final class ParseUtils {
 	
@@ -28,36 +27,44 @@ public final class ParseUtils {
 
 		int i = 0;
 		while (i < chars.length) {
+			// Token boundary starts at the next non-whitespace character.
 			while (i < chars.length && Character.isWhitespace(chars[i])) i++; // skip WS
-			
 			if (i >= chars.length) break;
-			
-			// parentheses acts as quoting against WS/linebreak
-			var delims = Map.of('(', ')', '\"', '\"');
-			Character startDelim = chars[i];
-			Character endDelim = delims.get(chars[i]); 
-			if (delims.containsKey(startDelim)) {
-				// we want the quotes but not parens
-				if (startDelim == '\"') sb.append(startDelim);
-				i++;
-				if (i >= chars.length) break;
-				while (i < chars.length && chars[i] != endDelim) {
-					sb.append(chars[i]);
+
+			sb.setLength(0);
+			// Read one token. Whitespace ends the token unless we're inside a quoted span.
+			while (i < chars.length && !Character.isWhitespace(chars[i])) {
+				char c = chars[i];
+				if (c == '"') {
+					// Keep quote characters in the resulting token to preserve existing call-site behavior.
+					// Example: KEY="a b" should stay as one token (not split at inner whitespace).
+					sb.append(c);
 					i++;
-				}
-				if (i >= chars.length) break;
-				if (chars[i] == endDelim) {
-					if (endDelim == '\"') sb.append(endDelim);
+					while (i < chars.length) {
+						char q = chars[i];
+						sb.append(q);
+						i++;
+						if (q == '"') break;
+					}
+				} else if (c == '(' && sb.isEmpty()) {
+					// Parenthesized value at token start acts as quoting against whitespace.
+					// Keep the body but strip the outer parentheses: (a b) -> a b
 					i++;
-				}
-			} else {
-				while (i < chars.length && !Character.isWhitespace(chars[i])) {
-					sb.append(chars[i]);
+					while (i < chars.length && chars[i] != ')') {
+						sb.append(chars[i]);
+						i++;
+					}
+					// Consume closing ')' if present; tolerate malformed input by leaving as-is.
+					if (i < chars.length && chars[i] == ')') i++;
+				} else {
+					// Regular unquoted token content.
+					sb.append(c);
 					i++;
 				}
 			}
+
+			// Commit parsed token fragment.
 			parts.add(sb.toString());
-			sb.delete(0, sb.length());
 		}
 		
 		return parts;
