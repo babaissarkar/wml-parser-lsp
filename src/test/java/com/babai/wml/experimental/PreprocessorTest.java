@@ -31,7 +31,7 @@ class PreprocessorTest {
 		String defString = """
 			#define MYMACRO ARG1 ARG2
 			# This is doc
-			# 
+			#
 			# Doc para 2
 			#arg DARG1
 			default#endarg
@@ -66,6 +66,19 @@ class PreprocessorTest {
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		String str = preproc.preprocessFile(new StringReader(defString));
 		assertEquals("Hello \"World\"!\nHello \"Friend\"?", str);
+	}
+
+	@Test
+	void testDefineArgsKeywordQuotedValueWithWhitespace() throws IOException {
+		String defString = """
+			#define SAY WHO
+			#arg NOTE
+			none#endarg
+			{WHO}:{NOTE}#enddef
+			{SAY "Unit" NOTE="very good"}""";
+		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+		String str = preproc.preprocessFile(new StringReader(defString));
+		assertEquals("\"Unit\":very good", str);
 	}
 
 	@Test
