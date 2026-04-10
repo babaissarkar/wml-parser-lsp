@@ -304,7 +304,7 @@ public class Preprocessor {
 			String macroName = directiveArgs[0];
 			List<String> macroArgs = Arrays.asList(directiveArgs).subList(1, directiveArgs.length);
 			
-			skip(itor, Token.Kind.EOL);
+			skip(itor, Token.Kind.EOL, Token.Kind.WHITESPACE);
 			
 			// Macro deprecation messages
 			boolean isDeprecated = false;
@@ -336,12 +336,12 @@ public class Preprocessor {
 					}
 				}
 				
-				skip(itor, Token.Kind.EOL);
+				skip(itor, Token.Kind.EOL, Token.Kind.WHITESPACE);
 			}
 
 			String doc = handleDocComment(itor);
 			
-			skip(itor, Token.Kind.EOL);
+			skip(itor, Token.Kind.EOL, Token.Kind.WHITESPACE);
 			
 			// defargs processing
 			var macroDefaultArgs = new LinkedHashMap<String, String>();
@@ -353,7 +353,8 @@ public class Preprocessor {
 				
 				macroDefaultArgs.put(defArgName, consumeUntilEndDirective("endarg", itor));
 				
-				skip(itor, Token.Kind.EOL);
+				skip(itor, Token.Kind.EOL, Token.Kind.WHITESPACE);
+				
 			}
 			
 			// Body
