@@ -21,7 +21,7 @@ class PreprocessorTest {
 			Something#enddef
 			{MYMACRO2}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessFile(new StringReader(defString));
+		String str = preproc.preprocessContent(new StringReader(defString));
 		assertFalse(str.isEmpty());
 		assertEquals("Something", str);
 	}
@@ -43,7 +43,7 @@ class PreprocessorTest {
 			default3#endarg
 			Something#enddef""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		preproc.preprocessFile(new StringReader(defString));
+		preproc.preprocessContent(new StringReader(defString));
 		var defines = preproc.getDefines();
 		assertEquals(1, defines.rowCount());
 		var rows = defines.getRows("Name", "MYMACRO");
@@ -64,7 +64,7 @@ class PreprocessorTest {
 			{GREET "World"}
 			{GREET "Friend" PUNC="?"}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessFile(new StringReader(defString));
+		String str = preproc.preprocessContent(new StringReader(defString));
 		assertEquals("Hello \"World\"!\nHello \"Friend\"?", str);
 	}
 
@@ -77,7 +77,7 @@ class PreprocessorTest {
 			{WHO}:{NOTE}#enddef
 			{SAY "Unit" NOTE="very good"}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessFile(new StringReader(defString));
+		String str = preproc.preprocessContent(new StringReader(defString));
 		assertEquals("\"Unit\":very good", str);
 	}
 
@@ -92,7 +92,7 @@ class PreprocessorTest {
 			"Nodef"
 			#endif""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessFile(new StringReader(defString));
+		String str = preproc.preprocessContent(new StringReader(defString));
 		assertFalse(str.isEmpty());
 		assertEquals("Something\n", str);
 	}
@@ -106,7 +106,7 @@ class PreprocessorTest {
 			good
 			#endif""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessFile(new StringReader(defString));
+		String str = preproc.preprocessContent(new StringReader(defString));
 		assertEquals("good\n", str);
 	}
 
@@ -119,7 +119,7 @@ class PreprocessorTest {
 			nope
 			#endif""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessFile(new StringReader(defString));
+		String str = preproc.preprocessContent(new StringReader(defString));
 		assertEquals("ok\n", str);
 	}
 
@@ -129,7 +129,7 @@ class PreprocessorTest {
 			{DOES_NOT_EXIST}
 			text""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessFile(new StringReader(defString));
+		String str = preproc.preprocessContent(new StringReader(defString));
 		assertTrue(str.startsWith("{DOES_NOT_EXIST}"));
 		assertTrue(str.contains("text"));
 	}
@@ -141,7 +141,7 @@ class PreprocessorTest {
 			#deprecated 2 1.19.0 Use NEW_MACRO instead
 			abc#enddef""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		preproc.preprocessFile(new StringReader(defString));
+		preproc.preprocessContent(new StringReader(defString));
 		var rows = preproc.getDefines().getRows("Name", "OLD_MACRO");
 		assertEquals(1, rows.size());
 		var macroDefinition = (Definition) rows.get(0).getColumn("Definition").getValue();

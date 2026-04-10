@@ -109,7 +109,7 @@ public class Preprocessor {
 		debugPrint("Preprocessing: " + coloredPath);
 		String out = "";
 		try {
-			out = preprocessFile(Files.newBufferedReader(path));
+			out = preprocessContent(Files.newBufferedReader(path));
 		} catch (IOException e) {
 			errorPrint("Cannot find " + path + ", skipping.");
 		}
@@ -121,7 +121,7 @@ public class Preprocessor {
 	}
 	
 	// Can only deal with a file
-	public String preprocessFile(Reader reader) throws IOException {
+	public String preprocessContent(Reader reader) throws IOException {
 		var buff = new StringBuilder();
 		
 		var itor = tokenize(reader).listIterator();
