@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -33,6 +34,9 @@ public class Preprocessor {
 	private List<String> currentDefineArgs = new ArrayList<>();
 	private List<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
+	
+	// format: macroName, positionString
+	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
 
 	private boolean skipElse = true;
 	
@@ -180,14 +184,16 @@ public class Preprocessor {
 		
 		int depth = 0;
 		while (hasMacro && depth < 50) {
+			nonexistentMacros.clear(); // we only want nonexistent from last pass
 			var outPair = preprocessQuick.apply(out);
 			out = outPair.first();
 			hasMacro = outPair.second();
 			depth++;
 		}
 		
-		if (!hasMacro) {
-			errorPrint("Maximum macro nesting depth exceeded!");
+		
+		for (var pair : nonexistentMacros) {
+			warningPrint(pair.second() + " undefined macro " + colorify(pair.first(), RED));
 		}
 		
 		return out;
@@ -448,6 +454,7 @@ public class Preprocessor {
 		List<Table.Row> rows = defines.getRows("Name", macroName);
 		Definition def = null;
 		if (!rows.isEmpty()) {
+			nonexistentMacros.removeIf(m -> m.first().equals(macroName));
 			def = (Definition) rows.get(0).getColumn("Definition").getValue();
 		}
 		
@@ -511,7 +518,7 @@ public class Preprocessor {
 			// FIXME: do nothing for now. may need checks later.
 			return fallback;
 		} else {
-			warningPrint(position(macroCall, currentPath.toString()) + " undefined macro " + colorify(macroName, RED));
+			nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPath.toString())));
 			return fallback;
 		}
 	}
