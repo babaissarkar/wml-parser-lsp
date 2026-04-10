@@ -20,6 +20,13 @@ public final class ParseUtils {
 		}
 	}
 	
+	static void skip(ListIterator<Token> itor, Token.Kind skipKind, Token.Kind skipKind2) {
+		while (itor.hasNext() && (ParseUtils.peek(itor).kind() == skipKind || ParseUtils.peek(itor).kind() == skipKind2))
+		{
+			itor.next();
+		}
+	}
+	
 	static List<String> splitQuoted(String token) {
 		List<String> parts = new ArrayList<>();
 		StringBuilder sb = new StringBuilder();
