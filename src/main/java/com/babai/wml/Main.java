@@ -83,7 +83,7 @@ public class Main {
 		if (argParser.inputPath != null) {
 			out = p.preprocess(argParser.inputPath);
 		} else {
-			out = p.preprocessFile(new InputStreamReader(System.in));
+			out = p.preprocessContent(new InputStreamReader(System.in));
 		}
 		writer.write(out);
 		
