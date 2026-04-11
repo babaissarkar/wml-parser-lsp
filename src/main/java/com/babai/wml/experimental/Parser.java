@@ -2,10 +2,13 @@ package com.babai.wml.experimental;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Stack;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static com.babai.wml.utils.Colors.*;
@@ -16,8 +19,12 @@ import static com.babai.wml.experimental.ParseUtils.skip;
 
 public class Parser {
 	private Stack<String> tagStack = new Stack<>();
-	private HashSet<Path> binaryPaths = new HashSet<>();
+	private HashMap<String, List<Consumer<String>>> queryLambdas = new LinkedHashMap<>();
 	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d");
+	
+	public void addQuery(String query, Consumer<String> queryLambda) {
+		queryLambdas.computeIfAbsent(query, k -> new ArrayList<>()).add(queryLambda);
+	}
 	
 	public void parse(String text) throws IOException {
 		var itor = tokenize(new StringReader(text)).listIterator();
@@ -31,8 +38,8 @@ public class Parser {
 		switch (t.kind()) {
 		case TEXT -> {
 			String line = t.content().strip();
-			if (!tagStack.isEmpty() && tagStack.peek().equals("binary_path")) {
-				if (line.startsWith("path=")) {
+			for (var query : queryLambdas.entrySet()) {
+				if (queryMatch(query.getKey(), tagStack, line)) {
 					String value = line.split("=", 2)[1];
 					if (value.isEmpty()) {
 						t = itor.next();
@@ -46,12 +53,13 @@ public class Parser {
 							value = t.content().strip();
 						} else {
 							errorPrint("Invalid line: " + line);
+							break;
 						}
 					}
 					
-					Path bpath = Path.of(value);
-					binaryPaths.add(bpath);
-					debugPrint("Binary Path found: " + bpath);
+					for (var lambda : query.getValue()) {
+						lambda.accept(value);
+					}
 				}
 			}
 		}
@@ -87,7 +95,25 @@ public class Parser {
 		}
 	}
 
-	public HashSet<Path> getBinaryPaths() {
-		return binaryPaths;
-	}	
+	public static boolean queryMatch(String queryStr, Stack<String> tagStack, String keyValLine) {
+		String[] queryParts = queryStr.split("/");
+
+		if (tagStack.size() < queryParts.length - 1) return false; // not deep enough
+
+		int i;
+		for (i = 0; i < queryParts.length; i++) {
+			if (i == queryParts.length - 1) {
+				// if stack has this level, it's a tag match
+				// if stack is one short, it's a key match
+				if (tagStack.size() > i) {
+					return tagStack.get(i).equals(queryParts[i]);
+				} else {
+					return keyValLine.startsWith(queryParts[i] + "=");
+				}
+			}
+			if (!tagStack.get(i).equals(queryParts[i])) return false;
+		}
+
+		return true; // all tag parts matched, no key part
+	}
 }

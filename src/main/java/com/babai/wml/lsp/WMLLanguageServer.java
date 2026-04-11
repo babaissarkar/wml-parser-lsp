@@ -570,14 +570,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void parseFile(Path inputPath) throws IOException {
 		p.setDefines(baseDefines.copy());
-		String out = p.preprocess(inputPath);
-		parser.parse(out);
+		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
+		parser.parse(p.preprocess(inputPath));
 		
 //		unitTypes.addAll(p.getUnitTypes());
 
 		defines = p.getDefines();
 		calls = p.getMacroCalls();
-		binaryPaths = parser.getBinaryPaths();
 
 		macroCompletions.clear();
 		for (var r : defines.getRows()) {

@@ -87,7 +87,9 @@ public class Main {
 		}
 		writer.write(out);
 		
+		HashSet<Path> binaryPaths = new HashSet<>();
 		Parser parser = new Parser();
+		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 		parser.parse(out);
 
 //		var unitTypes = p.getUnitTypes();
@@ -99,8 +101,8 @@ public class Main {
 //			LogUtils.debugPrint("Unit Types: " + unitTypes);
 //			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
-
-		LogUtils.infoPrint("Binary Paths: " + parser.getBinaryPaths());
+		
+		LogUtils.infoPrint("Binary Paths: " + binaryPaths);
 		LogUtils.infoPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 		defines = p.getDefines();
 		fileExplanations = p.getFileExplanations();
