@@ -86,6 +86,8 @@ public class Main {
 			out = p.preprocessContent(new InputStreamReader(System.in));
 		}
 		writer.write(out);
+		writer.flush();
+		writer.close();
 		
 		HashSet<Path> binaryPaths = new HashSet<>();
 		Parser parser = new Parser();
