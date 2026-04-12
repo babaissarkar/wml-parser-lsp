@@ -419,17 +419,16 @@ public class Preprocessor {
 	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
 		if (isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
-			handleInclusion(macroCall, context);
-			return "";
+			return handleInclusion(macroCall, context);
 		} else {
 			return expandMacroCall(macroCall, possibleArgs);
 		}
 	}
 	
-	private void handleInclusion(Token macroCall, PathContext context) {
+	private String handleInclusion(Token macroCall, PathContext context) {
 		Path p = context.resolve(macroCall.content(), currentPath);
 
-		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return;
+		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return "";
 		
 		String coloredPathString = colorify(p.toString(), filePathColor);
 		
@@ -437,12 +436,12 @@ public class Preprocessor {
 
 		if (!Files.exists(p)) {
 			warningPrint(coloredPathString + " does not exist");
-			return;
+			return "";
 		}
 		
 		debugPrint("Including: " + coloredPathString);
 		
-		preprocess(p);
+		return preprocess(p);
 	}
 	
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
