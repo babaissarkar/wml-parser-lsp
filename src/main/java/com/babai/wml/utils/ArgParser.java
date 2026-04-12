@@ -3,6 +3,8 @@ package com.babai.wml.utils;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -15,10 +17,12 @@ public class ArgParser {
 	public boolean extractUnitTypeData = false;
 	public boolean startLSPServer = false;
 	public boolean generateMacroRef = false;
+	public List<String> queries = new ArrayList<>();
 	public Vector<Path> includes = new Vector<>();
 	public Table predefines = Table.ofWithIndices(
 			new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
-			new String[] { "Line", "URI", "Name", "Definition" }, 1, // URI column
+			new String[] { "Line", "URI", "Name", "Definition" },
+			1, // URI column
 			2 // Name column
 	);
 	public Path dataPath, userDataPath, inputPath, outputPath, unitTypeOutPath;
@@ -111,6 +115,13 @@ public class ArgParser {
 			};
 			case "log-json", "log-j" -> showJsonLogs = startLSPServer;
 			case "server", "s" -> startLSPServer = true;
+			case "query", "q" -> {
+				String query = args[++i];
+				if (!query.isEmpty()) {
+					System.err.println("Adding Query: " + query);
+					queries.add(query);
+				}
+			}
 			case "extract-unit-type", "eut" -> {
 				extractUnitTypeData = true;
 				unitTypeOutPath = Path.of(args[++i]);

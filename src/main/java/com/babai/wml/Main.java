@@ -92,6 +92,9 @@ public class Main {
 		HashSet<Path> binaryPaths = new HashSet<>();
 		Parser parser = new Parser();
 		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
+		for (var q : argParser.queries) {
+			parser.addQuery(q, v -> LogUtils.infoPrint("Query " + q + " result: " + v));
+		}
 		parser.parse(out);
 
 //		var unitTypes = p.getUnitTypes();
