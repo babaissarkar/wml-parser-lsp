@@ -122,7 +122,7 @@ public class Preprocessor {
 		}
 		int newMacroCount = this.defines.rowCount() - prevMacroCount;
 		if (newMacroCount > 0) {
-			infoPrint(coloredPath + ": " + newMacroCount + " macros");
+			debugPrint(coloredPath + ": " + newMacroCount + " macros");
 		}
 		return out;
 	}
