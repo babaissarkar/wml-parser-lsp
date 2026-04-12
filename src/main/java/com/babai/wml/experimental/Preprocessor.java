@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -92,7 +93,9 @@ public class Preprocessor {
 				try (var stream = Files.list(path)) {
 					stream
 						.filter(filter)
-						.sorted()
+						.sorted(Comparator
+								.comparingInt((Path p) -> Files.isDirectory(p) ? 1 : 0)
+								.thenComparing(Comparator.naturalOrder()))
 						.forEach(p -> out.append(preprocess(p)));
 				} catch (IOException e) {
 					errorPrint("Cannot find " + path + ", skipping.");
