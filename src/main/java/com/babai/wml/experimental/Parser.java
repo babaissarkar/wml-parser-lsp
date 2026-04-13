@@ -39,8 +39,9 @@ public class Parser {
 		case TEXT -> {
 			String line = t.content().strip();
 			for (var query : queryLambdas.entrySet()) {
-				if (queryMatch(query.getKey(), tagStack, line)) {
-					String value = line.split("=", 2)[1];
+				String[] parts = line.split("=", 2);
+				if (queryMatch(query.getKey(), tagStack, parts[0].trim())) {
+					String value = parts[1].trim();
 					if (value.isEmpty()) {
 						t = itor.next();
 						if (t.kind() == Token.Kind.WHITESPACE) {
@@ -95,7 +96,7 @@ public class Parser {
 		}
 	}
 
-	public static boolean queryMatch(String queryStr, Stack<String> tagStack, String keyValLine) {
+	public static boolean queryMatch(String queryStr, Stack<String> tagStack, String key) {
 		String[] queryParts = queryStr.split("/");
 
 		if (tagStack.size() < queryParts.length - 1) return false; // not deep enough
@@ -108,7 +109,7 @@ public class Parser {
 				if (tagStack.size() > i) {
 					return tagStack.get(i).equals(queryParts[i]);
 				} else {
-					return keyValLine.startsWith(queryParts[i] + "=");
+					return key.equals(queryParts[i]);
 				}
 			}
 			if (!tagStack.get(i).equals(queryParts[i])) return false;
