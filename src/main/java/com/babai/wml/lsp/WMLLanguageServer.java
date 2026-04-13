@@ -1,71 +1,5 @@
 package com.babai.wml.lsp;
 
-import static com.babai.wml.utils.ANSIFormatter.colorify;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.eclipse.lsp4j.CompletionItem;
-import org.eclipse.lsp4j.CompletionItemKind;
-import org.eclipse.lsp4j.CompletionList;
-import org.eclipse.lsp4j.CompletionOptions;
-import org.eclipse.lsp4j.CompletionParams;
-import org.eclipse.lsp4j.CompletionTriggerKind;
-import org.eclipse.lsp4j.DefinitionParams;
-import org.eclipse.lsp4j.DidChangeConfigurationParams;
-import org.eclipse.lsp4j.DidChangeTextDocumentParams;
-import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
-import org.eclipse.lsp4j.DidCloseTextDocumentParams;
-import org.eclipse.lsp4j.DidOpenTextDocumentParams;
-import org.eclipse.lsp4j.DidSaveTextDocumentParams;
-import org.eclipse.lsp4j.DocumentSymbol;
-import org.eclipse.lsp4j.DocumentSymbolParams;
-import org.eclipse.lsp4j.Hover;
-import org.eclipse.lsp4j.HoverParams;
-import org.eclipse.lsp4j.InitializeParams;
-import org.eclipse.lsp4j.InitializeResult;
-import org.eclipse.lsp4j.InlayHint;
-import org.eclipse.lsp4j.InlayHintKind;
-import org.eclipse.lsp4j.InlayHintLabelPart;
-import org.eclipse.lsp4j.InlayHintParams;
-import org.eclipse.lsp4j.InsertTextFormat;
-import org.eclipse.lsp4j.Location;
-import org.eclipse.lsp4j.LocationLink;
-import org.eclipse.lsp4j.MarkupContent;
-import org.eclipse.lsp4j.MessageParams;
-import org.eclipse.lsp4j.MessageType;
-import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
-import org.eclipse.lsp4j.ServerCapabilities;
-import org.eclipse.lsp4j.SymbolInformation;
-import org.eclipse.lsp4j.SymbolKind;
-import org.eclipse.lsp4j.TextDocumentSyncKind;
-import org.eclipse.lsp4j.TextDocumentSyncOptions;
-import org.eclipse.lsp4j.TextEdit;
-import org.eclipse.lsp4j.WorkspaceFoldersOptions;
-import org.eclipse.lsp4j.WorkspaceServerCapabilities;
-import org.eclipse.lsp4j.jsonrpc.messages.Either;
-import org.eclipse.lsp4j.services.LanguageClient;
-import org.eclipse.lsp4j.services.LanguageClientAware;
-import org.eclipse.lsp4j.services.LanguageServer;
-import org.eclipse.lsp4j.services.TextDocumentService;
-import org.eclipse.lsp4j.services.WorkspaceService;
-
 import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
@@ -73,6 +7,21 @@ import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
+import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.services.*;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @AIGenerated
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
@@ -519,9 +468,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	@Override
 	public void didOpen(DidOpenTextDocumentParams params) {
 		String uri = params.getTextDocument().getUri();
-		var errorsList = p.getErrors().get(uri);
-		if (!(errorsList == null || errorsList.isEmpty())) {
-			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+		if (p!=null){
+			var errorsList = p.getErrors().get(uri);
+			if (!(errorsList == null || errorsList.isEmpty())) {
+				client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+			}
 		}
 	}
 
@@ -537,7 +488,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void initParserForLSP() {
 		try {
-			p = new Preprocessor(inputPath);
+			p = new Preprocessor(inputPath.resolve("_main.cfg"));
 			p.showParseLogs(false);
 			p.showWarnLogs(false);
 			p.setOutput(null);
