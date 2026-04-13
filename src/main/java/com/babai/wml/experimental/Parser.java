@@ -91,8 +91,8 @@ public class Parser {
 			}
 		}
 		case WHITESPACE, EOL, COMMENT, QUOTED, ANGLE_QUOTED -> {} //ignore
-		case MACRO -> throw new IllegalArgumentException("Unexpected macro during parse: {" + t.content() + "}");
-		default -> throw new IllegalArgumentException("Unexpected value: " + t.content());
+		case MACRO -> warningPrint("Parser: Unexpanded macro {" + t.content() + "}, skipping");
+		default -> warningPrint("Parser: Unexpected token " + t.content() + ", skipping");
 		}
 	}
 
