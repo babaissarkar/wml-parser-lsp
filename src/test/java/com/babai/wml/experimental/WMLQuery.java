@@ -37,15 +37,9 @@ class WMLQueryTest {
     @Test
     void keyMatch() {
         // query: top/mid/id — path matches, key line matches
-        assertTrue(Parser.queryMatch("top/mid/id", stack("mid", "top"), "id=elvish-fighter"));
+        assertTrue(Parser.queryMatch("top/mid/id", stack("mid", "top"), "id"));
     }
-
-    @Test
-    void keyMatchWrongValue_stillMatches() {
-        // queryMatch only checks key name, not value
-        assertTrue(Parser.queryMatch("top/mid/id", stack("mid", "top"), "id=something-else"));
-    }
-
+    
     @Test
     void keyMismatch() {
         assertFalse(Parser.queryMatch("top/mid/id", stack("mid", "top"), "name=foo"));
@@ -70,7 +64,7 @@ class WMLQueryTest {
 
     @Test
     void singleKeyQuery() {
-        assertTrue(Parser.queryMatch("top/id", stack("top"), "id=foo"));
+        assertTrue(Parser.queryMatch("top/id", stack("top"), "id"));
     }
 
     @Test
