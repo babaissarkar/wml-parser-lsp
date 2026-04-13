@@ -1,9 +1,17 @@
 package com.babai.wml;
 
+import com.babai.wml.core.Config;
+import com.babai.wml.core.ConfigAttributeBase;
+import com.babai.wml.lsp.WMLLanguageServer;
+import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.utils.ArgParser;
+import com.babai.wml.utils.Colors;
+import org.eclipse.lsp4j.launch.LSPLauncher;
+import org.eclipse.lsp4j.services.LanguageClient;
+
+import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.net.ServerSocket;
@@ -11,27 +19,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
-import org.eclipse.lsp4j.launch.LSPLauncher;
-import org.eclipse.lsp4j.services.LanguageClient;
-
-import com.babai.wml.core.Config;
-import com.babai.wml.core.ConfigAttributeBase;
-import com.babai.wml.lsp.WMLLanguageServer;
-import com.babai.wml.preprocessor.Preprocessor;
-import com.babai.wml.utils.*;
-
-import java.awt.Color;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.HashSet;
-import java.util.logging.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import static com.babai.wml.utils.ANSIFormatter.*;
-
-import static com.babai.wml.experimental.ParseUtils.csvEscape;
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
 public class Main {
