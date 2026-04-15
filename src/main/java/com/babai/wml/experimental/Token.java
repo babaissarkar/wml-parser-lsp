@@ -1,6 +1,8 @@
 package com.babai.wml.experimental;
 
 public final class Token {
+	public final static Token EMPTY = new Token("", Kind.EOF);
+	
 	private String content;
 	private Kind kind;
 	
@@ -64,7 +66,7 @@ public final class Token {
 	}
 
 	public enum Kind {
-		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, TAG
+		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, TAG, EOF
 	}
 
 	@Override

@@ -9,6 +9,10 @@ public final class ParseUtils {
 	private ParseUtils() {};
 
 	static Token peek(ListIterator<Token> it) {
+		if (!it.hasNext()) {
+			return Token.EMPTY;
+		}
+		
 		Token t = it.next();
 		it.previous();
 		return t;
