@@ -74,49 +74,6 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>javacc-maven-plugin</artifactId>
-				<version>3.1.1</version>
-				<executions>
-					<execution>
-						<id>javacc</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>javacc</goal>
-						</goals>
-						<configuration>
-							<sourceDirectory>
-								${basedir}/src/main/java/com/babai/wml/preprocessor
-							</sourceDirectory>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>net.revelc.code.formatter</groupId>
-				<artifactId>formatter-maven-plugin</artifactId>
-				<version>2.29.0</version>
-				<configuration>
-					<encoding>UTF-8</encoding>
-					<lineEnding>CRLF</lineEnding>
-					<configFile>${basedir}/eclipse-default.xml</configFile>
-					<directories>
-						<directory>${project.build.directory}/generated-sources</directory>
-					</directories>
-				</configuration>
-				<executions>
-					<execution>
-						<id>format-source</id>
-						<phase>process-sources</phase>
-						<goals>
-							<goal>format</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.11.0</version>
@@ -167,6 +124,11 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.1.2</version>
+			</plugin>
 
 			<plugin>
 				<groupId>org.panteleyev</groupId>
@@ -208,11 +170,6 @@
 						</configuration>
 					</execution>
 				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.1.2</version>
 			</plugin>
 		</plugins>
 	</build>

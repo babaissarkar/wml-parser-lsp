@@ -1,5 +1,7 @@
 package com.babai.wml.lsp;
 
+import static com.babai.wml.utils.ANSIFormatter.colorify;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -46,7 +48,6 @@ import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
@@ -66,8 +67,12 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
-import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.experimental.LogUtils;
+import com.babai.wml.experimental.Parser;
+import com.babai.wml.experimental.PathContext;
+import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
+import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
 
@@ -75,18 +80,19 @@ import com.babai.wml.utils.Table;
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 	public LanguageClient client;
 	private Path inputPath, dataPath, userDataPath;
-	
+
 	private Table baseDefines, defines;
 	private HashSet<Path> binaryPaths = new HashSet<>();
 	private HashSet<String> unitTypes = new HashSet<>();
-	
 	private List<MacroCall> calls = new ArrayList<>();
 	private Vector<Path> includePaths = new Vector<>();
+
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();
 	private Properties tagLinks = new Properties();
 	private Preprocessor p;
+	private Parser parser = new Parser();
 
 	public WMLLanguageServer(Table predefines, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
 		this.dataPath = dataPath;
@@ -114,7 +120,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		make.apply("arg", "Start optional argument in macro definition");
 		make.apply("endarg", "End optional argument in macro definition");
 		make.apply("textdomain", "Define Textdomain");
-		
+
 		// Reference links for tags
 		try {
 			tagLinks.load(getClass().getResourceAsStream("/taglinks.properties"));
@@ -129,7 +135,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			e.printStackTrace();
 		}
 	}
-
+	
 	public void connect(LanguageClient client) {
 		this.client = client;
 	}
@@ -152,22 +158,22 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setInlayHintProvider(true);
 		capabilities.setDocumentSymbolProvider(true);
 		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
-		
+
 		var syncOptions = new TextDocumentSyncOptions();
 		syncOptions.setOpenClose(true);
 		syncOptions.setChange(TextDocumentSyncKind.Full);
 		syncOptions.setSave(true);
 		capabilities.setTextDocumentSync(syncOptions);
-		
+
 		var wfOptions = new WorkspaceFoldersOptions();
 		wfOptions.setSupported(true);
 		wfOptions.setChangeNotifications(false);
 		var workspaceCaps = new WorkspaceServerCapabilities();
 		workspaceCaps.setWorkspaceFolders(wfOptions);
 		capabilities.setWorkspace(workspaceCaps);
-		
+
 		var result = new InitializeResult(capabilities);
-		
+
 		if (params.getWorkspaceFolders() != null && !params.getWorkspaceFolders().isEmpty()) {
 			// 1. Multi-root workspaces (modern)
 			inputPath = Path.of(URI.create(params.getWorkspaceFolders().get(0).getUri()));
@@ -181,7 +187,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		// Send a "ready" message after startup
 		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
-		
+
 		initParserForLSP();
 
 		return CompletableFuture.completedFuture(result);
@@ -220,9 +226,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (defines != null) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-				
+
 				if (word == null || word.isEmpty()) return CompletableFuture.completedFuture(null);
-				
+
 				if (word.contains("[")) {
 					// Tags
 					String searchWord = word.replaceAll("/", "");
@@ -297,13 +303,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			items.addAll(macroCompletions);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
-		
+
 		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
 				|| (triggerChar != null) && triggerChar.equals("[")) {
 			items.addAll(tags);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
-		
+
 		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
 				|| (triggerChar != null) && triggerChar.equals("="))
 		{
@@ -330,16 +336,16 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		return CompletableFuture.completedFuture(null);
 	}
-	
+
 	@Override
 	public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
-		
+
 		String docUri = params.getTextDocument().getUri();
 		var emptyRange = new Range(
 				new Position(0, 0),
 				new Position(0, 0));
 		List<Either<SymbolInformation, DocumentSymbol>> symbolList = new ArrayList<>();
-		
+
 		// 1. Macro Definitions
 		var matches = defines.getRows("URI", docUri);
 		if (!matches.isEmpty()) {
@@ -363,7 +369,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			mdefRoot.setChildren(listDef);
 			symbolList.add(Either.forRight(mdefRoot));
 		}
-		
+
 		// 2. Macro Calls
 		if (!calls.isEmpty()) {
 			List<DocumentSymbol> listCall = new ArrayList<>();
@@ -372,7 +378,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			mcallRoot.setKind(SymbolKind.Namespace);
 			mcallRoot.setRange(emptyRange);
 			mcallRoot.setSelectionRange(emptyRange);
-			
+
 			for (MacroCall call : calls) {
 				if (!call.uri().equals(docUri)) {
 					continue;
@@ -390,13 +396,16 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 						));
 				listCall.add(sym);
 			}
-			mcallRoot.setChildren(listCall);
-			symbolList.add(Either.forRight(mcallRoot));
+
+			if (!listCall.isEmpty()) {
+				mcallRoot.setChildren(listCall);
+				symbolList.add(Either.forRight(mcallRoot));
+			}
 		}
-		
+
 		return CompletableFuture.completedFuture(symbolList);
 	}
-	
+
 	@Override
 	public CompletableFuture<List<InlayHint>> inlayHint(InlayHintParams params) {
 		String uri = params.getTextDocument().getUri();
@@ -438,7 +447,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		return CompletableFuture.completedFuture(hints);
 	}
-	
+
 	private static CompletionItem toCompletionItem(String relPath, Position cursor) {
 		CompletionItem item = new CompletionItem(relPath);
 		item.setKind(CompletionItemKind.File); // You could detect folder vs file if you want
@@ -451,7 +460,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		item.setTextEdit(Either.forLeft(new TextEdit(replaceRange, relPath)));
 		return item;
 	}
-	
+
 	private static List<CompletionItem> listAll(Path baseDir, String prefix, Position cursor) throws IOException {
 		try (Stream<Path> stream = Files.walk(baseDir)) {
 			return stream
@@ -497,7 +506,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	@Override
 	public void didChange(DidChangeTextDocumentParams params) {
 		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
-		
+
 		try {
 			parseFile(inputPath);
 		} catch (IOException e) {
@@ -516,10 +525,10 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	@Override
 	public void didOpen(DidOpenTextDocumentParams params) {
 		String uri = params.getTextDocument().getUri();
-		var errorsList = p.getErrors().get(uri);		
-		if (!(errorsList == null || errorsList.isEmpty())) {
-			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
-		}
+//		var errorsList = p.getErrors().get(uri);
+//		if (!(errorsList == null || errorsList.isEmpty())) {
+//			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
+//		}
 	}
 
 	@Override
@@ -534,42 +543,42 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void initParserForLSP() {
 		try {
-			p = new Preprocessor(inputPath);
-			p.showParseLogs(false);
-			p.showWarnLogs(false);
-			p.setOutput(null);
-			p.setDefinesMap(defines);
-			p.token_source.dataPath = dataPath;
-			p.token_source.userDataPath = userDataPath;
-			p.token_source.showLogs = false;
-			if (inputPath != null) {
-				for (Path incpath : includePaths) {
-					p.subparse(incpath);
-					unitTypes.addAll(p.getUnitTypes());
-				}
-				
-				baseDefines = defines.copy();
-				try {
-					parseFile(inputPath);
-				} catch (IOException e) {
-					showLSPMessage("Parsing " + inputPath.toString() + " failed.");
-				}
+			PathContext context = new PathContext(
+					dataPath,
+					userDataPath,
+					new HashSet<Path>());
+			p = new Preprocessor(context, defines);
+
+//			p.setExtractData(argParse.extractUnitTypeData);
+
+			for (Path incpath : includePaths) {
+				// FIXME recheck directory support
+				p.preprocess(incpath);
 			}
+
+			baseDefines = defines.copy();
+			if (inputPath != null) {
+				LogUtils.debugPrint("Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
+				parseFile(inputPath);
+			}
+
 			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
-			showLSPMessage("Parsing error: " + inputPath.toString() + "not accessible!");
+			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
 		}
 	}
-	
+
 	private void parseFile(Path inputPath) throws IOException {
-		p.setDefinesMap(baseDefines.copy());
-		p.subparse(inputPath);
-		unitTypes.addAll(p.getUnitTypes());
-		
+		p.setDefines(baseDefines.copy());
+		//parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
+//		parser.parse(p.preprocess(inputPath));
+		p.preprocess(inputPath);
+
+//		unitTypes.addAll(p.getUnitTypes());
+
 		defines = p.getDefines();
-		binaryPaths = p.getBinaryPaths();
 		calls = p.getMacroCalls();
-		
+
 		macroCompletions.clear();
 		for (var r : defines.getRows()) {
 			CompletionItem item = new CompletionItem();
@@ -583,7 +592,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			macroCompletions.add(item);
 		}
 	}
-	
+
 	/** Returns the word under cursor in the file pointed by URI */
 	private static String getWordAtPosition(String uri, Position pos) throws IOException {
 		// Convert URI to path
@@ -621,13 +630,13 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		if (start >= end)
 			return null;
-		
+
 		// recognize tags
 		if (start > 0 && (line.charAt(start - 1) == '[') && end < line.length() && (line.charAt(end) == ']')) {
 			start -= 1;
 			end += 1;
 		}
-		
+
 		return line.substring(start, end);
 	}
 }

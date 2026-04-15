@@ -1,14 +1,23 @@
 package com.babai.wml.core;
 
+import static com.babai.wml.utils.ANSIFormatter.colorify;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import com.babai.wml.utils.Colors;
+
 public class Definition {
-	private String name, value, docs;
+	private String name, value, docs = "";
 	private Vector<String> args = new Vector<>();
 	private HashMap<String, String> defArgs = new HashMap<>();
+	private boolean deprecated;
+	private int deprecationLevel;
+	private String deprecationRemovalVersion;
+	private String deprecationMessage;
 
 	public Definition(String name, String value) {
 		this.name = name;
@@ -28,6 +37,13 @@ public class Definition {
 		this.defArgs = defArgs;
 	}
 
+	public Definition(String name, String value, List<String> args, HashMap<String, String> defArgs) {
+		this.name = name;
+		this.value = value;
+		this.args.addAll(args);
+		this.defArgs = defArgs;
+	}
+
 	public void addArg(String arg) {
 		args.add(arg);
 	}
@@ -36,16 +52,24 @@ public class Definition {
 		defArgs.put(key, val);
 	}
 
+	public Vector<String> getArgs() {
+		return args;
+	}
+
+	public HashMap<String, String> getDefArgs() {
+		return defArgs;
+	}
+
 	public String getValue() {
 		return this.value;
 	}
 
-	public Vector<String> getArgs() {
-		return this.args;
-	}
-	
-	public int getParamCount() {
+	public int getArgCount() {
 		return args.size();
+	}
+
+	public int getDefArgCount() {
+		return defArgs.size();
 	}
 
 	public String getDocs() {
@@ -80,8 +104,33 @@ public class Definition {
 
 		return unparsed;
 	}
-	
-	public String expand2(Vector<MacroArg> values, HashMap<String, String> keyVals) {
+
+	/** Expand the macro, substituting any given args */
+	public String expand(List<String> values, HashMap<String, String> keyVals) {
+		String unparsed = this.value;
+		if (values.size() != args.size()) {
+			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
+					+ "Expected " + args.size() + " but got " + values.size() + ".");
+		}
+
+		int i = 0;
+		for (var arg : args) {
+			unparsed = unparsed.replace("{" + arg + "}", values.get(i));
+			i++;
+		}
+
+		for (var entry : defArgs.entrySet()) {
+			String val = keyVals.get(entry.getKey());
+			if (val == null) {
+				val = entry.getValue();
+			}
+			unparsed = unparsed.replace("{" + entry.getKey() + "}", val);
+		}
+
+		return unparsed;
+	}
+
+	public String expand2(List<MacroArg> values, HashMap<String, String> keyVals) {
 		String unparsed = this.value;
 		if (values.size() != args.size()) {
 			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
@@ -104,7 +153,6 @@ public class Definition {
 
 		return unparsed;
 	}
-	
 
 	public String expand(Vector<String> values) {
 		return expand(values, new HashMap<>());
@@ -122,6 +170,8 @@ public class Definition {
 			sb.append(" " + arg);
 		}
 		sb.append("\n");
+		sb.append(defArgs.toString());
+		sb.append("\n");
 		sb.append(value);
 		sb.append("#enddef");
 		return sb.toString();
@@ -132,14 +182,18 @@ public class Definition {
 		return "{" + name + (!argsAsString.isEmpty() ? " " + argsAsString : "") + "}";
 	}
 
-	public static String argsAsString(Vector<String> args, Map<String, String> defArgs) {
+	public String coloredName() {
+		return colorify(name(), Colors.macroNameColor);
+	}
+
+	public static String argsAsString(List<String> args, Map<String, String> defArgs) {
 		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
 
 		return String.join(", ", args) + (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
 				+ String.join(", ", keyValsStrings);
 	}
-	
-	public static String argsAsString2(Vector<MacroArg> args, Map<String, String> defArgs) {
+
+	public static String argsAsString2(List<MacroArg> args, Map<String, String> defArgs) {
 		var argStrings = args.stream().map(a -> a.value()).collect(Collectors.toList());
 		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
 
@@ -148,4 +202,37 @@ public class Definition {
 				+ String.join(", ", keyValsStrings);
 	}
 
+	// Deprecation related methods
+
+	public void setDeprecated(boolean isDeprecated) {
+		this.deprecated = isDeprecated;
+	}
+
+	public void setDeprecationLevel(int depreLevel) {
+		this.deprecationLevel = depreLevel;
+	}
+
+	public void setDeprecationRemovalVersion(String removalVersion) {
+		this.deprecationRemovalVersion = removalVersion;
+	}
+
+	public void setDeprecationMessage(String deprecationMessage) {
+		this.deprecationMessage = deprecationMessage;
+	}
+
+	public boolean isDeprecated() {
+		return deprecated;
+	}
+
+	public int getDeprecationLevel() {
+		return deprecationLevel;
+	}
+
+	public String getDeprecationRemovalVersion() {
+		return deprecationRemovalVersion;
+	}
+
+	public String getDeprecationMessage() {
+		return deprecationMessage;
+	}
 }

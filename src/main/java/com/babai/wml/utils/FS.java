@@ -9,7 +9,7 @@ import java.util.Map;
 public final class FS {
 	private FS() {
 	}
-	
+
 	public static String getAssetType(String path) {
 		// TODO: add sounds folder if needed
 		var extFolders = Map.of(
@@ -26,7 +26,6 @@ public final class FS {
 		return "";
 	}
 
-	/** Convert Wesnoth path string to NIO Path object */
 	public static Path resolve(String pathStr, HashSet<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
@@ -39,7 +38,7 @@ public final class FS {
 				parent = userDataPath;
 			} else {
 				// E.g.: scenary/alter.png
-				String assetType = getAssetType(pathStr); 
+				String assetType = getAssetType(pathStr);
 				pathStr = Path.of(assetType, pathStr).toString();
 				if (!assetType.isEmpty()) {
 					for (var bPath : binaryPaths) {

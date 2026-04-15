@@ -3,7 +3,9 @@ package com.babai.wml.core;
 import java.util.Collections;
 import java.util.List;
 
-// AI-generated: Claude
+import com.babai.wml.utils.AIGenerated;
+
+@AIGenerated // Claude
 public class MacroCall {
 	private final String name;
 	private final int startLine;
@@ -33,6 +35,7 @@ public class MacroCall {
 
 	@Override
 	public String toString() {
-		return "{'" + name + "', 'line=" + startLine + "', uri=" + uri + ", args=" + args + "}";
+		return "MacroCall [name=" + name + ", startLine=" + startLine + ", endLine=" + endLine + ", startChar="
+				+ startChar + ", endChar=" + endChar + ", args=" + args + ", uri=" + uri + "]";
 	}
 }
