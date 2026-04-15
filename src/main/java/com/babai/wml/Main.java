@@ -1,19 +1,7 @@
 package com.babai.wml;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.UncheckedIOException;
-import java.net.ServerSocket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.concurrent.ExecutionException;
-
-import org.eclipse.lsp4j.launch.LSPLauncher;
-import org.eclipse.lsp4j.services.LanguageClient;
+import org.eclipse.lsp4j.jsonrpc.Launcher;
+import org.eclipse.lsp4j.services.*;
 
 import com.babai.wml.core.Config;
 import com.babai.wml.core.ConfigAttributeBase;
@@ -31,8 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import static com.babai.wml.utils.ANSIFormatter.*;
 
-import static com.babai.wml.experimental.ParseUtils.csvEscape;
-import static com.babai.wml.utils.ANSIFormatter.colorify;
+import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 public class Main {
 	public static void main(String[] args) {
@@ -83,7 +70,7 @@ public class Main {
 			p.debugPrint("Unit Types: " + unitTypes);
 			p.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 		}
-
+		
 	}
 
 	private static void writeUnitTypeData(HashSet<Config> unitTypeData, Path unitTypeOutPath) {
@@ -105,7 +92,7 @@ public class Main {
 			"profile",
 			"description"
 		};
-
+		
 		try (BufferedWriter writer = Files.newBufferedWriter(unitTypeOutPath)) {
 
 			// Header
@@ -133,7 +120,7 @@ public class Main {
 			throw new UncheckedIOException("Failed to write unit type CSV", e);
 		}
 	}
-
+	
 	private static String csvEscape(String s) {
 		if (s == null) return "";
 
@@ -177,23 +164,11 @@ public class Main {
 			argParser.userDataPath,
 			argParser.includes);
 
-		try (var serverSocket = new ServerSocket(9007)) {
-			var clientSocket = serverSocket.accept();
-			var traceJsonStream = new PrintWriter(System.err, true);
-			var launcherBuilder = new LSPLauncher.Builder<LanguageClient>()
-					.setLocalService(server)
-					.setRemoteInterface(LanguageClient.class)
-					.setInput(clientSocket.getInputStream())
-					.setOutput(clientSocket.getOutputStream());
+		// Initialize a simple JSON-RPC connection over stdin/stdout
+		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);
+		LanguageClient client = launcher.getRemoteProxy();
 
-			if (argParser.showJsonLogs) {
-				launcherBuilder = launcherBuilder.traceMessages(traceJsonStream);  // dumps every JSON message
-			}
-			var launcher = launcherBuilder.create();
-			server.connect(launcher.getRemoteProxy());
-			launcher.startListening().get(); // blocks; JVM stays alive, exits when client disconnects
-		} catch(IOException | InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
+		server.connect(client);
+		launcher.startListening();
 	}
 }
