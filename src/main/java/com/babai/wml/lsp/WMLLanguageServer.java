@@ -562,7 +562,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				parseFile(inputPath);
 			}
 
-//			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
+			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
 		}
@@ -570,8 +570,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void parseFile(Path inputPath) throws IOException {
 		p.setDefines(baseDefines.copy());
-		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
-		parser.parse(p.preprocess(inputPath));
+		//parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
+//		parser.parse(p.preprocess(inputPath));
+		p.preprocess(inputPath);
 		
 //		unitTypes.addAll(p.getUnitTypes());
 
