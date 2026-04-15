@@ -9,7 +9,7 @@ import com.babai.wml.utils.Colors;
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
