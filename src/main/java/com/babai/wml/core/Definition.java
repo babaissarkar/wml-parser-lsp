@@ -63,7 +63,7 @@ public class Definition {
 	public String getValue() {
 		return this.value;
 	}
-	
+
 	public int getArgCount() {
 		return args.size();
 	}
@@ -104,7 +104,7 @@ public class Definition {
 
 		return unparsed;
 	}
-	
+
 	/** Expand the macro, substituting any given args */
 	public String expand(List<String> values, HashMap<String, String> keyVals) {
 		String unparsed = this.value;
@@ -181,11 +181,11 @@ public class Definition {
 		String argsAsString = argsAsString(args, defArgs);
 		return "{" + name + (!argsAsString.isEmpty() ? " " + argsAsString : "") + "}";
 	}
-	
+
 	public String coloredName() {
 		return colorify(name(), Colors.macroNameColor);
 	}
-	
+
 	public static String argsAsString(List<String> args, Map<String, String> defArgs) {
 		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
 
@@ -201,9 +201,9 @@ public class Definition {
 				+ (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
 				+ String.join(", ", keyValsStrings);
 	}
-	
+
 	// Deprecation related methods
-	
+
 	public void setDeprecated(boolean isDeprecated) {
 		this.deprecated = isDeprecated;
 	}
@@ -211,11 +211,11 @@ public class Definition {
 	public void setDeprecationLevel(int depreLevel) {
 		this.deprecationLevel = depreLevel;
 	}
-	
+
 	public void setDeprecationRemovalVersion(String removalVersion) {
 		this.deprecationRemovalVersion = removalVersion;
 	}
-	
+
 	public void setDeprecationMessage(String deprecationMessage) {
 		this.deprecationMessage = deprecationMessage;
 	}

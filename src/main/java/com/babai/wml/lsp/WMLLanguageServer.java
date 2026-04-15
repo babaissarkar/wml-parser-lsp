@@ -84,9 +84,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Table baseDefines, defines;
 	private HashSet<Path> binaryPaths = new HashSet<>();
 	private HashSet<String> unitTypes = new HashSet<>();
-
 	private List<MacroCall> calls = new ArrayList<>();
 	private Vector<Path> includePaths = new Vector<>();
+
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();
@@ -135,7 +135,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			e.printStackTrace();
 		}
 	}
-
+	
 	public void connect(LanguageClient client) {
 		this.client = client;
 	}
@@ -573,7 +573,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		//parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 //		parser.parse(p.preprocess(inputPath));
 		p.preprocess(inputPath);
-		
+
 //		unitTypes.addAll(p.getUnitTypes());
 
 		defines = p.getDefines();
