@@ -6,19 +6,18 @@ import com.babai.wml.lsp.WMLLanguageServer;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
+
+import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.UncheckedIOException;
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -167,24 +166,32 @@ public class Main {
 			argParser.dataPath,
 			argParser.userDataPath,
 			argParser.includes);
+		
+		// Initialize a simple JSON-RPC connection over stdin/stdout
+		Launcher<LanguageClient> launcher = LSPLauncher.createServerLauncher(server, System.in, System.out);
+		LanguageClient client = launcher.getRemoteProxy();
 
-		try (var serverSocket = new ServerSocket(9007)) {
-			var clientSocket = serverSocket.accept();
-			var traceJsonStream = new PrintWriter(System.err, true);
-			var launcherBuilder = new LSPLauncher.Builder<LanguageClient>()
-					.setLocalService(server)
-					.setRemoteInterface(LanguageClient.class)
-					.setInput(clientSocket.getInputStream())
-					.setOutput(clientSocket.getOutputStream());
+		server.connect(client);
+		launcher.startListening();
 
-			if (argParser.showJsonLogs) {
-				launcherBuilder = launcherBuilder.traceMessages(traceJsonStream);  // dumps every JSON message
-			}
-			var launcher = launcherBuilder.create();
-			server.connect(launcher.getRemoteProxy());
-			launcher.startListening().get(); // blocks; JVM stays alive, exits when client disconnects
-		} catch(IOException | InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
+// Use this if lsp over tcp needed: 
+//		try (var serverSocket = new ServerSocket(9007)) {
+//			var clientSocket = serverSocket.accept();
+//			var traceJsonStream = new PrintWriter(System.err, true);
+//			var launcherBuilder = new LSPLauncher.Builder<LanguageClient>()
+//					.setLocalService(server)
+//					.setRemoteInterface(LanguageClient.class)
+//					.setInput(clientSocket.getInputStream())
+//					.setOutput(clientSocket.getOutputStream());
+//
+//			if (argParser.showJsonLogs) {
+//				launcherBuilder = launcherBuilder.traceMessages(traceJsonStream);  // dumps every JSON message
+//			}
+//			var launcher = launcherBuilder.create();
+//			server.connect(launcher.getRemoteProxy());
+//			launcher.startListening().get(); // blocks; JVM stays alive, exits when client disconnects
+//		} catch(IOException | InterruptedException | ExecutionException e) {
+//			e.printStackTrace();
+//		}
 	}
 }

@@ -10,7 +10,6 @@ import com.babai.wml.core.Definition;
 public class ArgParser {
 	public boolean showLogs = false;
 	public boolean showParseLogs = false;
-	public boolean showJsonLogs =  false;
 	public boolean warnParseLogs = false;
 	public boolean extractUnitTypeData = false;
 	public boolean startLSPServer = false;
@@ -33,7 +32,6 @@ public class ArgParser {
 				-log                   Print all logs (parser and tokenizer)
 				-log-parse/-log-p      Print all parser logs
 				-log-token/-log-t      Print all tokenizer logs
-				-log-json/-log-j       Print all LSP JsonRpc logs
 				-warn-parse/-warn-p    Print parser warnings only
 				-include [path]        Preprocess the given file/folder beforehand and collect macro definitions from it.
 				                       Can be used multiple times to include multiple files before the main input.
@@ -95,13 +93,6 @@ public class ArgParser {
 			}
 			case "log-token", "log-t" -> showLogs = true;
 			case "log-parse", "log-p" -> showParseLogs = true;
-			case "log-json", "log-j" -> {
-				if(startLSPServer) {
-					showJsonLogs = true;
-				} else {
-					showJsonLogs = false;
-				}
-			}
 			case "warn-parse", "warn-p" -> warnParseLogs = true;
 			case "server", "s" -> startLSPServer = true;
 			case "extract", "e" -> {
