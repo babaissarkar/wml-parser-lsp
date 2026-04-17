@@ -50,37 +50,37 @@ class PathResolverTest {
 
 	@Test
 	void testResolveWithDotPrefix_CurrentIsDirectory() {
-		Path result = FS.resolve("./scenary/altar.png", binaryPaths, currentPath, dataPath, userDataPath);
+		Path result = FS.resolve("./scenary/altar.png", currentPath, binaryPaths, dataPath, userDataPath);
 		assertEquals(tempRoot.resolve("game/maps/scenary/altar.png"), result);
 	}
 
 	@Test
 	void testResolveWithDotPrefix_CurrentIsFile() {
-		Path result = FS.resolve("./scenary/altar.png", binaryPaths, currentPath, dataPath, userDataPath);
+		Path result = FS.resolve("./scenary/altar.png", currentPath, binaryPaths, dataPath, userDataPath);
 		assertEquals(tempRoot.resolve("game/maps/scenary/altar.png"), result);
 	}
 
 	@Test
 	void testResolveWithTildePrefix() {
-		Path result = FS.resolve("~/add-ons/pack1", binaryPaths, currentPath, dataPath, userDataPath);
+		Path result = FS.resolve("~/add-ons/pack1", currentPath, binaryPaths, dataPath, userDataPath);
 		assertEquals(tempRoot.resolve("user/data/add-ons/pack1"), result);
 	}
 
 	@Test
 	void testResolveWithDataPath() {
-		Path result = FS.resolve("units/elf.cfg", binaryPaths, currentPath, dataPath, userDataPath);
+		Path result = FS.resolve("units/elf.cfg", currentPath, binaryPaths, dataPath, userDataPath);
 		assertEquals(tempRoot.resolve("data/units/elf.cfg"), result);
 	}
 
 	@Test
 	void testResolveImageExtension() {
-		Path result = FS.resolve("scenary/altar.png", binaryPaths, currentPath, dataPath, userDataPath);
+		Path result = FS.resolve("scenary/altar.png", currentPath, binaryPaths, dataPath, userDataPath);
 		assertEquals(tempRoot.resolve("data/core/images/scenary/altar.png"), result);
 	}
 
 	@Test
 	void testResolveAudioExtension_ogg() {
-		Path result = FS.resolve("battle.ogg", binaryPaths, currentPath, dataPath, userDataPath);
+		Path result = FS.resolve("battle.ogg", currentPath, binaryPaths, dataPath, userDataPath);
 		assertEquals(tempRoot.resolve("data/core/music/battle.ogg"), result);
 	}
 	

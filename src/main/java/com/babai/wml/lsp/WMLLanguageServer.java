@@ -270,7 +270,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					if (word.contains(":")) {
 						word = word.substring(0, word.indexOf(":"));
 					}
-					Path p = FS.resolve(word, Path.of(new URI(params.getTextDocument().getUri())), pathContext);
+					
+					Path p = pathContext.resolve(word, Path.of(new URI(params.getTextDocument().getUri())));
+					
 					if (Files.exists(p)) {
 						content.setKind("markdown");
 						if (FS.getAssetType(word).equals("images")) {

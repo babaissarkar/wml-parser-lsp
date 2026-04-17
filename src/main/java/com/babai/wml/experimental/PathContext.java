@@ -9,6 +9,6 @@ public record PathContext(Path dataPath, Path userDataPath, HashSet<Path> binary
 		new PathContext(Path.of("."), Path.of("."), new HashSet<Path>());
 	
 	public Path resolve(String pathToResolve, Path currentPath) {
-		return FS.resolve(pathToResolve, binaryPaths, currentPath, dataPath, userDataPath);
+		return FS.resolve(pathToResolve, currentPath, binaryPaths(), dataPath(), userDataPath());
 	}
 }

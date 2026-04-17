@@ -27,10 +27,6 @@ public final class FS {
 		}
 		return "";
 	}
-	
-	public static Path resolve(String pathStr, Path currentPath, PathContext context) {
-		return resolve(pathStr, currentPath, context.binaryPaths(), context.dataPath(), context.userDataPath());
-	}
 
 	public static Path resolve(String pathStr, Path currentPath, HashSet<Path> binaryPaths, Path dataPath, Path userDataPath) {
 		Path parent = null;
