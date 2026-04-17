@@ -7,9 +7,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Stack;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+
+import com.babai.wml.utils.AIGenerated;
 
 import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.ANSIFormatter.colorify;
@@ -18,7 +19,7 @@ import static com.babai.wml.experimental.LogUtils.*;
 import static com.babai.wml.experimental.ParseUtils.skip;
 
 public class Parser {
-	private Stack<String> tagStack = new Stack<>();
+	private List<String> tagStack = new ArrayList<>();
 	private HashMap<String, List<Consumer<String>>> queryLambdas = new LinkedHashMap<>();
 	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d");
 	
@@ -70,24 +71,24 @@ public class Parser {
 				// appending tag, like [+units]
 				tagName = tagName.substring(1, tagName.length());
 				if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
-					tagStack.push(tagName);
+					tagStack.add(tagName);
 				}
 			} else if (tagName.startsWith("/")) {
 				// end tag
 				tagName = tagName.substring(1, tagName.length());
 				if (tagStack.isEmpty()) {
 					errorPrint("End tag without matching start tag.");
-				} else if (tagStack.peek().equals(tagName)) {
+				} else if (tagStack.getLast().equals(tagName)) {
 					debugPrint("Read Tag: " + colorify("[" + tagName + "]", tagColor));
-					tagStack.pop();
+					tagStack.removeLast();
 				} else {
 					errorPrint("Wrong end tag " + colorify(tagName, RED)
 					+ " found for tag "
-					+ colorify("[" + tagStack.peek() + "]", tagColor));
+					+ colorify("[" + tagStack.getLast() + "]", tagColor));
 				}
 				// needs better handling
 			} else if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
-				tagStack.push(tagName);
+				tagStack.add(tagName);
 			}
 		}
 		case WHITESPACE, EOL, COMMENT, QUOTED, ANGLE_QUOTED -> {} //ignore
@@ -96,7 +97,8 @@ public class Parser {
 		}
 	}
 
-	public static boolean queryMatch(String queryStr, Stack<String> tagStack, String key) {
+	@AIGenerated
+	public static boolean queryMatch(String queryStr, List<String> tagStack, String key) {
 		String[] queryParts = queryStr.split("/");
 
 		if (tagStack.size() < queryParts.length - 1) return false; // not deep enough

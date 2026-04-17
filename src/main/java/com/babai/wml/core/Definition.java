@@ -2,18 +2,19 @@ package com.babai.wml.core;
 
 import static com.babai.wml.utils.ANSIFormatter.colorify;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import com.babai.wml.utils.Colors;
 
 public class Definition {
 	private String name, value, docs = "";
-	private Vector<String> args = new Vector<>();
+	private List<String> args = new ArrayList<>();
 	private HashMap<String, String> defArgs = new HashMap<>();
+	
 	private boolean deprecated;
 	private int deprecationLevel;
 	private String deprecationRemovalVersion;
@@ -24,17 +25,10 @@ public class Definition {
 		this.value = value;
 	}
 
-	public Definition(String name, String value, Vector<String> args) {
+	public Definition(String name, String value, List<String> args) {
 		this.name = name;
 		this.value = value;
 		this.args = args;
-	}
-
-	public Definition(String name, String value, Vector<String> args, HashMap<String, String> defArgs) {
-		this.name = name;
-		this.value = value;
-		this.args = args;
-		this.defArgs = defArgs;
 	}
 
 	public Definition(String name, String value, List<String> args, HashMap<String, String> defArgs) {
@@ -52,7 +46,7 @@ public class Definition {
 		defArgs.put(key, val);
 	}
 
-	public Vector<String> getArgs() {
+	public List<String> getArgs() {
 		return args;
 	}
 
@@ -78,31 +72,6 @@ public class Definition {
 
 	public void setDocs(String docs) {
 		this.docs = docs;
-	}
-
-	/** Expand the macro, substituting any given args */
-	public String expand(Vector<String> values, HashMap<String, String> keyVals) {
-		String unparsed = this.value;
-		if (values.size() != args.size()) {
-			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
-					+ "Expected " + args.size() + " but got " + values.size() + ".");
-		}
-
-		int i = 0;
-		for (var arg : args) {
-			unparsed = unparsed.replace("{" + arg + "}", values.get(i));
-			i++;
-		}
-
-		for (var entry : defArgs.entrySet()) {
-			String val = keyVals.get(entry.getKey());
-			if (val == null) {
-				val = entry.getValue();
-			}
-			unparsed = unparsed.replace("{" + entry.getKey() + "}", val);
-		}
-
-		return unparsed;
 	}
 	
 	/** Expand the macro, substituting any given args */
@@ -154,12 +123,12 @@ public class Definition {
 		return unparsed;
 	}
 
-	public String expand(Vector<String> values) {
+	public String expand(List<String> values) {
 		return expand(values, new HashMap<>());
 	}
 
 	public String expand() {
-		return expand(new Vector<>(), new HashMap<>());
+		return expand(new ArrayList<>(), new HashMap<>());
 	}
 
 	public String toString() {

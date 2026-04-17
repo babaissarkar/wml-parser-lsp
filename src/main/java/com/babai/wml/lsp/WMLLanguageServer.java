@@ -1,8 +1,5 @@
 package com.babai.wml.lsp;
 
-import static com.babai.wml.utils.ANSIFormatter.colorify;
-import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -12,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -71,14 +67,15 @@ import com.babai.wml.core.Definition;
 import com.babai.wml.core.MacroArg;
 import com.babai.wml.core.MacroCall;
 import com.babai.wml.experimental.LogUtils;
-import com.babai.wml.experimental.Parser;
 import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
-import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
+
+import static com.babai.wml.utils.ANSIFormatter.colorify;
+import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 @AIGenerated
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
@@ -90,7 +87,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Table baseDefines, defines;
 	private HashSet<String> unitTypes = new HashSet<>();
 	private List<MacroCall> calls = new ArrayList<>();
-	private Vector<Path> includePaths = new Vector<>();
+	private List<Path> includePaths = new ArrayList<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();
@@ -100,7 +97,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 // FIXME parsing disabled for now because it hangs LSP client, but it is needed for binaryPath detection...
 //	private Parser parser = new Parser();
 
-	private WMLLanguageServer(Table predefines, PathContext context, Vector<Path> includePaths) {
+	private WMLLanguageServer(Table predefines, PathContext context, List<Path> includePaths) {
 		this.pathContext = context;
 		this.includePaths = includePaths;
 		this.defines = predefines;
@@ -110,7 +107,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		initTagRefLinks();
 	}
 	
-	public static void initServer(Table predefines, PathContext context, Vector<Path> includes) {
+	public static void initServer(Table predefines, PathContext context, List<Path> includes) {
 		LogUtils.setLogLevel(Level.OFF);
 
 		var server = new WMLLanguageServer(

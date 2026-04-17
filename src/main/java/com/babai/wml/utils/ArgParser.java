@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import com.babai.wml.core.Definition;
@@ -18,7 +17,7 @@ public class ArgParser {
 	public boolean startLSPServer = false;
 	public boolean generateMacroRef = false;
 	public List<String> queries = new ArrayList<>();
-	public Vector<Path> includes = new Vector<>();
+	public List<Path> includes = new ArrayList<>();
 	public Table predefines = Table.ofWithIndices(
 			new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
 			new String[] { "Line", "URI", "Name", "Definition" },
