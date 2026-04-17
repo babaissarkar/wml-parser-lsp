@@ -8,10 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.logging.Level;
-
-import org.eclipse.lsp4j.jsonrpc.Launcher;
-import org.eclipse.lsp4j.services.LanguageClient;
 
 import com.babai.wml.core.Definition;
 import com.babai.wml.experimental.LogUtils;
@@ -25,25 +21,32 @@ import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.Table;
 
 import static com.babai.wml.utils.ANSIFormatter.colorify;
-import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 public class Main {
 	private static Table defines;
 	private static HashMap<String, String> fileExplanations;
-	private static PathContext context;
+	private static PathContext pathContext;
 
 	public static void main(String[] args) {
-		var argParse = new ArgParser();
-		argParse.parseArgs(args);
-		ANSIFormatter.setColorsEnabled(argParse.enableColors);
-		if (argParse.startLSPServer) {
-			initServer(argParse);
+		var argParser = new ArgParser();
+		argParser.parseArgs(args);
+		ANSIFormatter.setColorsEnabled(argParser.enableColors);
+		
+		pathContext = new PathContext(
+			argParser.dataPath,
+			argParser.userDataPath,
+			new HashSet<Path>());
+		
+		argParser.predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
+		
+		if (argParser.startLSPServer) {
+			WMLLanguageServer.initServer(argParser.predefines, pathContext, argParser.includes);
 		} else {
 			try {
-				initParse(argParse);
-				if (argParse.generateMacroRef) {
+				initParse(argParser);
+				if (argParser.generateMacroRef) {
 					DataExtractor.generateMacroRef(
-						argParse.macroRefPath, defines, fileExplanations, context);
+						argParser.macroRefPath, defines, fileExplanations, pathContext);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -53,15 +56,8 @@ public class Main {
 
 	private static void initParse(ArgParser argParser) throws IOException {
 		LogUtils.setLogLevel(argParser.logLevel);
-
-		context = new PathContext(
-			argParser.dataPath,
-			argParser.userDataPath,
-			new HashSet<Path>());
-
-		argParser.predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
 		
-		var p = new Preprocessor(context, argParser.predefines);
+		var p = new Preprocessor(pathContext, argParser.predefines);
 		BufferedWriter writer = null;
 		if (argParser.outputPath != null) {
 			writer = Files.newBufferedWriter(argParser.outputPath);
@@ -111,24 +107,5 @@ public class Main {
 		LogUtils.infoPrint("Total " + p.getDefines().rowCount() + " macros defined.");
 		defines = p.getDefines();
 		fileExplanations = p.getFileExplanations();
-	}
-
-	private static void initServer(ArgParser argParser) {
-		LogUtils.setLogLevel(Level.OFF);
-		
-		argParser.predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
-
-		var server = new WMLLanguageServer(
-			argParser.predefines,
-			argParser.dataPath,
-			argParser.userDataPath,
-			argParser.includes);
-
-		// Initialize a simple JSON-RPC connection over stdin/stdout
-		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);
-		LanguageClient client = launcher.getRemoteProxy();
-
-		server.connect(client);
-		launcher.startListening();
 	}
 }

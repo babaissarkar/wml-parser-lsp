@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import com.babai.wml.experimental.PathContext;
+
 public final class FS {
 	private FS() {
 	}
@@ -25,8 +27,12 @@ public final class FS {
 		}
 		return "";
 	}
+	
+	public static Path resolve(String pathStr, Path currentPath, PathContext context) {
+		return resolve(pathStr, currentPath, context.binaryPaths(), context.dataPath(), context.userDataPath());
+	}
 
-	public static Path resolve(String pathStr, HashSet<Path> binaryPaths, Path currentPath, Path dataPath, Path userDataPath) {
+	public static Path resolve(String pathStr, Path currentPath, HashSet<Path> binaryPaths, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
 		if (pathStr.startsWith(".")) {

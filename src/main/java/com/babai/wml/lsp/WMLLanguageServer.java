@@ -1,6 +1,7 @@
 package com.babai.wml.lsp;
 
 import static com.babai.wml.utils.ANSIFormatter.colorify;
+import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 import java.io.IOException;
 import java.net.URI;
@@ -15,6 +16,7 @@ import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,6 +59,7 @@ import org.eclipse.lsp4j.WorkspaceFoldersOptions;
 import org.eclipse.lsp4j.WorkspaceServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
+import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -72,6 +75,7 @@ import com.babai.wml.experimental.Parser;
 import com.babai.wml.experimental.PathContext;
 import com.babai.wml.experimental.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
+import com.babai.wml.utils.ArgParser;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.Table;
@@ -79,27 +83,68 @@ import com.babai.wml.utils.Table;
 @AIGenerated
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
 	public LanguageClient client;
-	private Path inputPath, dataPath, userDataPath;
+	
+	private PathContext pathContext;
+	private Path inputPath;
 
 	private Table baseDefines, defines;
-	private HashSet<Path> binaryPaths = new HashSet<>();
 	private HashSet<String> unitTypes = new HashSet<>();
-
 	private List<MacroCall> calls = new ArrayList<>();
 	private Vector<Path> includePaths = new Vector<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();
 	private Properties tagLinks = new Properties();
+	
 	private Preprocessor p;
-	private Parser parser = new Parser();
+// FIXME parsing disabled for now because it hangs LSP client, but it is needed for binaryPath detection...
+//	private Parser parser = new Parser();
 
-	public WMLLanguageServer(Table predefines, Path dataPath, Path userDataPath, Vector<Path> includePaths) {
-		this.dataPath = dataPath;
-		this.userDataPath = userDataPath;
+	private WMLLanguageServer(Table predefines, PathContext context, Vector<Path> includePaths) {
+		this.pathContext = context;
 		this.includePaths = includePaths;
 		this.defines = predefines;
 
+		initDirectivesList();
+
+		initTagRefLinks();
+	}
+	
+	public static void initServer(Table predefines, PathContext context, Vector<Path> includes) {
+		LogUtils.setLogLevel(Level.OFF);
+
+		var server = new WMLLanguageServer(
+			predefines,
+			context,
+			includes);
+
+		// Initialize a simple JSON-RPC connection over stdin/stdout
+		// Most clients support this, unlike connection over TCP
+		Launcher<LanguageClient> launcher = createServerLauncher(server, System.in, System.out);
+		LanguageClient client = launcher.getRemoteProxy();
+
+		server.connect(client);
+		launcher.startListening();
+	}
+	
+	private void initTagRefLinks() {
+		// Reference links for tags
+		try {
+			tagLinks.load(getClass().getResourceAsStream("/taglinks.properties"));
+			for (var tag : tagLinks.entrySet()) {
+				CompletionItem item = new CompletionItem(tag.getKey().toString());
+				item.setInsertText(item.getLabel() + "]$0[/" + item.getLabel());
+				item.setKind(CompletionItemKind.Snippet);
+				item.setInsertTextFormat(InsertTextFormat.Snippet);
+				tags.add(item);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	//TODO maybe load from a file?
+	private void initDirectivesList() {
 		// Directives, this List never changes so created here once
 		BiFunction<String, String, CompletionItem> make = (label, doc) -> {
 			CompletionItem item = new CompletionItem(label);
@@ -120,33 +165,10 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		make.apply("arg", "Start optional argument in macro definition");
 		make.apply("endarg", "End optional argument in macro definition");
 		make.apply("textdomain", "Define Textdomain");
-
-		// Reference links for tags
-		try {
-			tagLinks.load(getClass().getResourceAsStream("/taglinks.properties"));
-			for (var tag : tagLinks.entrySet()) {
-				CompletionItem item = new CompletionItem(tag.getKey().toString());
-				item.setInsertText(item.getLabel() + "]$0[/" + item.getLabel());
-				item.setKind(CompletionItemKind.Snippet);
-				item.setInsertTextFormat(InsertTextFormat.Snippet);
-				tags.add(item);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 
 	public void connect(LanguageClient client) {
 		this.client = client;
-	}
-
-	public void showLSPMessage(String m) {
-		if (client != null) {
-			MessageParams msg = new MessageParams();
-			msg.setType(MessageType.Info);
-			msg.setMessage(m);
-			client.showMessage(msg);
-		}
 	}
 
 	@Override
@@ -240,7 +262,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					);
 				} else if (word.contains("/") || word.contains("~")) {
 					// Wesnoth Paths
-					// if tilde is in front, it's a userdata path, ignore
+					// if tilde is in front, it's a userdata path
 					// if not, drop, IPF.
 					if (!word.startsWith("~") && word.contains("~")) {
 						word = word.substring(0, word.indexOf("~"));
@@ -248,9 +270,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					if (word.contains(":")) {
 						word = word.substring(0, word.indexOf(":"));
 					}
-					Path p = FS.resolve(word, binaryPaths, Path.of(
-						new URI(params.getTextDocument().getUri())),
-						dataPath, userDataPath);
+					Path p = FS.resolve(word, Path.of(new URI(params.getTextDocument().getUri())), pathContext);
 					if (Files.exists(p)) {
 						content.setKind("markdown");
 						if (FS.getAssetType(word).equals("images")) {
@@ -543,11 +563,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private void initParserForLSP() {
 		try {
-			PathContext context = new PathContext(
-					dataPath,
-					userDataPath,
-					new HashSet<Path>());
-			p = new Preprocessor(context, defines);
+			p = new Preprocessor(pathContext, defines);
 
 //			p.setExtractData(argParse.extractUnitTypeData);
 
@@ -638,5 +654,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 
 		return line.substring(start, end);
+	}
+	
+	private void showLSPMessage(String m) {
+		if (client != null) {
+			MessageParams msg = new MessageParams();
+			msg.setType(MessageType.Info);
+			msg.setMessage(m);
+			client.showMessage(msg);
+		}
 	}
 }
