@@ -9,7 +9,7 @@
 
 	<groupId>com.babai.wml</groupId>
 	<artifactId>wml</artifactId>
-	<version>1.1.0</version>
+	<version>2.0.0</version>
 	<packaging>jar</packaging>
 
 	<name>WML-Parser-LSP</name>
