@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -29,6 +28,7 @@ import static com.babai.wml.experimental.ParseUtils.*;
 import static com.babai.wml.experimental.Tokenizer.tokenize;
 
 public class Preprocessor {
+	private boolean skipElse = true;
 	private Table defines;
 	private PathContext context;
 	private Path currentPath = Path.of(".");
@@ -38,8 +38,6 @@ public class Preprocessor {
 	
 	// format: macroName, positionString
 	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
-
-	private boolean skipElse = true;
 	
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -147,63 +145,32 @@ public class Preprocessor {
 		
 		fileExplanations.put(currentPath.toUri().toString(), handleDocComment(itor));
 		
-		// Initial pass
-		Boolean hasMacro = false;
 		while (itor.hasNext()) {
 			Token t = itor.next();
-			if (t.kind() == Token.Kind.MACRO) {
-				hasMacro = true;
-			}
 			buff.append(processToken(itor, t, true));
 		}
-		String out = buff.toString();
-		
-		// Nested passes
-		Function<String, Pair<String, Boolean>> preprocessQuick = str -> {
-			boolean hasMacro2 = false;
-			var reader2 = new StringReader(str);
-			var buff2 = new StringBuilder();
-			ListIterator<Token> itor2;
-			try {
-				itor2 = tokenize(reader2).listIterator();
-				
-				skip(itor2, Token.Kind.EOL);
-				skip(itor2, Token.Kind.WHITESPACE);
-				
-				while (itor2.hasNext()) {
-					Token t2 = itor2.next();
-					if (t2.kind() == Token.Kind.MACRO) {
-						hasMacro2 = true;
-					}
-					buff2.append(processToken(itor2, t2, true));
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			return new Pair<String, Boolean>(buff2.toString(), hasMacro2);
-		};
-		
-		int depth = 0;
-		while (hasMacro && depth < 50) {
-			nonexistentMacros.clear(); // we only want nonexistent from last pass
-			var outPair = preprocessQuick.apply(out);
-			out = outPair.first();
-			hasMacro = outPair.second();
-			depth++;
-		}
-		
 		
 		for (var pair : nonexistentMacros) {
 			warningPrint(pair.second() + " undefined macro " + colorify(pair.first(), RED));
 		}
 		
-		return out;
+		return buff.toString();
 	}
 	
-	// recursively expand nested macros
-
+	private String preprocessFragment(String fragment) {
+		try {
+			var buff = new StringBuilder();
+			var itor = tokenize(new StringReader(fragment)).listIterator();
+			while (itor.hasNext()) {
+				Token t = itor.next();
+				buff.append(processToken(itor, t, true));
+			}
+			return buff.toString();
+		} catch (IOException e) {
+			return fragment; // shouldn't happen with StringReader
+		}
+	}
+	
 	private String handleDocComment(ListIterator<Token> itor) {
 		skip(itor, Token.Kind.EOL);
 
@@ -509,7 +476,11 @@ public class Preprocessor {
 				+ (!argsString.isEmpty() ? " with " + colorify(argsString, macroArgColor) : ""));
 			
 			try {
-				return def.expand2(args, defArgs);
+				String out = def.expand2(args, defArgs);
+				if (out.contains("{")) {
+					out = preprocessFragment(out);
+				}
+				return out;
 			} catch(IllegalArgumentException e) {
 				errorPrint("Error expanding macro " + def.coloredName()
 					+ " in "
