@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.babai.wml.utils.AIGenerated;
+
 
 public final class Tokenizer {	
 	public static List<Token> tokenize(Path inputPath) throws IOException {
@@ -255,6 +257,7 @@ public final class Tokenizer {
 		}
 	}
 
+	@AIGenerated
 	public static List<Token> mergeConcatenations(List<Token> tokens) {
 		List<Token> result = new ArrayList<>();
 		int i = 0;
