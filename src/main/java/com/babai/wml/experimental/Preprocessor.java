@@ -147,7 +147,7 @@ public class Preprocessor {
 		
 		while (itor.hasNext()) {
 			Token t = itor.next();
-			buff.append(processToken(itor, t, true));
+			buff.append(processToken(itor, t, currentDefineArgs, true));
 		}
 		
 		for (var pair : nonexistentMacros) {
@@ -157,13 +157,14 @@ public class Preprocessor {
 		return buff.toString();
 	}
 	
-	private String preprocessFragment(String fragment) {
+	private String preprocessFragment(String fragment, List<String> args) {
 		try {
 			var buff = new StringBuilder();
 			var itor = tokenize(new StringReader(fragment)).listIterator();
 			while (itor.hasNext()) {
 				Token t = itor.next();
-				buff.append(processToken(itor, t, true));
+				boolean expand = !args.contains(t.content());
+				buff.append(processToken(itor, t, args, expand));
 			}
 			return buff.toString();
 		} catch (IOException e) {
@@ -190,7 +191,7 @@ public class Preprocessor {
 		return docBuff.toString().trim();
 	}
 
-	private String processToken(ListIterator<Token> itor, Token t, boolean expandMacro) {
+	private String processToken(ListIterator<Token> itor, Token t, List<String> currentArgs, boolean expandMacro) {
 		return switch (t.kind()) {
 		case TEXT -> t.content();
 		case WHITESPACE, EOL -> t.content();
@@ -199,7 +200,7 @@ public class Preprocessor {
 		case ANGLE_QUOTED -> "<<" + t.content() + ">>";
 		case MACRO -> {
 			if (expandMacro) {
-				yield expandMacro(t, currentDefineArgs, context);
+				yield expandMacro(t, currentArgs, context);
 			} else {
 				yield "{" + t.content() + "}";
 			}
@@ -233,7 +234,7 @@ public class Preprocessor {
 			} else {
 				// we don't want to expand any macro calls in body when consuming directive body,
 				// but rather when that directive is called later on. (ie. lazy not eager behavior)
-				body.append(processToken(itor, t, false));
+				body.append(processToken(itor, t, currentDefineArgs, false));
 				if (!itor.hasNext()) return body.toString();
 				t = itor.next();
 			}
@@ -373,7 +374,6 @@ public class Preprocessor {
 				skipElse = false;
 			}
 		}
-		// TODO ifdef/ifndef "else" block handling
 	}
 	
 	private final static Pattern wspattern = Pattern.compile("\\s+");
@@ -475,10 +475,20 @@ public class Preprocessor {
 			debugPrint("expanding macro " + def.coloredName()
 				+ (!argsString.isEmpty() ? " with " + colorify(argsString, macroArgColor) : ""));
 			
+			var argsList = new ArrayList<String>();
+			argsList.addAll(def.getArgs());
+			def.getDefArgs().keySet().forEach(k -> argsList.add(k));
+			
 			try {
-				String out = def.expand2(args, defArgs);
+				String out = def.getValue();
+				// substitute macros
 				if (out.contains("{")) {
-					out = preprocessFragment(out);
+					out = preprocessFragment(out, argsList);
+				}
+				
+				// substitute args
+				if (out.contains("{")) {
+					out = def.expand2(args, defArgs);
 				}
 				return out;
 			} catch(IllegalArgumentException e) {
@@ -488,6 +498,8 @@ public class Preprocessor {
 					+ ": " + e.getMessage());
 				return fallback;
 			}
+			
+		// Nested arg processing
 		} else if (possibleArgs.contains(macroName)) {
 			// FIXME: do nothing for now. may need checks later.
 			return fallback;
