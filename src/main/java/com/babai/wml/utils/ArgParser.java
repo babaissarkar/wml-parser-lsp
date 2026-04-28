@@ -62,7 +62,7 @@ public class ArgParser {
         out = new PrintStream(Files.newOutputStream(outputPath));
     }
 
-    @Option(names = {"-define", "-d", "--define"}, arity = "2", description = "Define macro: -define NAME BODY")
+    @Option(names = {"-define", "-d", "--define"}, arity = "2", description = "Define macro: -define NAME BODY", paramLabel = "NAME BODY", hideParamSyntax = true)
     public void addDefine(String[] nameAndBody) {
         predefines.addRow(0, "predefined", nameAndBody[0], new Definition(nameAndBody[0], nameAndBody[1]));
     }
