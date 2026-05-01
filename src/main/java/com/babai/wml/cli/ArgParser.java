@@ -1,6 +1,7 @@
 package com.babai.wml.cli;
 
 import picocli.CommandLine;
+import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.PrintStream;
@@ -13,6 +14,7 @@ import java.util.logging.Level;
 import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.utils.Table;
 
+@Command(name = "wml", version = "WML Multitool and LSP, version 2.0.0", mixinStandardHelpOptions = true)
 public class ArgParser {
 	public Level logLevel = Level.INFO;
 
@@ -54,6 +56,9 @@ public class ArgParser {
 
 	@Option(names = {"-h", "-help", "--help", "-?"}, usageHelp = true, description = "Print this help")
 	private boolean helpRequested;
+	
+	@Option(names = {"-v", "-version", "--version"}, versionHelp = true, description = "Print version information")
+	private boolean versionRequested;
 
 	@Option(names = {"-o", "-output", "--output"}, description = "Write output to given file (default: stdout)")
 	public void setOutputPath(String path) throws Exception {
@@ -103,6 +108,9 @@ public class ArgParser {
 			CommandLine.ParseResult result = cmd.parseArgs(args);
 			if (result.isUsageHelpRequested()) {
 				cmd.usage(System.out);
+				System.exit(0);
+			} else if (result.isVersionHelpRequested()) {
+				cmd.printVersionHelp(System.out);
 				System.exit(0);
 			}
 		} catch (CommandLine.ParameterException ex) {
