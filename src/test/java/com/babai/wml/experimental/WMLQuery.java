@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.*;
 
+import com.babai.wml.parser.Parser;
 import com.babai.wml.utils.AIGenerated;
 
 import static org.junit.jupiter.api.Assertions.*;

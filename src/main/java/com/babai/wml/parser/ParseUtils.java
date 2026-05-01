@@ -1,14 +1,16 @@
-package com.babai.wml.experimental;
+package com.babai.wml.parser;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
+import com.babai.wml.tokenizer.Token;
+
 public final class ParseUtils {
 	
 	private ParseUtils() {};
 
-	static Token peek(ListIterator<Token> it) {
+	public static Token peek(ListIterator<Token> it) {
 		if (!it.hasNext()) {
 			return Token.EMPTY;
 		}
@@ -18,20 +20,20 @@ public final class ParseUtils {
 		return t;
 	}
 	
-	static void skip(ListIterator<Token> itor, Token.Kind skipKind) {
+	public static void skip(ListIterator<Token> itor, Token.Kind skipKind) {
 		while (itor.hasNext() && ParseUtils.peek(itor).kind() == skipKind) {
 			itor.next();
 		}
 	}
 	
-	static void skip(ListIterator<Token> itor, Token.Kind skipKind, Token.Kind skipKind2) {
+	public static void skip(ListIterator<Token> itor, Token.Kind skipKind, Token.Kind skipKind2) {
 		while (itor.hasNext() && (ParseUtils.peek(itor).kind() == skipKind || ParseUtils.peek(itor).kind() == skipKind2))
 		{
 			itor.next();
 		}
 	}
 	
-	static List<String> splitQuoted(String token) {
+	public static List<String> splitQuoted(String token) {
 		List<String> parts = new ArrayList<>();
 		StringBuilder sb = new StringBuilder();
 		char[] chars = token.toCharArray();

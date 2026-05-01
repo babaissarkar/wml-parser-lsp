@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.babai.wml.core.Config;
+import com.babai.wml.config.Config;
 
 class ConfigTest {
 	@Test

@@ -1,4 +1,4 @@
-package com.babai.wml.experimental;
+package com.babai.wml.utils;
 
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
@@ -6,8 +6,10 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
+import com.babai.wml.tokenizer.Token;
+
+import static com.babai.wml.cli.ANSIFormatter.*;
 import static com.babai.wml.utils.Colors.*;
-import static com.babai.wml.utils.ANSIFormatter.*;
 
 public final class LogUtils {
 	private final static Logger pL = Logger.getLogger("preprocessor.parse");

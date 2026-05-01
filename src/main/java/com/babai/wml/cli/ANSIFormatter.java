@@ -1,4 +1,4 @@
-package com.babai.wml.utils;
+package com.babai.wml.cli;
 
 import com.babai.wml.utils.Colors.Color;
 

@@ -1,4 +1,4 @@
-package com.babai.wml.experimental;
+package com.babai.wml.preprocessor;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -16,16 +16,16 @@ import java.util.ListIterator;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import com.babai.wml.core.Definition;
-import com.babai.wml.core.MacroArg;
-import com.babai.wml.core.MacroCall;
+import com.babai.wml.parser.ParseUtils;
+import com.babai.wml.parser.PathContext;
+import com.babai.wml.tokenizer.Token;
 import com.babai.wml.utils.Table;
 
 import static com.babai.wml.utils.Colors.*;
-import static com.babai.wml.utils.ANSIFormatter.colorify;
-import static com.babai.wml.experimental.LogUtils.*;
-import static com.babai.wml.experimental.ParseUtils.*;
-import static com.babai.wml.experimental.Tokenizer.tokenize;
+import static com.babai.wml.utils.LogUtils.*;
+import static com.babai.wml.cli.ANSIFormatter.colorify;
+import static com.babai.wml.parser.ParseUtils.*;
+import static com.babai.wml.tokenizer.Tokenizer.tokenize;
 
 public class Preprocessor {
 	private boolean skipElse = true;

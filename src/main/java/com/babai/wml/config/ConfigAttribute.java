@@ -1,4 +1,4 @@
-package com.babai.wml.core;
+package com.babai.wml.config;
 
 public class ConfigAttribute<T> extends ConfigAttributeBase {
 	private String key;

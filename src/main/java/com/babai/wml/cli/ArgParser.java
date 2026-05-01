@@ -1,4 +1,4 @@
-package com.babai.wml.utils;
+package com.babai.wml.cli;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -10,7 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import com.babai.wml.core.Definition;
+import com.babai.wml.preprocessor.Definition;
+import com.babai.wml.utils.Table;
 
 public class ArgParser {
 	public Level logLevel = Level.INFO;

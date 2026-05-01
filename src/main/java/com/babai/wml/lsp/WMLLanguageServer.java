@@ -63,18 +63,18 @@ import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
-import com.babai.wml.core.Definition;
-import com.babai.wml.core.MacroArg;
-import com.babai.wml.core.MacroCall;
-import com.babai.wml.experimental.LogUtils;
-import com.babai.wml.experimental.PathContext;
-import com.babai.wml.experimental.Preprocessor;
+import com.babai.wml.parser.PathContext;
+import com.babai.wml.preprocessor.Definition;
+import com.babai.wml.preprocessor.MacroArg;
+import com.babai.wml.preprocessor.MacroCall;
+import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
+import com.babai.wml.utils.LogUtils;
 import com.babai.wml.utils.Table;
 
-import static com.babai.wml.utils.ANSIFormatter.colorify;
+import static com.babai.wml.cli.ANSIFormatter.colorify;
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 @AIGenerated

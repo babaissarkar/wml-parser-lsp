@@ -1,4 +1,4 @@
-package com.babai.wml.core;
+package com.babai.wml.config;
 
 import java.util.ArrayList;
 import java.util.HashMap;

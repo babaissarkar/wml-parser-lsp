@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.StringReader;
 
-import com.babai.wml.core.Definition;
+import com.babai.wml.parser.PathContext;
+import com.babai.wml.preprocessor.Definition;
+import com.babai.wml.preprocessor.Preprocessor;
 
 class PreprocessorTest {
 

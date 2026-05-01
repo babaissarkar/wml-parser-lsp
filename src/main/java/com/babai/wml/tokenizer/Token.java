@@ -1,4 +1,4 @@
-package com.babai.wml.experimental;
+package com.babai.wml.tokenizer;
 
 public final class Token {
 	public final static Token EMPTY = new Token("", Kind.EOF);

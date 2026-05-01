@@ -1,6 +1,6 @@
-package com.babai.wml;
+package com.babai.wml.output;
 
-import static com.babai.wml.experimental.ParseUtils.csvEscape;
+import static com.babai.wml.parser.ParseUtils.csvEscape;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -13,10 +13,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
-import com.babai.wml.core.Config;
-import com.babai.wml.core.ConfigAttributeBase;
-import com.babai.wml.core.Definition;
-import com.babai.wml.experimental.PathContext;
+import com.babai.wml.config.Config;
+import com.babai.wml.config.ConfigAttributeBase;
+import com.babai.wml.parser.PathContext;
+import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.utils.Table;
 
 public class DataExtractor {

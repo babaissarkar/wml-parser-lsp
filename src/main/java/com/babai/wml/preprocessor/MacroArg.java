@@ -1,4 +1,4 @@
-package com.babai.wml.core;
+package com.babai.wml.preprocessor;
 
 import com.babai.wml.utils.AIGenerated;
 

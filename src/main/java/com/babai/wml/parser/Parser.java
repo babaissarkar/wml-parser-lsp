@@ -1,4 +1,4 @@
-package com.babai.wml.experimental;
+package com.babai.wml.parser;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -10,13 +10,14 @@ import java.util.ListIterator;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+import com.babai.wml.tokenizer.Token;
 import com.babai.wml.utils.AIGenerated;
 
 import static com.babai.wml.utils.Colors.*;
-import static com.babai.wml.utils.ANSIFormatter.colorify;
-import static com.babai.wml.experimental.Tokenizer.tokenize;
-import static com.babai.wml.experimental.LogUtils.*;
-import static com.babai.wml.experimental.ParseUtils.skip;
+import static com.babai.wml.utils.LogUtils.*;
+import static com.babai.wml.cli.ANSIFormatter.colorify;
+import static com.babai.wml.parser.ParseUtils.skip;
+import static com.babai.wml.tokenizer.Tokenizer.tokenize;
 
 public class Parser {
 	private List<String> tagStack = new ArrayList<>();

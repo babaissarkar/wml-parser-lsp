@@ -1,5 +1,7 @@
 package com.babai.wml;
 
+import static com.babai.wml.cli.ANSIFormatter.colorify;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,18 +11,17 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import com.babai.wml.core.Definition;
-import com.babai.wml.experimental.LogUtils;
-import com.babai.wml.experimental.Parser;
-import com.babai.wml.experimental.PathContext;
-import com.babai.wml.experimental.Preprocessor;
+import com.babai.wml.cli.ANSIFormatter;
+import com.babai.wml.cli.ArgParser;
 import com.babai.wml.lsp.WMLLanguageServer;
-import com.babai.wml.utils.ANSIFormatter;
-import com.babai.wml.utils.ArgParser;
+import com.babai.wml.output.DataExtractor;
+import com.babai.wml.parser.Parser;
+import com.babai.wml.parser.PathContext;
+import com.babai.wml.preprocessor.Definition;
+import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.Colors;
+import com.babai.wml.utils.LogUtils;
 import com.babai.wml.utils.Table;
-
-import static com.babai.wml.utils.ANSIFormatter.colorify;
 
 public class Main {
 	private static Table defines;

@@ -1,6 +1,6 @@
-package com.babai.wml.core;
+package com.babai.wml.preprocessor;
 
-import static com.babai.wml.utils.ANSIFormatter.colorify;
+import static com.babai.wml.cli.ANSIFormatter.colorify;
 
 import java.util.ArrayList;
 import java.util.HashMap;
