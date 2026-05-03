@@ -1,76 +1,55 @@
 package com.babai.wml.cli;
 
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
-
-import java.io.PrintStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.utils.Table;
 
 @Command(name = "wml", version = "WML Multitool and LSP, version 2.0.0", mixinStandardHelpOptions = true)
 public class ArgParser {
-	public Level logLevel = Level.INFO;
-
-	@Option(names = {"-color", "--color"}, arity="1", description = "Toggle colored log messages.", paramLabel="<'true'|'false'>")
-	public boolean enableColors = true;
-
-	public boolean extractUnitTypeData = false;
 
 	@Option(names = {"-server", "-s", "--server"}, description = "Run in LSP server mode.")
 	public boolean startLSPServer = false;
-
-	public boolean generateMacroRef = false;
-
-	@Option(names = {"-q", "-query", "--query"}, description = "XPath-style WML query. Any tag/key matching this will be printed.")
-	public List<String> queries = new ArrayList<>();
-
-	@Option(names = {"-include", "--include"}, arity = "1", description = "Preprocess file/folder and collect macro definitions")
-	public List<Path> includes = new ArrayList<>();
-
-	public Table predefines = Table.ofWithIndices(
-			new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
-			new String[] { "Line", "URI", "Name", "Definition" },
-			1, 2
-			);
 
 	@Option(names = {"-datadir", "--datadir"}, description = "Absolute path to Wesnoth's data directory")
 	public Path dataPath;
 
 	@Option(names = {"-userdatadir", "--userdatadir"}, description = "Absolute path to Wesnoth's userdata directory")
 	public Path userDataPath;
-
-	@Option(names = {"-i", "-input", "--input"}, description = "Preprocess the main input file (default: stdin)")
-	public Path inputPath;
-
-	public Path outputPath;
-	public Path unitTypeOutPath;
-	public Path macroRefPath;
-	public PrintStream out = null;
-
-	@Option(names = {"-h", "-help", "--help", "-?"}, usageHelp = true, description = "Print this help")
-	private boolean helpRequested;
 	
-	@Option(names = {"-v", "-version", "--version"}, versionHelp = true, description = "Print version information")
-	private boolean versionRequested;
-
-	@Option(names = {"-o", "-output", "--output"}, description = "Write output to given file (default: stdout)")
-	public void setOutputPath(String path) throws Exception {
-		outputPath = Path.of(path);
-		out = new PrintStream(Files.newOutputStream(outputPath));
-	}
+	@Option(names = {"-include", "--include"}, arity = "1", description = "Preprocess file/folder and collect macro definitions")
+	public List<Path> includes = new ArrayList<>();
+	
+	public Table predefines = Table.ofWithIndices(
+			new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
+			new String[] { "Line", "URI", "Name", "Definition" },
+			1, 2
+			);
 
 	@Option(names = {"-define", "-d", "--define"}, arity = "2", description = "Define macro: -define NAME BODY", paramLabel = "NAME BODY", hideParamSyntax = true)
 	public void addDefine(String[] nameAndBody) {
 		predefines.addRow(0, "predefined", nameAndBody[0], new Definition(nameAndBody[0], nameAndBody[1]));
 	}
+	
+	@Option(names = {"-i", "-input", "--input"}, description = "Preprocess the main input file (default: stdin)")
+	public Path inputPath;
 
+	@Option(names = {"-o", "-output", "--output"}, description = "Write output to given file (default: stdout)")
+	public Path outputPath;
+
+	// -------------- LOGGING ----------------
+	public Level logLevel = Level.INFO;
+
+	@Option(names = {"-color", "--color"}, arity="1", description = "Toggle colored log messages.", paramLabel="<'true'|'false'>")
+	public boolean enableColors = true;
+	
 	@Option(names = {"-log-parse", "-log-p", "--log-parse"}, description = "Print all parser logs (= -log-level debug)")
 	public void setLogParse(boolean on) { if (on) logLevel = Level.FINER; }
 
@@ -89,17 +68,36 @@ public class ArgParser {
 		};
 	}
 
+	// -------------------- DATA EXTRACTION ---------------------------
+	
+	public boolean extractUnitTypeData = false;
+	public Path unitTypeOutPath;
+	
 	@Option(names = {"-extract-unit-type", "-eut", "--extract-unit-type"}, description = "Extract unit type data to CSV at given path", paramLabel = "<outputPath>")
 	public void setExtractUnitTypeDataPath(String path) {
 		extractUnitTypeData = true;
 		unitTypeOutPath = Path.of(path);
 	}
+	
+	public boolean generateMacroRef = false;
+	public Path macroRefPath;
 
 	@Option(names = {"-generate-macro-ref", "-gmr", "--generate-macro-ref"}, description = "Generate HTML macro reference file", paramLabel = "<outputPath>")
 	public void setMacroRefPath(String path) {
 		generateMacroRef = true;
 		macroRefPath = Path.of(path);
 	}
+	
+	@Option(names = {"-q", "-query", "--query"}, description = "XPath-style WML query. Any tag/key matching this will be printed.")
+	public List<String> queries = new ArrayList<>();
+	
+	// --------------- help + version -------------
+	
+	@Option(names = {"-h", "-help", "--help", "-?"}, usageHelp = true, description = "Print this help")
+	private boolean helpRequested;
+	
+	@Option(names = {"-v", "-version", "--version"}, versionHelp = true, description = "Print version information")
+	private boolean versionRequested;
 
 	public void parseArgs(String[] args) {
 		CommandLine cmd = new CommandLine(this);
