@@ -58,6 +58,8 @@ public class Main {
 	private static void initParse(ArgParser argParser) throws IOException {
 		LogUtils.setLogLevel(argParser.logLevel);
 		
+		long start = System.nanoTime();
+		
 		var p = new Preprocessor(pathContext, argParser.predefines);
 		BufferedWriter writer = null;
 		if (argParser.outputPath != null) {
@@ -86,6 +88,9 @@ public class Main {
 		writer.flush();
 		writer.close();
 		
+		long preprocEnd = System.nanoTime();
+		LogUtils.infoPrint("Preprocessing finished in " + (preprocEnd - start) / 1_000_000 + " ms");
+		
 		HashSet<Path> binaryPaths = new HashSet<>();
 		Parser parser = new Parser();
 		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
@@ -93,6 +98,10 @@ public class Main {
 			parser.addQuery(q, v -> LogUtils.infoPrint("Query " + q + " result: " + v));
 		}
 		parser.parse(out);
+		
+		start = preprocEnd;
+		long parseEnd = System.nanoTime();
+		LogUtils.infoPrint("Parsing finished in " + (parseEnd - start) / 1_000_000 + " ms");
 
 //		var unitTypes = p.getUnitTypes();
 //		if (argParse.extractUnitTypeData) {
