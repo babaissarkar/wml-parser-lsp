@@ -1,30 +1,41 @@
-A Work-In-Progress JavaCC based WML Preprocessor/Parser and LSP Server.
+A WML Preprocessor/Parser/LSP Server and multitool.
 
 # Building
-Run `mvn package`. The final JAR file will be in `jar/wml.jar`.
+Requires Java 21. Run `mvn package`. The final JAR file will be in `jar/wml.jar`.
 
 # Command line options
 ```bash
 java -jar jar/wml.jar -h
-Usage: Preprocessor [-datadir|-userdatadir|-log|-log-t[oken]|-log-p[arse]|-warn-
-p[arse]|-s[erver]|-i[nput] filename|-o[utput] filename|-include file|-h[elp]|-?]
-Options:
-        -server/-s             Start as WML LSP server
-        -datadir [path]        Absolute Path to Wesnoth's data directory
-        -userdatadir [path]        Absolute Path to Wesnoth's userdata directory
-        -log                   Print all logs (parser and tokenizer)
-        -log-parse/-log-p      Print all parser logs
-        -log-token/-log-t      Print all tokenizer logs
-        -warn-parse/-warn-p    Print parser warnings only
-        -include [path]        Preprocess the given file/folder beforehand and c
-ollect macro definitions from it.
-                               Can be used multiple times to include multiple fi
-les before the main input.
-        -define/-d [macroname] [body]
-                               Define this macro before parsing
-        -input/-i [path]       Preprocess the main input file (Not needed in LSP Server mode `-s`)
-        -output/-o [path]      Write output to the given file
-        -help/-?/-h            Print this help
+Usage: wml [-hsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPath>] [-eut=<outputPath>] [-gmr=<outputPath>]
+           [-i=<inputPath>] [-log-level=<'severe'|'warn'|'info'|'debug'|'off'>] [-o=<outputPath>] [-userdatadir=<userDataPath>]
+           [-include=<includes>]... [-q=<queries>]... [-d=NAME BODY]...
+  -s, -server, --server     Run in LSP server mode.
+      -datadir, --datadir=<dataPath>
+                            Absolute path to Wesnoth's data directory
+      -userdatadir, --userdatadir=<userDataPath>
+                            Absolute path to Wesnoth's userdata directory
+      -include, --include=<includes>
+                            Preprocess file/folder and collect macro definitions
+  -i, -input, --input=<inputPath>
+                            Preprocess the main input file (default: stdin)
+  -o, -output, --output=<outputPath>
+                            Write output to given file (default: stdout)
+      -color, --color=<'true'|'false'>
+                            Toggle colored log messages.
+  -q, -query, --query=<queries>
+                            XPath-style WML query. Any tag/key matching this will be printed.
+  -h, -?, -help, --help     Print this help
+  -v, -version, --version   Print version information
+      -log-level, --log-level=<'severe'|'warn'|'info'|'debug'|'off'>
+                            Set log level to following values severe|warn|info|debug|off
+  -d, -define, --define=NAME BODY
+                            Define macro: -define NAME BODY
+      -log-p, -log-parse, --log-parse
+                            Print all parser logs (= -log-level debug)
+      -warn-p, -warn-parse, --warn-parse
+                            Print parser warnings only (= -log-level warn)
+      -gmr, -generate-macro-ref, --generate-macro-ref=<outputPath>
+                            Generate HTML macro reference file
 ```
 
 ### Supported LSP features:
@@ -38,6 +49,12 @@ les before the main input.
 * Wesnoth Unit Type ids autocomplete. (Triggered by '=')
 * Hints for position macro call arguments.
 * Symbol table (only Macro defs and calls ATM, WIP.)
+
+### Supported features
+* Detailed colored logging, including files preocessed/macros found and others in debug mode
+* Macro reference generation
+* Custom WML queries into WML codebases
+* Unit Type data extraction (WIP)
 
 ### Usage
 * **VSCode**: Use the extension from [here](https://github.com/babaissarkar/wml-extension).
