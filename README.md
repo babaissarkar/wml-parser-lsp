@@ -5,11 +5,12 @@ Requires Java 21. Run `mvn package`. The final JAR file will be in `jar/wml.jar`
 
 # Command line options
 ```bash
-java -jar jar/wml.jar -h
+java -jar jar/wml.jar -?
 Usage: wml [-hsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPath>] [-eut=<outputPath>] [-gmr=<outputPath>]
-           [-i=<inputPath>] [-log-level=<'severe'|'warn'|'info'|'debug'|'off'>] [-o=<outputPath>] [-userdatadir=<userDataPath>]
-           [-include=<includes>]... [-q=<queries>]... [-d=NAME BODY]...
-  -color, --color=<'true'|'false'>
+           [-log-level=<'severe'|'warn'|'info'|'debug'|'off'>] [-o=<outputPath>] [-userdatadir=<userDataPath>] [-i=<includes>]... [-q=<queries>]... [-d=NAME 
+           BODY]... INPUT
+      INPUT                 Path to the main input file or folder (default: stdin)
+      -color, --color=<'true'|'false'>
                             Toggle colored log messages.
   -d, -define, --define=NAME BODY
                             Define macro: -define NAME BODY
@@ -20,16 +21,14 @@ Usage: wml [-hsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPa
       -gmr, -generate-macro-ref, --generate-macro-ref=<outputPath>
                             Generate HTML macro reference file
   -h, -?, -help, --help     Print this help
-  -i, -input, --input=<inputPath>
-                            Preprocess the main input file (default: stdin)
-      -include, --include=<includes>
-                            Preprocess file/folder and collect macro definitions
+  -i, -include, --include=<includes>
+                            File/folders to be preprocessed before to collect macro definitions
       -log-level, --log-level=<'severe'|'warn'|'info'|'debug'|'off'>
                             Set log level to following values severe|warn|info|debug|off
       -log-p, -log-parse, --log-parse
                             Print all parser logs (= -log-level debug)
   -o, -output, --output=<outputPath>
-                            Write output to given file (default: stdout)
+                            Path to a file write output to (default: stdout)
   -q, -query, --query=<queries>
                             XPath-style WML query. Any tag/key matching this will be printed.
   -s, -server, --server     Run in LSP server mode.

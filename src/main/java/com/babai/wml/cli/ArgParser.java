@@ -8,6 +8,7 @@ import java.util.logging.Level;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.utils.Table;
@@ -30,7 +31,7 @@ public class ArgParser {
 		defaultValue="${env:WESNOTH_USERDATA}")
 	public Path userDataPath;
 	
-	@Option(names = {"-include", "--include"}, arity = "1", description = "Preprocess file/folder and collect macro definitions")
+	@Option(names = {"-i", "-include", "--include"}, arity = "1", description = "File/folders to be preprocessed before to collect macro definitions")
 	public List<Path> includes = new ArrayList<>();
 	
 	public Table predefines = Table.ofWithIndices(
@@ -44,10 +45,10 @@ public class ArgParser {
 		predefines.addRow(0, "predefined", nameAndBody[0], new Definition(nameAndBody[0], nameAndBody[1]));
 	}
 	
-	@Option(names = {"-i", "-input", "--input"}, description = "Preprocess the main input file (default: stdin)")
+	@Parameters(index = "0", paramLabel = "INPUT", description = "Path to the main input file or folder (default: stdin)")
 	public Path inputPath;
 
-	@Option(names = {"-o", "-output", "--output"}, description = "Write output to given file (default: stdout)")
+	@Option(names = {"-o", "-output", "--output"}, description = "Path to a file write output to (default: stdout)")
 	public Path outputPath;
 
 	// -------------- LOGGING ----------------
