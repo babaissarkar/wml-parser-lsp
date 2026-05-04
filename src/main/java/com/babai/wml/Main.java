@@ -35,15 +35,19 @@ public class Main {
 		ANSIFormatter.setColorsEnabled(argParser.enableColors);
 		
 		if (argParser.dataPath == null) {
-			LogUtils.errorPrint("Wesnoth Gamedata path not specified.");
+			System.err.println("Wesnoth Gamedata path not specified.");
 		} else {
-			LogUtils.infoPrint("Wesnoth Gamedata path: " + argParser.dataPath.toAbsolutePath());
+			System.err.println("Wesnoth Gamedata path: "
+				+ ANSIFormatter.colorify(
+					argParser.dataPath.toAbsolutePath().toString(), Colors.filePathColor));
 		}
 		
 		if (argParser.userDataPath == null) {
-			LogUtils.errorPrint("Wesnoth Userdata path not specified.");
+			System.err.println("Wesnoth Userdata path not specified.");
 		} else {
-			LogUtils.infoPrint("Wesnoth Userdata path: " + argParser.userDataPath.toAbsolutePath());
+			System.err.println("Wesnoth Userdata path: " 
+				+ ANSIFormatter.colorify(
+					argParser.userDataPath.toAbsolutePath().toString(), Colors.filePathColor));
 		}
 		
 		pathContext = new PathContext(
@@ -106,10 +110,12 @@ public class Main {
 		
 		HashSet<Path> binaryPaths = new HashSet<>();
 		Parser parser = new Parser();
+		
 		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 		for (var q : argParser.queries) {
 			parser.addQuery(q, v -> LogUtils.infoPrint("Query " + q + " result: " + v));
 		}
+		
 		parser.parse(out);
 		
 		start = preprocEnd;
