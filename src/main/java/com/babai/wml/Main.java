@@ -31,7 +31,20 @@ public class Main {
 	public static void main(String[] args) {
 		var argParser = new ArgParser();
 		argParser.parseArgs(args);
+		
 		ANSIFormatter.setColorsEnabled(argParser.enableColors);
+		
+		if (argParser.dataPath == null) {
+			LogUtils.errorPrint("Wesnoth Gamedata path not specified.");
+		} else {
+			LogUtils.infoPrint("Wesnoth Gamedata path: " + argParser.dataPath.toAbsolutePath());
+		}
+		
+		if (argParser.userDataPath == null) {
+			LogUtils.errorPrint("Wesnoth Userdata path not specified.");
+		} else {
+			LogUtils.infoPrint("Wesnoth Userdata path: " + argParser.userDataPath.toAbsolutePath());
+		}
 		
 		pathContext = new PathContext(
 			argParser.dataPath,

@@ -9,33 +9,35 @@ java -jar jar/wml.jar -h
 Usage: wml [-hsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPath>] [-eut=<outputPath>] [-gmr=<outputPath>]
            [-i=<inputPath>] [-log-level=<'severe'|'warn'|'info'|'debug'|'off'>] [-o=<outputPath>] [-userdatadir=<userDataPath>]
            [-include=<includes>]... [-q=<queries>]... [-d=NAME BODY]...
-  -s, -server, --server     Run in LSP server mode.
-      -datadir, --datadir=<dataPath>
-                            Absolute path to Wesnoth's data directory
-      -userdatadir, --userdatadir=<userDataPath>
-                            Absolute path to Wesnoth's userdata directory
-      -include, --include=<includes>
-                            Preprocess file/folder and collect macro definitions
-  -i, -input, --input=<inputPath>
-                            Preprocess the main input file (default: stdin)
-  -o, -output, --output=<outputPath>
-                            Write output to given file (default: stdout)
-      -color, --color=<'true'|'false'>
+  -color, --color=<'true'|'false'>
                             Toggle colored log messages.
-  -q, -query, --query=<queries>
-                            XPath-style WML query. Any tag/key matching this will be printed.
-  -h, -?, -help, --help     Print this help
-  -v, -version, --version   Print version information
-      -log-level, --log-level=<'severe'|'warn'|'info'|'debug'|'off'>
-                            Set log level to following values severe|warn|info|debug|off
   -d, -define, --define=NAME BODY
                             Define macro: -define NAME BODY
-      -log-p, -log-parse, --log-parse
-                            Print all parser logs (= -log-level debug)
-      -warn-p, -warn-parse, --warn-parse
-                            Print parser warnings only (= -log-level warn)
+      -datadir, --datadir=<dataPath>
+                            Absolute path to Wesnoth's data directory. Can also be specified via environment variable WESNOTH_DATA.
+      -eut, -extract-unit-type, --extract-unit-type=<outputPath>
+                            Extract unit type data to CSV at given path
       -gmr, -generate-macro-ref, --generate-macro-ref=<outputPath>
                             Generate HTML macro reference file
+  -h, -?, -help, --help     Print this help
+  -i, -input, --input=<inputPath>
+                            Preprocess the main input file (default: stdin)
+      -include, --include=<includes>
+                            Preprocess file/folder and collect macro definitions
+      -log-level, --log-level=<'severe'|'warn'|'info'|'debug'|'off'>
+                            Set log level to following values severe|warn|info|debug|off
+      -log-p, -log-parse, --log-parse
+                            Print all parser logs (= -log-level debug)
+  -o, -output, --output=<outputPath>
+                            Write output to given file (default: stdout)
+  -q, -query, --query=<queries>
+                            XPath-style WML query. Any tag/key matching this will be printed.
+  -s, -server, --server     Run in LSP server mode.
+      -userdatadir, --userdatadir=<userDataPath>
+                            Absolute path to Wesnoth's userdata directory. Can also be specified via environment variable WESNOTH_USERDATA.
+  -v, -version, --version   Print version information
+      -warn-p, -warn-parse, --warn-parse
+                            Print parser warnings only (= -log-level warn)
 ```
 
 ### Supported LSP features:

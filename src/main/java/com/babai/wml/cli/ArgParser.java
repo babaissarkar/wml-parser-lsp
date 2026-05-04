@@ -18,10 +18,16 @@ public class ArgParser {
 	@Option(names = {"-server", "-s", "--server"}, description = "Run in LSP server mode.")
 	public boolean startLSPServer = false;
 
-	@Option(names = {"-datadir", "--datadir"}, description = "Absolute path to Wesnoth's data directory")
+	@Option(
+		names = {"-datadir", "--datadir"},
+		description = "Absolute path to Wesnoth's data directory. Can also be specified via environment variable WESNOTH_DATA.",
+		defaultValue="${env:WESNOTH_DATA}")
 	public Path dataPath;
 
-	@Option(names = {"-userdatadir", "--userdatadir"}, description = "Absolute path to Wesnoth's userdata directory")
+	@Option(
+		names = {"-userdatadir", "--userdatadir"},
+		description = "Absolute path to Wesnoth's userdata directory. Can also be specified via environment variable WESNOTH_USERDATA.",
+		defaultValue="${env:WESNOTH_USERDATA}")
 	public Path userDataPath;
 	
 	@Option(names = {"-include", "--include"}, arity = "1", description = "Preprocess file/folder and collect macro definitions")
