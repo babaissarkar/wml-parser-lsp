@@ -545,9 +545,12 @@ public class Preprocessor {
 				errorPrint("Unknown directive found at " + position(token, pathStr));
 			}
 			
-			String[] parts = token.content().split("\\s+", 2);
+			String[] parts = wspattern.split(token.content());
 			String name = parts[0];
-			String[] args = parts.length > 1 ? parts[1].split("\\s+") : new String[0];
+			String[] args = new String[parts.length - 1];
+			for (int i = 1; i < parts.length; i++) {
+				args[i-1] = parts[i];
+			}
 	
 			return new DirectiveHeader(name, args);
 		}
