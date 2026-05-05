@@ -57,6 +57,9 @@ public class ArgParser {
 	@Option(names = {"-color", "--color"}, arity="1", description = "Toggle colored log messages.", paramLabel="<'true'|'false'>")
 	public boolean enableColors = true;
 	
+	@Option(names = {"--list-files", "-l"}, description = "List preprocessed file names in Info log (stderr)")
+	public boolean listFilesInInfo = false;
+	
 	@Option(names = {"-log-parse", "-log-p", "--log-parse"}, description = "Print all parser logs (= -log-level debug)")
 	public void setLogParse(boolean on) { if (on) logLevel = Level.FINER; }
 

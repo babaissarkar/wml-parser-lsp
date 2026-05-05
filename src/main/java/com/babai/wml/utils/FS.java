@@ -1,5 +1,6 @@
 package com.babai.wml.utils;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -59,5 +60,19 @@ public final class FS {
 		}
 
 		return parent != null ? parent.resolve(pathStr).normalize() : parent;
+	}
+	
+	@AIGenerated
+	public static Path relativizeIfUnder(Path b, Path a) {
+		try {
+			Path absA = a.toRealPath().normalize();
+			Path absB = b.toRealPath().normalize();
+			return absA.startsWith(absB) ? absB.relativize(absA) : a;
+		} catch (IOException e) {
+			// fallback: use absolute normalized paths without resolving symlinks
+			Path absA = a.toAbsolutePath().normalize();
+			Path absB = b.toAbsolutePath().normalize();
+			return absA.startsWith(absB) ? absB.relativize(absA) : a;
+		}
 	}
 }

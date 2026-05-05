@@ -5,17 +5,17 @@ Requires Java 21. Run `mvn package`. The final JAR file will be in `jar/wml.jar`
 
 # Command line options
 ```bash
-java -jar jar/wml.jar -?
-Usage: wml [-hsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPath>] [-eut=<outputPath>] [-gmr=<outputPath>]
-           [-log-level=<'severe'|'warn'|'info'|'debug'|'off'>] [-o=<outputPath>] [-userdatadir=<userDataPath>] [-i=<includes>]... [-q=<queries>]... [-d=NAME 
-           BODY]... INPUT
+Usage: wml [-hlsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPath>] [-eut=<outputPath>]
+           [-gmr=<outputPath>] [-log-level=<'severe'|'warn'|'info'|'debug'|'off'>] [-o=<outputPath>]
+           [-userdatadir=<userDataPath>] [-i=<includes>]... [-q=<queries>]... [-d=NAME BODY]... INPUT
       INPUT                 Path to the main input file or folder (default: stdin)
       -color, --color=<'true'|'false'>
                             Toggle colored log messages.
   -d, -define, --define=NAME BODY
                             Define macro: -define NAME BODY
       -datadir, --datadir=<dataPath>
-                            Absolute path to Wesnoth's data directory. Can also be specified via environment variable WESNOTH_DATA.
+                            Absolute path to Wesnoth's data directory. Can also be specified via environment
+                              variable WESNOTH_DATA.
       -eut, -extract-unit-type, --extract-unit-type=<outputPath>
                             Extract unit type data to CSV at given path
       -gmr, -generate-macro-ref, --generate-macro-ref=<outputPath>
@@ -23,6 +23,7 @@ Usage: wml [-hsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPa
   -h, -?, -help, --help     Print this help
   -i, -include, --include=<includes>
                             File/folders to be preprocessed before to collect macro definitions
+  -l, --list-files          List file names in Info log
       -log-level, --log-level=<'severe'|'warn'|'info'|'debug'|'off'>
                             Set log level to following values severe|warn|info|debug|off
       -log-p, -log-parse, --log-parse
@@ -33,7 +34,8 @@ Usage: wml [-hsv] [-log-p] [-warn-p] [-color=<'true'|'false'>] [-datadir=<dataPa
                             XPath-style WML query. Any tag/key matching this will be printed.
   -s, -server, --server     Run in LSP server mode.
       -userdatadir, --userdatadir=<userDataPath>
-                            Absolute path to Wesnoth's userdata directory. Can also be specified via environment variable WESNOTH_USERDATA.
+                            Absolute path to Wesnoth's userdata directory. Can also be specified via environment
+                              variable WESNOTH_USERDATA.
   -v, -version, --version   Print version information
       -warn-p, -warn-parse, --warn-parse
                             Print parser warnings only (= -log-level warn)

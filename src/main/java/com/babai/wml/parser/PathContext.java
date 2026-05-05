@@ -11,4 +11,19 @@ public record PathContext(Path dataPath, Path userDataPath, HashSet<Path> binary
 	public Path resolve(String pathToResolve, Path currentPath) {
 		return FS.resolve(pathToResolve, currentPath, binaryPaths(), dataPath(), userDataPath());
 	}
+	
+	public String relativize(Path target) {
+		Path afterData = FS.relativizeIfUnder(dataPath, target);
+		boolean dataRelativized = !afterData.equals(target);
+
+		Path afterUser = FS.relativizeIfUnder(userDataPath, afterData);
+		boolean userRelativized = !afterUser.equals(afterData);
+
+		String out = afterUser.toString();
+		if (!dataRelativized && userRelativized) {
+			out = "~" + out;
+		}
+		return out;
+	}
+
 }

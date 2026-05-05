@@ -38,6 +38,7 @@ public class Preprocessor {
 	
 	// format: macroName, positionString
 	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
+	private boolean listFilesInInfo = false;
 	
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -71,6 +72,10 @@ public class Preprocessor {
 	
 	public HashMap<String, String> getFileExplanations() {
 		return fileExplanations;
+	}
+	
+	public void setListFilesInInfo(boolean listFilesInInfo) {
+		this.listFilesInInfo = listFilesInInfo;
 	}
 	
 	// Can handle both file or folder
@@ -111,16 +116,23 @@ public class Preprocessor {
 		int prevMacroCount = this.defines.rowCount();
 		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 		this.currentPath = path;
+
 		debugPrint("Preprocessing: " + coloredPath);
+		
 		String out = "";
 		try {
 			out = preprocessContent(Files.newBufferedReader(path));
+			int newMacroCount = this.defines.rowCount() - prevMacroCount;
+			
+			String msg = "Preprocessed %s" + (newMacroCount > 0 ? ": " + newMacroCount + " macros" : "");
+			if (listFilesInInfo) {
+				coloredPath = colorify(context.relativize(path), filePathColor);
+				infoPrint(msg.formatted(coloredPath));
+			} else {
+				debugPrint(msg.formatted(coloredPath));
+			}
 		} catch (IOException e) {
 			errorPrint("Cannot find " + path + ", skipping.");
-		}
-		int newMacroCount = this.defines.rowCount() - prevMacroCount;
-		if (newMacroCount > 0) {
-			debugPrint(coloredPath + ": " + newMacroCount + " macros");
 		}
 		return out;
 	}
@@ -397,16 +409,22 @@ public class Preprocessor {
 
 		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return "";
 		
-		String coloredPathString = colorify(p.toString(), filePathColor);
+		String coloredPath = colorify(p.toString(), filePathColor);
 		
-		debugPrint("Trying to include: " + coloredPathString);
+		debugPrint("Trying to include: " + coloredPath);
 
 		if (!Files.exists(p)) {
-			warningPrint(coloredPathString + " does not exist");
+			warningPrint(coloredPath + " does not exist");
 			return "";
 		}
 		
-		debugPrint("Including: " + coloredPathString);
+		String msg = "Including: %s";
+		if (listFilesInInfo) {
+			coloredPath = colorify(context.relativize(p), filePathColor);
+			infoPrint(msg.formatted(coloredPath));
+		} else {
+			debugPrint(msg.formatted(coloredPath));
+		}
 		
 		return preprocess(p);
 	}

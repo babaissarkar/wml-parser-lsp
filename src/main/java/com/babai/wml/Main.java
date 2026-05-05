@@ -78,6 +78,8 @@ public class Main {
 		long start = System.nanoTime();
 		
 		var p = new Preprocessor(pathContext, argParser.predefines);
+		p.setListFilesInInfo(argParser.listFilesInInfo);
+		
 		BufferedWriter writer = null;
 		if (argParser.outputPath != null) {
 			writer = Files.newBufferedWriter(argParser.outputPath);
