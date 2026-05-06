@@ -75,31 +75,7 @@ public class Definition {
 	}
 	
 	/** Expand the macro, substituting any given args */
-	public String expand(List<String> values, HashMap<String, String> keyVals) {
-		String unparsed = this.value;
-		if (values.size() != args.size()) {
-			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
-					+ "Expected " + args.size() + " but got " + values.size() + ".");
-		}
-
-		int i = 0;
-		for (var arg : args) {
-			unparsed = unparsed.replace("{" + arg + "}", values.get(i));
-			i++;
-		}
-
-		for (var entry : defArgs.entrySet()) {
-			String val = keyVals.get(entry.getKey());
-			if (val == null) {
-				val = entry.getValue();
-			}
-			unparsed = unparsed.replace("{" + entry.getKey() + "}", val);
-		}
-
-		return unparsed;
-	}
-
-	public String expand2(List<MacroArg> values, HashMap<String, String> keyVals) {
+	public String expand(List<MacroArg> values, HashMap<String, String> keyVals) {
 		String unparsed = this.value;
 		if (values.size() != args.size()) {
 			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
@@ -121,14 +97,6 @@ public class Definition {
 		}
 
 		return unparsed;
-	}
-
-	public String expand(List<String> values) {
-		return expand(values, new HashMap<>());
-	}
-
-	public String expand() {
-		return expand(new ArrayList<>(), new HashMap<>());
 	}
 
 	public String toString() {
@@ -158,7 +126,8 @@ public class Definition {
 	public static String argsAsString(List<String> args, Map<String, String> defArgs) {
 		var keyValsStrings = defArgs.entrySet().stream().map(Map.Entry::toString).collect(Collectors.toList());
 
-		return String.join(", ", args) + (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
+		return String.join(", ", args)
+				+ (args.size() > 0 && !keyValsStrings.isEmpty() ? ", " : "")
 				+ String.join(", ", keyValsStrings);
 	}
 

@@ -506,7 +506,7 @@ public class Preprocessor {
 				
 				// substitute args
 				if (out.contains("{")) {
-					out = def.expand2(args, defArgs);
+					out = def.expand(args, defArgs);
 				}
 				return out;
 			} catch(IllegalArgumentException e) {
