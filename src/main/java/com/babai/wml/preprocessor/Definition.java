@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.utils.Colors;
 
 public class Definition {
@@ -75,32 +76,31 @@ public class Definition {
 	}
 	
 	/** Expand the macro, substituting any given args */
-	public String expand(List<MacroArg> values, HashMap<String, String> keyVals) {
-		String unparsed = this.value;
+	public String expand(List<MacroArg> values, Map<String, String> keyVals) {
 		if (values.size() != args.size()) {
 			throw new IllegalArgumentException("Wrong number of arguments supplied to macro '" + name() + "'. "
 					+ "Expected " + args.size() + " but got " + values.size() + ".");
 		}
-
-		int i = 0;
-		for (var arg : args) {
-			unparsed = unparsed.replace("{" + arg + "}", values.get(i).value());
-			i++;
+		
+		var substMap = new HashMap<String, String>();
+		
+		for (int i = 0; i < args.size(); i++) {
+			substMap.put(args.get(i), values.get(i).value());
 		}
-
+		
 		for (var entry : defArgs.entrySet()) {
 			String val = keyVals.get(entry.getKey());
 			if (val == null) {
 				val = entry.getValue();
 			}
-			unparsed = unparsed.replace("{" + entry.getKey() + "}", val);
-		}
+			substMap.put(entry.getKey(), val);
+		} 
 
-		return unparsed;
+		return ParseUtils.substitute(this.value, substMap);
 	}
 
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
+		var sb = new StringBuilder();
 		sb.append("#define ");
 		sb.append(name);
 		for (var arg : args) {

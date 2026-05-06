@@ -1,17 +1,23 @@
 package com.babai.wml.experimental;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.tokenizer.Token;
 import com.babai.wml.tokenizer.Tokenizer;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class TokenizerTest {
 	@Test
@@ -24,6 +30,33 @@ class TokenizerTest {
 		assertEquals("How\n are", parts.get(1));
 		assertEquals("you", parts.get(2));
 		assertEquals("\"Konrad the Second\"", parts.get(3));
+	}
+	
+	@ParameterizedTest
+	@MethodSource("substituteCases")
+	void testSubstitute(String template, Map<String, String> subst, String expected) {
+		assertEquals(expected, ParseUtils.substitute(template, subst));
+	}
+
+	static Stream<Arguments> substituteCases() {
+		return Stream.of(
+			// no braces - early return
+			arguments("no braces", Map.of(), "no braces"),
+			// single substitution
+			arguments("{A}", Map.of("A", "val"), "val"),
+			// multiple substitutions
+			arguments("{A} and {B}", Map.of("A", "x", "B", "y"), "x and y"),
+			// unknown key - emitted verbatim
+			arguments("{UNKNOWN}", Map.of(), "{UNKNOWN}"),
+			// mixed known and unknown
+			arguments("{A} {UNKNOWN}", Map.of("A", "val"), "val {UNKNOWN}"),
+			// text around macros
+			arguments("prefix {A} suffix", Map.of("A", "mid"), "prefix mid suffix"),
+			// quoted string passthrough + comment preservation
+			arguments("\"hello\" {A} # comment", Map.of("A", "val"), "\"hello\" val # comment"),
+			// empty subst map, no macros
+			arguments("plain text", Map.of(), "plain text")
+			);
 	}
 
 	@Test

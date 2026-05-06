@@ -1,10 +1,14 @@
 package com.babai.wml.parser;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.List;
 import java.util.ListIterator;
 
 import com.babai.wml.tokenizer.Token;
+import com.babai.wml.tokenizer.Tokenizer;
 
 public final class ParseUtils {
 	
@@ -95,6 +99,40 @@ public final class ParseUtils {
 		if (!needsQuotes) return s;
 
 		return "\"" + s.replace("\"", "\"\"") + "\"";
+	}
+	
+	public static String substitute(String template, Map<String, String> subst) {
+		System.out.println("Arg List: " + subst);
+		if (!template.contains("{")) return template;
+		try {
+			var out = new StringBuilder();
+			var tokens = Tokenizer.tokenize(new StringReader(template));
+			var itor = tokens.listIterator();
+			while (itor.hasNext()) {
+				Token t = itor.next();
+				if (t.kind() == Token.Kind.MACRO) {
+					String val = subst.get(t.content());
+					out.append(val != null ? val : getRaw(t));
+				} else {
+					out.append(getRaw(t));
+				}
+			}
+			return out.toString();
+		} catch (IOException e) {
+			return template;
+		}
+	}
+	
+	private static String getRaw(Token t) {
+		return switch (t.kind()) {
+			case TEXT, WHITESPACE, EOL -> t.content();
+			case TAG -> "[" + t.content() + "]";
+			case QUOTED -> "\"" + t.content() + "\"";
+			case ANGLE_QUOTED -> "<<" + t.content() + ">>";
+			case MACRO -> "{" + t.content() + "}";
+			case COMMENT -> "#" + t.content();
+			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
+		};
 	}
 
 }
