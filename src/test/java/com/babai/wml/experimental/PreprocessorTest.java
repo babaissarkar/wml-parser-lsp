@@ -27,6 +27,62 @@ class PreprocessorTest {
 		assertFalse(str.isEmpty());
 		assertEquals("Something", str);
 	}
+	
+	@Test
+	void testNestedMacroInArg() throws IOException {
+		String defString = """
+			#define INNER
+			inner_result#enddef
+			#define OUTER x
+			({x})#enddef
+			{OUTER {INNER}}""";
+		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+		String str = preproc.preprocessContent(new StringReader(defString));
+		assertEquals("(inner_result)", str);
+	}
+
+	@Test
+	void testNestedMacroInBody() throws IOException {
+		String defString = """
+			#define INNER
+			inner_result#enddef
+			#define OUTER
+			({INNER})#enddef
+			{OUTER}""";
+		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+		String str = preproc.preprocessContent(new StringReader(defString));
+		assertEquals("(inner_result)", str);
+	}
+
+	@Test
+	void testThreeLevelNested() throws IOException {
+		String defString = """
+			#define DEEP
+			deep#enddef
+			#define MID
+			({DEEP})#enddef
+			#define OUTER x
+			[{x}]#enddef
+			{OUTER {MID}}""";
+		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+		String str = preproc.preprocessContent(new StringReader(defString));
+		assertEquals("[(deep)]", str);
+	}
+
+	@Test
+	void testNestedArgAndBody() throws IOException {
+		String defString = """
+			#define INNER
+			val#enddef
+			#define WRAPPER x
+			<{x}>#enddef
+			#define OUTER x
+			({WRAPPER {x}})#enddef
+			{OUTER {INNER}}""";
+		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+		String str = preproc.preprocessContent(new StringReader(defString));
+		assertEquals("(<val>)", str);
+	}
 
 	@Test
 	void testDefineArgsMetadata() throws IOException {
