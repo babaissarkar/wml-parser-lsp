@@ -80,7 +80,6 @@ public class Parser {
 				if (tagStack.isEmpty()) {
 					errorPrint("End tag without matching start tag.");
 				} else if (tagStack.getLast().equals(tagName)) {
-					debugPrint("Read Tag: " + colorify("[" + tagName + "]", tagColor));
 					tagStack.removeLast();
 				} else {
 					errorPrint("Wrong end tag " + colorify(tagName, RED)

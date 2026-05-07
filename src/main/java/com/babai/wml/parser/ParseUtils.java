@@ -102,7 +102,6 @@ public final class ParseUtils {
 	}
 	
 	public static String substitute(String template, Map<String, String> subst) {
-		System.out.println("Arg List: " + subst);
 		if (!template.contains("{")) return template;
 		try {
 			var out = new StringBuilder();
