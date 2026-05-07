@@ -35,17 +35,17 @@ public class Main {
 		ANSIFormatter.setColorsEnabled(argParser.enableColors);
 		
 		if (argParser.dataPath == null) {
-			System.err.println("Wesnoth Gamedata path not specified.");
+			LogUtils.errorPrint("Wesnoth Gamedata path not specified.");
 		} else {
-			System.err.println("Wesnoth Gamedata path: "
+			LogUtils.infoPrint("Wesnoth Gamedata path: "
 				+ ANSIFormatter.colorify(
 					argParser.dataPath.toAbsolutePath().toString(), Colors.filePathColor));
 		}
 		
 		if (argParser.userDataPath == null) {
-			System.err.println("Wesnoth Userdata path not specified.");
+			LogUtils.errorPrint("Wesnoth Userdata path not specified.");
 		} else {
-			System.err.println("Wesnoth Userdata path: " 
+			LogUtils.infoPrint("Wesnoth Userdata path: " 
 				+ ANSIFormatter.colorify(
 					argParser.userDataPath.toAbsolutePath().toString(), Colors.filePathColor));
 		}
