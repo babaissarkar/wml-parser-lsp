@@ -48,13 +48,13 @@ public class ArgParser {
 	@Parameters(index = "0", paramLabel = "INPUT", description = "Path to the main input file or folder (default: stdin)")
 	public Path inputPath;
 
-	@Option(names = {"-o", "-output", "--output"}, description = "Path to a file write output to (default: stdout)")
+	@Option(names = {"-o", "-output", "--output"}, description = "Path to a file to write output to (default: stdout)")
 	public Path outputPath;
 
 	// -------------- LOGGING ----------------
 	public Level logLevel = Level.INFO;
 
-	@Option(names = {"-color", "--color"}, arity="1", description = "Toggle colored log messages.", paramLabel="<'true'|'false'>")
+	@Option(names = {"-color", "--color"}, arity="1", description = "Toggle color in log messages (default: true)", paramLabel="<'true'|'false'>")
 	public boolean enableColors = true;
 	
 	@Option(names = {"--list-files", "-l"}, description = "List preprocessed file names in Info log (stderr)")
@@ -77,13 +77,17 @@ public class ArgParser {
 		default       -> Level.INFO;
 		};
 	}
+	
+	@Option(names = { "-parse", "--parse" }, arity="1", description = "Toggle parsing preprocessed output (default: true). Disables WML Queries and Binary Path detection if disabled.")
+	public boolean parse = true;
 
 	// -------------------- DATA EXTRACTION ---------------------------
 	
 	public boolean extractUnitTypeData = false;
 	public Path unitTypeOutPath;
 	
-	@Option(names = {"-extract-unit-type", "-eut", "--extract-unit-type"}, description = "Extract unit type data to CSV at given path", paramLabel = "<outputPath>")
+	// TODO unimplemented in code yet
+	@Option(names = {"-extract-unit-type", "-eut", "--extract-unit-type"}, description = "Extract unit type data to CSV at given path", paramLabel = "<outputPath>", hidden = true)
 	public void setExtractUnitTypeDataPath(String path) {
 		extractUnitTypeData = true;
 		unitTypeOutPath = Path.of(path);
@@ -97,6 +101,9 @@ public class ArgParser {
 		generateMacroRef = true;
 		macroRefPath = Path.of(path);
 	}
+	
+	@Option(names = {"-df", "-definitions", "--definitions"}, description = "List all macro definitions. Output written to stdout or file pointed by -o.")
+	public boolean definitions = false;
 	
 	@Option(names = {"-q", "-query", "--query"}, description = "XPath-style WML query. Any tag/key matching this will be printed.")
 	public List<String> queries = new ArrayList<>();

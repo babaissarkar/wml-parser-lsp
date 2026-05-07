@@ -103,26 +103,42 @@ public class Main {
 		} else {
 			out = p.preprocessContent(new InputStreamReader(System.in));
 		}
-		writer.write(out);
-		writer.flush();
-		writer.close();
 		
 		long preprocEnd = System.nanoTime();
 		LogUtils.infoPrint("Preprocessing finished in " + (preprocEnd - start) / 1_000_000 + " ms");
 		
-		HashSet<Path> binaryPaths = new HashSet<>();
-		Parser parser = new Parser();
+		defines = p.getDefines();
+		fileExplanations = p.getFileExplanations();
 		
-		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
-		for (var q : argParser.queries) {
-			parser.addQuery(q, v -> LogUtils.infoPrint("Query " + q + " result: " + v));
+		if (argParser.definitions) {
+			for (var row : defines.getRows()) {
+				writer.write("macro: "
+					+ (String) row.getColumn("Name").getValue() + " | "
+					+ (String) row.getColumn("URI").getValue() + "\n");
+			}
+		} else {
+			writer.write(out);
 		}
 		
-		parser.parse(out);
+		LogUtils.infoPrint("Total " + defines.rowCount() + " macros defined.");
 		
-		start = preprocEnd;
-		long parseEnd = System.nanoTime();
-		LogUtils.infoPrint("Parsing finished in " + (parseEnd - start) / 1_000_000 + " ms");
+		if (argParser.parse) {
+			HashSet<Path> binaryPaths = new HashSet<>();
+			Parser parser = new Parser();
+			
+			parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
+			for (var q : argParser.queries) {
+				parser.addQuery(q, v -> LogUtils.infoPrint("Query " + q + " result: " + v));
+			}
+			
+			parser.parse(out);
+			
+			start = preprocEnd;
+			long parseEnd = System.nanoTime();
+			LogUtils.infoPrint("Parsing finished in " + (parseEnd - start) / 1_000_000 + " ms");
+			
+			LogUtils.infoPrint("Binary Paths: " + binaryPaths);
+		}
 
 //		var unitTypes = p.getUnitTypes();
 //		if (argParse.extractUnitTypeData) {
@@ -134,9 +150,7 @@ public class Main {
 //			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 		
-		LogUtils.infoPrint("Binary Paths: " + binaryPaths);
-		LogUtils.infoPrint("Total " + p.getDefines().rowCount() + " macros defined.");
-		defines = p.getDefines();
-		fileExplanations = p.getFileExplanations();
+		writer.flush();
+		writer.close();
 	}
 }
