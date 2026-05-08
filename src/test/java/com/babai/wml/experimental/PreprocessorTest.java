@@ -66,6 +66,7 @@ class PreprocessorTest {
 			{OUTER {MID}}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		String str = preproc.preprocessContent(new StringReader(defString));
+		assertEquals(3, preproc.getDefines().rowCount());
 		assertEquals("[(deep)]", str);
 	}
 
@@ -76,11 +77,12 @@ class PreprocessorTest {
 			val#enddef
 			#define WRAPPER x
 			<{x}>#enddef
-			#define OUTER x
-			({WRAPPER {x}})#enddef
+			#define OUTER y
+			({WRAPPER {y}})#enddef
 			{OUTER {INNER}}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		String str = preproc.preprocessContent(new StringReader(defString));
+		assertEquals(3, preproc.getDefines().rowCount());
 		assertEquals("(<val>)", str);
 	}
 
