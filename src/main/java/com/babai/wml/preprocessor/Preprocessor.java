@@ -204,20 +204,8 @@ public class Preprocessor {
 	}
 
 	private String processToken(ListIterator<Token> itor, Token t, List<String> currentArgs, boolean expandMacro) {
-		return switch (t.kind()) {
-		case TEXT -> t.content();
-		case WHITESPACE, EOL -> t.content();
-		case TAG -> "[" + t.content() + "]";
-		case QUOTED -> "\"" + t.content() + "\"";
-		case ANGLE_QUOTED -> "<<" + t.content() + ">>";
-		case MACRO -> {
-			if (expandMacro) {
-				yield expandMacro(t, currentArgs, context);
-			} else {
-				yield "{" + t.content() + "}";
-			}
-		}
-		case COMMENT -> {
+		String content = t.content();
+		if (t.kind() == Token.Kind.COMMENT) {
 			if (t.isDirective()) {
 				handleDirective(t, itor, currentPath.toUri().toString());
 				// suppress empty whitespace & linebreaks after directive lines
@@ -225,11 +213,25 @@ public class Preprocessor {
 				skip(itor, Token.Kind.EOL);
 			}
 			
-			yield "";
+			return "";
+		} else if (t.kind() == Token.Kind.MACRO) {
+			// exapnd macro tokens
+			if (expandMacro) {
+				return expandMacro(t, currentArgs, context);
+			} else {
+				return t.raw();
+			}
+		} else if (content.contains("{") && content.contains("}")) {
+			// expand embedded macro block in other tokens
+			String nestedSubst = preprocessFragment(content, currentArgs);
+			if (nestedSubst.equals(content)) { // nth to subst, return raw
+				return t.raw();
+			} else {
+				return Token.getRaw(nestedSubst, t.kind());
+			}
+		} else {
+			return t.raw();
 		}
-
-		default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
-		};
 	}
 	
 	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
