@@ -113,7 +113,18 @@ public final class ParseUtils {
 				String content = t.content();
 				if (t.kind() == Token.Kind.MACRO) {
 					String val = subst.get(content);
-					out.append(val != null ? val : t.raw());
+					
+					// embedded macro block
+					if (val == null) {
+						String nestedSubst = substitute(content, subst);
+						if (nestedSubst.equals(content)) { // nth to subst, return raw
+							out.append(t.raw());
+						} else {
+							out.append(Token.getRaw(nestedSubst, t.kind()));
+						}
+					} else {
+						out.append(val);
+					}
 				} else {
 					// embedded macro block in other tokens
 					String nestedSubst = substitute(content, subst);
