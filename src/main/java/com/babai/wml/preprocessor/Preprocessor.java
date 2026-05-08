@@ -2,7 +2,6 @@ package com.babai.wml.preprocessor;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -172,7 +171,7 @@ public class Preprocessor {
 	private String preprocessFragment(String fragment, List<String> args) {
 		try {
 			var buff = new StringBuilder();
-			var itor = tokenize(new StringReader(fragment)).listIterator();
+			var itor = tokenize(fragment).listIterator();
 			while (itor.hasNext()) {
 				Token t = itor.next();
 				boolean expand = !args.contains(t.content());
@@ -433,7 +432,6 @@ public class Preprocessor {
 	
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
 		final String content = macroCall.content();
-		final String fallback = "{" + content + "}";
 		var parts = ParseUtils.splitQuoted(content);
 		String macroName = parts.get(0);
 		List<MacroArg> args = new ArrayList<>();
@@ -450,7 +448,7 @@ public class Preprocessor {
 		
 		if (def != null) {
 			
-			// Process macro call args
+			// Process macro call arguments
 			int lastPos = 0;
 			for (int i = 1; i < parts.size(); i++) {
 				String str = parts.get(i);
@@ -516,16 +514,16 @@ public class Preprocessor {
 					+ " in "
 					+ colorify(currentPath.toString(), filePathColor)
 					+ ": " + e.getMessage());
-				return fallback;
+				return macroCall.raw();
 			}
 			
 		// Nested arg processing
 		} else if (possibleArgs.contains(macroName)) {
 			// FIXME: do nothing for now. may need checks later.
-			return fallback;
+			return macroCall.raw();
 		} else {
 			nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPath.toString())));
-			return fallback;
+			return macroCall.raw();
 		}
 	}
 	
