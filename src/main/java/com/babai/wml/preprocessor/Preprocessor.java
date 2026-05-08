@@ -220,7 +220,7 @@ public class Preprocessor {
 			} else {
 				return t.raw();
 			}
-		} else if (content.contains("{") && content.contains("}")) {
+		} else if (t.kind() != Token.Kind.ANGLE_QUOTED && content.contains("{") && content.contains("}")) {
 			// expand embedded macro block in other tokens
 			String nestedSubst = preprocessFragment(content, currentArgs);
 			if (nestedSubst.equals(content)) { // nth to subst, return raw

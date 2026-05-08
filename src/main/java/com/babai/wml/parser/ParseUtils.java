@@ -125,7 +125,7 @@ public final class ParseUtils {
 					} else {
 						out.append(val);
 					}
-				} else {
+				} else if (t.kind() != Token.Kind.ANGLE_QUOTED) {
 					// embedded macro block in other tokens
 					String nestedSubst = substitute(content, subst);
 					if (nestedSubst.equals(content)) { // nth to subst, return raw
@@ -133,6 +133,8 @@ public final class ParseUtils {
 					} else {
 						out.append(Token.getRaw(nestedSubst, t.kind()));
 					}
+				} else {
+					out.append(t.raw());
 				}
 			}
 			return out.toString();
