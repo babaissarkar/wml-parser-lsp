@@ -1,8 +1,6 @@
 package com.babai.wml.experimental;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -63,7 +61,7 @@ class TokenizerTest {
 	void testCommentSplit() {
 		String text = "Hello #Comment\nLine2";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new BufferedReader(new StringReader(text)));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(comment test): " + toks);
 			assertEquals(5, toks.size());
 			assertEquals("Hello", toks.get(0).content());
@@ -80,7 +78,7 @@ class TokenizerTest {
 	void testQuotedString() {
 		String text = "key=\"value val\"\"ue2\nvalue3\"";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(quoted test): " + toks);
 			assertEquals(2, toks.size());
 			// checks "" -> " collapse, preservation of whitespace
@@ -95,7 +93,7 @@ class TokenizerTest {
 	void testAngledQuotedString() {
 		String text = "key=<<value val\"ue2\nvalue3>>";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(angle quote test): " + toks);
 			assertEquals(2, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
@@ -110,7 +108,7 @@ class TokenizerTest {
 	void testMacroString() {
 		String text = "key={MYMACRO ARG1 ARG2 ARG3=\"def\"}";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(angle quote test): " + toks);
 			assertEquals(2, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
@@ -125,7 +123,7 @@ class TokenizerTest {
 	void testQuotedConcatenation() {
 		String text = "\"Hello \" + \"Hello\"";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(quoted concat): " + toks);
 
 			assertEquals(1, toks.size());
@@ -140,7 +138,7 @@ class TokenizerTest {
 	void testUnquotedConcatenation() {
 		String text = "foo + bar";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(unquoted concat): " + toks);
 
 			assertEquals(1, toks.size());
@@ -155,7 +153,7 @@ class TokenizerTest {
 	void testMixedConcatenation() {
 		String text = "\"Hello\" + world";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(mixed concat): " + toks);
 
 			assertEquals(1, toks.size());
@@ -170,7 +168,7 @@ class TokenizerTest {
 	void testChainedConcatenation() {
 		String text = "\"Journey\" + of + a + \"Frost Mage\"";
 		try {
-			List<Token> toks = Tokenizer.tokenize(new StringReader(text));
+			List<Token> toks = Tokenizer.tokenize(text);
 			System.out.println("Toks(chained concat): " + toks);
 
 			assertEquals(1, toks.size());

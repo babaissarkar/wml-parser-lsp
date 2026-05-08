@@ -2,7 +2,9 @@ package com.babai.wml.tokenizer;
 
 import java.io.Reader;
 import java.io.IOException;
+import java.io.BufferedReader;
 import java.io.PushbackReader;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -15,6 +17,10 @@ import com.babai.wml.utils.Position;
 public final class Tokenizer {	
 	public static List<Token> tokenize(Path inputPath) throws IOException {
 		return tokenize(Files.newBufferedReader(inputPath));
+	}
+	
+	public static List<Token> tokenize(String content) throws IOException {
+		return tokenize(new BufferedReader(new StringReader(content)));
 	}
 
 	public static List<Token> tokenize(Reader reader) throws IOException {
