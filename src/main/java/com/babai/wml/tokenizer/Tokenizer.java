@@ -50,7 +50,12 @@ public final class Tokenizer {
 					finalizeAndAddToken(tokens, readQuoteToken(r), Token.Kind.QUOTED, start);
 				} else if (c == '<') {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					finalizeAndAddToken(tokens, readAngleQuoteToken(r), Token.Kind.ANGLE_QUOTED, start);
+					String text = readAngleQuoteToken(r);
+					if (text.isEmpty()) {
+						buff.append(c);
+					} else {
+						finalizeAndAddToken(tokens, text, Token.Kind.ANGLE_QUOTED, start);
+					}
 				} else if (c == '{') {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 					finalizeAndAddToken(tokens, readMacroToken(r), Token.Kind.MACRO, start);

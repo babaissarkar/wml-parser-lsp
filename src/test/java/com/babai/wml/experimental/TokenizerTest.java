@@ -120,6 +120,32 @@ class TokenizerTest {
 	}
 	
 	@Test
+	void testSingleAngle() {
+		String text = "<hello>";
+		try {
+			List<Token> toks = Tokenizer.tokenize(text);
+			assertEquals(1, toks.size());
+			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
+			assertEquals("<hello>", toks.get(0).content());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	void testUnbalancedAngle() {
+		String text = "<hello";
+		try {
+			List<Token> toks = Tokenizer.tokenize(text);
+			assertEquals(1, toks.size());
+			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
+			assertEquals("<hello", toks.get(0).content());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
 	void testQuotedConcatenation() {
 		String text = "\"Hello \" + \"Hello\"";
 		try {
