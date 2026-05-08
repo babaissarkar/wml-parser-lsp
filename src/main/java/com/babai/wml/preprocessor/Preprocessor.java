@@ -460,7 +460,7 @@ public class Preprocessor {
 					int argStart = macroCall.beginColumn() + lastPos;
 					int argEnd = argStart + str.length();
 					int argLine = macroCall.beginLine() - 1; //TODO args may start on a different line. why -1?
-					args.add(new MacroArg(str, argLine, argStart, argEnd));
+					args.add(new MacroArg(preprocessFragment(str, List.of()), argLine, argStart, argEnd));
 				} else {
 					// Optional keyword args
 					if (str.contains("=")) {
@@ -499,14 +499,14 @@ public class Preprocessor {
 			
 			try {
 				String out = def.getValue();
-				// substitute macros
-				if (out.contains("{")) {
-					out = preprocessFragment(out, argsList);
-				}
 				
 				// substitute args
 				if (out.contains("{")) {
 					out = def.expand(args, defArgs);
+				}
+				// substitute macros
+				if (out.contains("{")) {
+					out = preprocessFragment(out, argsList);
 				}
 				return out;
 			} catch(IllegalArgumentException e) {
