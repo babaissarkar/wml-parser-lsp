@@ -1,7 +1,6 @@
 package com.babai.wml.parser;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
@@ -103,17 +102,26 @@ public final class ParseUtils {
 	
 	public static String substitute(String template, Map<String, String> subst) {
 		if (!template.contains("{")) return template;
+
 		try {
 			var out = new StringBuilder();
-			var tokens = Tokenizer.tokenize(new StringReader(template));
+			var tokens = Tokenizer.tokenize(template);
 			var itor = tokens.listIterator();
+			
 			while (itor.hasNext()) {
 				Token t = itor.next();
+				String content = t.content();
 				if (t.kind() == Token.Kind.MACRO) {
-					String val = subst.get(t.content());
-					out.append(val != null ? val : getRaw(t));
+					String val = subst.get(content);
+					out.append(val != null ? val : t.raw());
 				} else {
-					out.append(getRaw(t));
+					// embedded macro block in other tokens
+					String nestedSubst = substitute(content, subst);
+					if (nestedSubst.equals(content)) { // nth to subst, return raw
+						out.append(t.raw());
+					} else {
+						out.append(Token.getRaw(nestedSubst, t.kind()));
+					}
 				}
 			}
 			return out.toString();
@@ -121,17 +129,4 @@ public final class ParseUtils {
 			return template;
 		}
 	}
-	
-	private static String getRaw(Token t) {
-		return switch (t.kind()) {
-			case TEXT, WHITESPACE, EOL -> t.content();
-			case TAG -> "[" + t.content() + "]";
-			case QUOTED -> "\"" + t.content() + "\"";
-			case ANGLE_QUOTED -> "<<" + t.content() + ">>";
-			case MACRO -> "{" + t.content() + "}";
-			case COMMENT -> "#" + t.content();
-			default -> throw new IllegalArgumentException("Unexpected value: " + t.kind());
-		};
-	}
-
 }

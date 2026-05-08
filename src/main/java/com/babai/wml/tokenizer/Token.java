@@ -64,6 +64,22 @@ public final class Token {
 		return hasArg ? content.startsWith(directiveName) : content.equals(directiveName);
 		// TODO throw error if hasArg = false & content.startsWith(directiveName) passes.
 	}
+	
+	public String raw() {
+		return getRaw(content(), kind());
+	}
+	
+	public static String getRaw(String content, Token.Kind kind) {
+		return switch (kind) {
+			case TEXT, WHITESPACE, EOL -> content;
+			case TAG -> "[" + content + "]";
+			case QUOTED -> "\"" + content + "\"";
+			case ANGLE_QUOTED -> "<<" + content + ">>";
+			case MACRO -> "{" + content + "}";
+			case COMMENT -> "#" + content;
+			default -> throw new IllegalArgumentException("Unexpected value: " + kind);
+		};
+	}
 
 	public enum Kind {
 		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, TAG, EOF
