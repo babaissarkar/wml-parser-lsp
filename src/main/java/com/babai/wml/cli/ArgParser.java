@@ -45,7 +45,7 @@ public class ArgParser {
 		predefines.addRow(0, "predefined", nameAndBody[0], new Definition(nameAndBody[0], nameAndBody[1]));
 	}
 	
-	@Parameters(index = "0", paramLabel = "INPUT", description = "Path to the main input file or folder (default: stdin)")
+	@Parameters(index = "0", arity = "0..1", paramLabel = "INPUT", description = "Path to the main input file or folder (default: stdin). Not needed in LSP mode (-s).")
 	public Path inputPath;
 
 	@Option(names = {"-o", "-output", "--output"}, description = "Path to a file to write output to (default: stdout)")
