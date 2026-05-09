@@ -210,4 +210,28 @@ class PreprocessorTest {
 		assertEquals("1.19.0", macroDefinition.getDeprecationRemovalVersion());
 		assertEquals("Use NEW_MACRO instead", macroDefinition.getDeprecationMessage());
 	}
+	
+	@Test
+	void testDefineInsideIfdef() throws IOException {
+		String defString = """
+			#define NORMAL
+			true#enddef
+			#ifdef EASY
+			#define ON_DIFFICULTY EASY_VALUE NORMAL_VALUE HARD_VALUE
+			{EASY_VALUE}#enddef
+			#endif
+			#ifdef NORMAL
+			#define ON_DIFFICULTY EASY_VALUE NORMAL_VALUE HARD_VALUE
+			{NORMAL_VALUE}#enddef
+			#endif
+			#ifdef HARD
+			#define ON_DIFFICULTY EASY_VALUE NORMAL_VALUE HARD_VALUE
+			{HARD_VALUE}#enddef
+			#endif
+			{ON_DIFFICULTY 40 60 80}""";
+		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+		String str = preproc.preprocessContent(new StringReader(defString));
+		assertEquals(2, preproc.getDefines().rowCount());
+		assertEquals("60", str.strip()); // FIXME where is the stray EOL coming from? We shouldn't need strip.
+	}
 }
