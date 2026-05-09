@@ -27,6 +27,12 @@ public class Main {
 	private static Table defines;
 	private static HashMap<String, String> fileExplanations;
 	private static PathContext pathContext;
+	
+	private static Table predefines = Table.ofWithIndices(
+		new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
+		new String[] { "Line", "URI", "Name", "Definition" },
+		1, 2
+		);
 
 	public static void main(String[] args) {
 		var argParser = new ArgParser();
@@ -55,10 +61,16 @@ public class Main {
 			argParser.userDataPath,
 			new HashSet<Path>());
 		
-		argParser.predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
+		predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
+		
+		for (int i = 0; i < argParser.definesList.size(); i += 2) {
+			String name = argParser.definesList.get(i);
+			String val = argParser.definesList.get(i+1);
+			predefines.addRow(0, "predefined", name, new Definition(name, val));
+		}
 		
 		if (argParser.startLSPServer) {
-			WMLLanguageServer.initServer(argParser.predefines, pathContext, argParser.includes);
+			WMLLanguageServer.initServer(predefines, pathContext, argParser.includes);
 		} else {
 			try {
 				initParse(argParser);
@@ -77,7 +89,7 @@ public class Main {
 		
 		long start = System.nanoTime();
 		
-		var p = new Preprocessor(pathContext, argParser.predefines);
+		var p = new Preprocessor(pathContext, predefines);
 		p.setListFilesInInfo(argParser.listFilesInInfo);
 		
 		BufferedWriter writer = null;

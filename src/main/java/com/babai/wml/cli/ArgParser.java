@@ -33,17 +33,9 @@ public class ArgParser {
 	
 	@Option(names = {"-i", "-include", "--include"}, arity = "1", description = "File/folders to be preprocessed before to collect macro definitions")
 	public List<Path> includes = new ArrayList<>();
-	
-	public Table predefines = Table.ofWithIndices(
-			new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
-			new String[] { "Line", "URI", "Name", "Definition" },
-			1, 2
-			);
 
 	@Option(names = {"-define", "-d", "--define"}, arity = "2", description = "Define macro: -define NAME BODY", paramLabel = "NAME BODY", hideParamSyntax = true)
-	public void addDefine(String[] nameAndBody) {
-		predefines.addRow(0, "predefined", nameAndBody[0], new Definition(nameAndBody[0], nameAndBody[1]));
-	}
+	public List<String> definesList = new ArrayList<>();
 	
 	@Parameters(index = "0", arity = "0..1", paramLabel = "INPUT", description = "Path to the main input file or folder (default: stdin). Not needed in LSP mode (-s).")
 	public Path inputPath;
