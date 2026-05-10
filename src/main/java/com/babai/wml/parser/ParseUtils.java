@@ -72,6 +72,17 @@ public final class ParseUtils {
 					}
 					// Consume closing ')' if present; tolerate malformed input by leaving as-is.
 					if (i < chars.length && chars[i] == ')') i++;
+				} else if (c == '{' && sb.isEmpty()) {
+					// Macro start '{' at token start acts as quoting against whitespace.
+					sb.append(c);
+					i++;
+					while (i < chars.length && chars[i] != '}') {
+						sb.append(chars[i]);
+						i++;
+					}
+					// append terminating '}'
+					sb.append(chars[i]);
+					i++;
 				} else {
 					// Regular unquoted token content.
 					sb.append(c);
