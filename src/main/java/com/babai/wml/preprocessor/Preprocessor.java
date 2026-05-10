@@ -338,7 +338,6 @@ public class Preprocessor {
 				macroDefaultArgs.put(defArgName, consumeUntilEndDirective("endarg", itor));
 				
 				skip(itor, Token.Kind.EOL, Token.Kind.WHITESPACE);
-				
 			}
 			
 			// Body
@@ -460,7 +459,12 @@ public class Preprocessor {
 					int argStart = macroCall.beginColumn() + lastPos;
 					int argEnd = argStart + str.length();
 					int argLine = macroCall.beginLine() - 1; //TODO args may start on a different line. why -1?
-					args.add(new MacroArg(preprocessFragment(str, List.of()), argLine, argStart, argEnd));
+					String argStr = preprocessFragment(str, List.of());
+					// Properly quote multiline args
+					if (argStr.contains("\n")) {
+						argStr = "(" + argStr + ")";
+					}
+					args.add(new MacroArg(argStr, argLine, argStart, argEnd));
 				} else {
 					// Optional keyword args
 					if (str.contains("=")) {
