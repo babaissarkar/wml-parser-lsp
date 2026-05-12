@@ -10,8 +10,8 @@ import java.util.ListIterator;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+import com.babai.wml.query.Query;
 import com.babai.wml.tokenizer.Token;
-import com.babai.wml.utils.AIGenerated;
 
 import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.LogUtils.*;
@@ -42,7 +42,7 @@ public class Parser {
 			String line = t.content().strip();
 			for (var query : queryLambdas.entrySet()) {
 				String[] parts = line.split("=", 2);
-				if (queryMatch(query.getKey(), tagStack, parts[0].trim())) {
+				if (Query.match(query.getKey(), tagStack, parts[0].trim())) {
 					String value = parts[1].trim();
 					if (value.isEmpty()) {
 						t = itor.next();
@@ -97,26 +97,5 @@ public class Parser {
 		}
 	}
 
-	@AIGenerated
-	public static boolean queryMatch(String queryStr, List<String> tagStack, String key) {
-		String[] queryParts = queryStr.split("/");
-
-		if (tagStack.size() < queryParts.length - 1) return false; // not deep enough
-
-		int i;
-		for (i = 0; i < queryParts.length; i++) {
-			if (i == queryParts.length - 1) {
-				// if stack has this level, it's a tag match
-				// if stack is one short, it's a key match
-				if (tagStack.size() > i) {
-					return tagStack.get(i).equals(queryParts[i]);
-				} else {
-					return key.equals(queryParts[i]);
-				}
-			}
-			if (!tagStack.get(i).equals(queryParts[i])) return false;
-		}
-
-		return true; // all tag parts matched, no key part
-	}
+	
 }
