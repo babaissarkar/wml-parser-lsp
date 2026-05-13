@@ -10,7 +10,7 @@ import java.util.ListIterator;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import com.babai.wml.query.Query;
+import com.babai.wml.query.WMLQuery;
 import com.babai.wml.tokenizer.Token;
 
 import static com.babai.wml.utils.Colors.*;
@@ -42,7 +42,7 @@ public class Parser {
 			String line = t.content().strip();
 			for (var query : queryLambdas.entrySet()) {
 				String[] parts = line.split("=", 2);
-				if (Query.match(query.getKey(), tagStack, parts[0].trim())) {
+				if (WMLQuery.match(tagStack, query.getKey(), parts[0].trim())) {
 					String value = parts[1].trim();
 					if (value.isEmpty()) {
 						t = itor.next();
