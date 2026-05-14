@@ -16,8 +16,8 @@ import com.babai.wml.tokenizer.Token;
 import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.LogUtils.*;
 import static com.babai.wml.cli.ANSIFormatter.colorify;
-import static com.babai.wml.parser.ParseUtils.skip;
 import static com.babai.wml.tokenizer.Tokenizer.tokenize;
+import static com.babai.wml.tokenizer.Token.Kind.*;
 
 public class Parser {
 	private List<String> tagStack = new ArrayList<>();
@@ -39,27 +39,17 @@ public class Parser {
 	private void parseToken(ListIterator<Token> itor, Token t) {
 		switch (t.kind()) {
 		case TEXT -> {
-			String line = t.content().strip();
+			var line = new StringBuilder();
+			
+			while (t.isKind(TEXT, WHITESPACE)) {
+				line.append(t.content());
+				t = itor.next();
+			}
+			
 			for (var query : queryLambdas.entrySet()) {
-				String[] parts = line.split("=", 2);
+				String[] parts = line.toString().split("=", 2);
 				if (WMLQuery.match(tagStack, query.getKey(), parts[0].trim())) {
 					String value = parts[1].trim();
-					if (value.isEmpty()) {
-						t = itor.next();
-						if (t.kind() == Token.Kind.WHITESPACE) {
-							skip(itor, Token.Kind.WHITESPACE);
-						}
-						
-						itor.previous();
-						t = itor.next();
-						if (t.kind() != Token.Kind.EOL) {
-							value = t.content().strip();
-						} else {
-							errorPrint("Invalid line: " + line);
-							break;
-						}
-					}
-					
 					for (var lambda : query.getValue()) {
 						lambda.accept(value);
 					}
