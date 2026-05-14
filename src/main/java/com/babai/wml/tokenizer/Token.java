@@ -103,4 +103,15 @@ public final class Token {
 		builder.append("]");
 		return builder.toString();
 	}
+
+	public boolean isKind(Kind...kinds) {
+		for (var k : kinds) {
+			if (this.kind() == k) return true;
+		}
+		return false;
+	}
+	
+	public boolean isNotKind(Kind...kinds) {
+		return !isKind(kinds);
+	}
 }
