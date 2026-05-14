@@ -10,9 +10,6 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import com.babai.wml.preprocessor.Definition;
-import com.babai.wml.utils.Table;
-
 @Command(name = "wml", version = "WML Multitool and LSP, version 2.0.0", mixinStandardHelpOptions = true)
 public class ArgParser {
 
