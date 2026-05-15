@@ -41,7 +41,7 @@ public class Parser {
 		case TEXT -> {
 			var line = new StringBuilder();
 			
-			while (t.isKind(TEXT, WHITESPACE)) {
+			while (t.isKind(TEXT, WHITESPACE, QUOTED, ANGLE_QUOTED)) {
 				line.append(t.content());
 				t = itor.next();
 			}
