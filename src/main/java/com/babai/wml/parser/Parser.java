@@ -23,12 +23,12 @@ import static com.babai.wml.parser.ParseUtils.peek;
 public class Parser {
 	private List<String> tagStack = new ArrayList<>();
 	private HashMap<String, List<Consumer<String>>> queryLambdas = new LinkedHashMap<>();
-	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d");
-	
+	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d", Pattern.CASE_INSENSITIVE);
+
 	public void addQuery(String query, Consumer<String> queryLambda) {
 		queryLambdas.computeIfAbsent(query, k -> new ArrayList<>()).add(queryLambda);
 	}
-	
+
 	public void parse(String text) throws IOException {
 		var itor = tokenize(new StringReader(text)).listIterator();
 		while (itor.hasNext()) {
@@ -41,12 +41,12 @@ public class Parser {
 		switch (t.kind()) {
 		case TEXT -> {
 			var line = new StringBuilder();
-			
+
 			while (peek(itor).isKind(TEXT, WHITESPACE, QUOTED, ANGLE_QUOTED)) {
 				t = itor.next();
 				line.append(t.content());
 			}
-			
+
 			for (var query : queryLambdas.entrySet()) {
 				String[] parts = line.toString().split("=", 2);
 				if (WMLQuery.match(tagStack, query.getKey(), parts[0].trim())) {
@@ -88,5 +88,5 @@ public class Parser {
 		}
 	}
 
-	
+
 }
