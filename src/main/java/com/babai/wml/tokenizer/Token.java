@@ -61,6 +61,10 @@ public final class Token {
 	}
 	
 	public boolean isDirectiveName(String directiveName, boolean hasArg) {
+		if (kind != Token.Kind.COMMENT) return false;
+		
+		if (content.isEmpty()) return false;
+		
 		return hasArg ? content.startsWith(directiveName) : content.equals(directiveName);
 		// TODO throw error if hasArg = false & content.startsWith(directiveName) passes.
 	}
