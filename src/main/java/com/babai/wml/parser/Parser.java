@@ -21,9 +21,12 @@ import static com.babai.wml.tokenizer.Token.Kind.*;
 import static com.babai.wml.parser.ParseUtils.peek;
 
 public class Parser {
+	private final static Pattern nottagpattern = Pattern.compile("[^a-z_\\d]|^\\d", Pattern.CASE_INSENSITIVE);
+	private final static Pattern eqlpattern = Pattern.compile("=");
+	private final static Pattern atpattern = Pattern.compile("@");
+
 	private List<String> tagStack = new ArrayList<>();
 	private HashMap<String, List<Consumer<String>>> queryLambdas = new LinkedHashMap<>();
-	private static final Pattern NOT_TAG_PATTERN = Pattern.compile("[^a-z_\\d]|^\\d", Pattern.CASE_INSENSITIVE);
 
 	public void addQuery(String query, Consumer<String> queryLambda) {
 		queryLambdas.computeIfAbsent(query, k -> new ArrayList<>()).add(queryLambda);
@@ -48,7 +51,7 @@ public class Parser {
 			}
 
 			for (var query : queryLambdas.entrySet()) {
-				String[] parts = line.toString().split("=", 2);
+				String[] parts = eqlpattern.split(line.toString(), 2);
 				if (WMLQuery.match(tagStack, query.getKey(), parts[0].trim())) {
 					String value = parts[1].trim();
 					for (var lambda : query.getValue()) {
@@ -62,7 +65,7 @@ public class Parser {
 			if (tagName.startsWith("+")) {
 				// appending tag, like [+units]
 				tagName = tagName.substring(1, tagName.length());
-				if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
+				if (!nottagpattern.matcher(tagName).find()) {
 					tagStack.add(tagName);
 				}
 			} else if (tagName.startsWith("/")) {
@@ -78,7 +81,7 @@ public class Parser {
 					+ colorify("[" + tagStack.getLast() + "]", tagColor));
 				}
 				// needs better handling
-			} else if (!NOT_TAG_PATTERN.matcher(tagName).find()) {
+			} else if (!nottagpattern.matcher(tagName).find()) {
 				tagStack.add(tagName);
 			}
 		}
