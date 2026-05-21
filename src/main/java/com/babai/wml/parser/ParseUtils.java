@@ -42,6 +42,8 @@ public final class ParseUtils {
 		char[] chars = token.toCharArray();
 
 		int i = 0;
+		int nlvl = 0; // () nesting level
+		
 		while (i < chars.length) {
 			// Token boundary starts at the next non-whitespace character.
 			while (i < chars.length && Character.isWhitespace(chars[i])) i++; // skip WS
@@ -65,12 +67,18 @@ public final class ParseUtils {
 				} else if (c == '(' && sb.isEmpty()) {
 					// Parenthesized value at token start acts as quoting against whitespace.
 					// Keep the body but strip the outer parentheses: (a b) -> a b
+					nlvl++;
 					i++;
-					while (i < chars.length && chars[i] != ')') {
+					while (i < chars.length) {
+						if (chars[i] == '(') nlvl++;
+						if (chars[i] == ')') nlvl--;
+						
+						if (nlvl == 0) break;
+						
 						sb.append(chars[i]);
 						i++;
 					}
-					// Consume closing ')' if present; tolerate malformed input by leaving as-is.
+					// Skip closing ')' if present; tolerate malformed input by leaving as-is.
 					if (i < chars.length && chars[i] == ')') i++;
 				} else if (c == '{' && sb.isEmpty()) {
 					// Macro start '{' at token start acts as quoting against whitespace.
