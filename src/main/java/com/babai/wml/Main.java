@@ -160,10 +160,11 @@ public class Main {
 		
 		if (argParser.parse) {
 			HashSet<Path> binaryPaths = new HashSet<>();
-			var parser = new Parser();
-			
-			parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 			var buff = new StringBuilder();
+			
+			var parser = new Parser();
+			parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
+			
 			for (var q : argParser.queries) {
 				parser.addQuery(q, v -> buff.append("Query " + q + " result: " + v + "\n"));
 			}

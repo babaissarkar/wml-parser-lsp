@@ -23,7 +23,6 @@ import static com.babai.wml.parser.ParseUtils.peek;
 public class Parser {
 	private final static Pattern nottagpattern = Pattern.compile("[^a-z_\\d]|^\\d", Pattern.CASE_INSENSITIVE);
 	private final static Pattern eqlpattern = Pattern.compile("=");
-	private final static Pattern atpattern = Pattern.compile("@");
 
 	private List<String> tagStack = new ArrayList<>();
 	private HashMap<String, List<Consumer<String>>> queryLambdas = new LinkedHashMap<>();

@@ -110,7 +110,7 @@ public final class Token {
 
 	public boolean isKind(Kind...kinds) {
 		for (var k : kinds) {
-			if (this.kind() == k) return true;
+			if (kind == k) return true;
 		}
 		return false;
 	}
