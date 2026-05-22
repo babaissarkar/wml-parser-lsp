@@ -44,6 +44,7 @@ public class Parser {
 		case TEXT -> {
 			var line = new StringBuilder();
 
+			line.append(t.content());
 			while (peek(itor).isKind(TEXT, WHITESPACE, QUOTED, ANGLE_QUOTED)) {
 				t = itor.next();
 				line.append(t.content());
