@@ -29,7 +29,6 @@ import static com.babai.wml.tokenizer.Token.Kind.*;
 
 public class Preprocessor {
 	private final static Pattern wspattern = Pattern.compile("\\s+");
-	private final static Pattern atpattern = Pattern.compile("@");
 	private final static Pattern eqlpattern = Pattern.compile("=");
 
 	private boolean skipElse = true;
@@ -113,7 +112,8 @@ public class Preprocessor {
 		}
 
 		// linebreak so outputs from different files are separated
-		return out.toString() + "\n";
+		out.append("\n");
+		return out.toString();
 	}
 
 	public String preprocessFile(Path path) {
