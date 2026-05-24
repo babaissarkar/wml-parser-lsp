@@ -42,6 +42,7 @@ public class Preprocessor {
 	// format: macroName, positionString
 	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
 	private boolean listFilesInInfo = false;
+	private String currentPathStr;
 
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -120,6 +121,7 @@ public class Preprocessor {
 		int prevMacroCount = this.defines.rowCount();
 		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 		this.currentPath = path;
+		this.currentPathStr = path.toUri().toString();
 
 		debugPrint("Preprocessing: " + coloredPath);
 
@@ -174,6 +176,7 @@ public class Preprocessor {
 	}
 
 	private String preprocessFragment(String fragment, List<String> args) {
+		if(!(fragment.contains("{") && fragment.contains("}"))) return fragment;
 		try {
 			var buff = new StringBuilder();
 			var itor = tokenize(fragment).listIterator();
@@ -422,12 +425,12 @@ public class Preprocessor {
 			return "";
 		}
 
-		String msg = "Including: %s";
+		String msg = "Including: ";
 		if (listFilesInInfo) {
 			coloredPath = colorify(context.relativize(p), filePathColor);
-			infoPrint(msg.formatted(coloredPath));
+			infoPrint(msg + coloredPath);
 		} else {
-			debugPrint(msg.formatted(coloredPath));
+			debugPrint(msg + coloredPath);
 		}
 
 		return preprocess(p);

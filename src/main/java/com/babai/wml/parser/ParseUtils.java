@@ -130,7 +130,7 @@ public final class ParseUtils {
 			while (itor.hasNext()) {
 				Token t = itor.next();
 				String content = t.content();
-				if (t.kind() == Token.Kind.MACRO) {
+				if (t.isKind(Token.Kind.MACRO)) {
 					String val = subst.get(content);
 					
 					// embedded macro block
@@ -144,7 +144,7 @@ public final class ParseUtils {
 					} else {
 						out.append(val);
 					}
-				} else if (t.kind() != Token.Kind.ANGLE_QUOTED) {
+				} else if (t.isNotKind(Token.Kind.ANGLE_QUOTED)) {
 					// embedded macro block in other tokens
 					String nestedSubst = substitute(content, subst);
 					if (nestedSubst.equals(content)) { // nth to subst, return raw

@@ -292,13 +292,13 @@ public final class Tokenizer {
 				while (j < tokens.size()) {
 
 					int k = j;
-					while (k < tokens.size() && tokens.get(k).kind() == Token.Kind.WHITESPACE) k++;
+					while (k < tokens.size() && tokens.get(k).isKind(Token.Kind.WHITESPACE)) k++;
 
 					if (k >= tokens.size() || !isPlus(tokens.get(k))) break;
 
 					k++;
 
-					while (k < tokens.size() && tokens.get(k).kind() == Token.Kind.WHITESPACE) k++;
+					while (k < tokens.size() && tokens.get(k).isKind(Token.Kind.WHITESPACE)) k++;
 
 					if (k >= tokens.size()) break;
 
@@ -306,15 +306,15 @@ public final class Tokenizer {
 					if (!isConcatCandidate(next)) break;
 
 					// Pairwise spacing rule
-					if (previousOperand.kind() == Token.Kind.TEXT
-						&& next.kind() == Token.Kind.TEXT)
+					if (previousOperand.isKind(Token.Kind.TEXT)
+						&& next.isKind(Token.Kind.TEXT))
 					{
 						merged.append(" ");
 					}
 
 					merged.append(next.content());
 
-					if (next.kind() == Token.Kind.QUOTED) {
+					if (next.isKind(Token.Kind.QUOTED)) {
 						resultingKind = Token.Kind.QUOTED;
 					}
 
@@ -333,11 +333,11 @@ public final class Tokenizer {
 	}
 	
 	private static boolean isConcatCandidate(Token t) {
-		return t.kind() == Token.Kind.TEXT || t.kind() == Token.Kind.QUOTED;
+		return t.isKind(Token.Kind.TEXT, Token.Kind.QUOTED);
 	}
 
 	private static boolean isPlus(Token t) {
-		return t.kind() == Token.Kind.TEXT && t.content().equals("+");
+		return t.isKind(Token.Kind.TEXT) && t.content().equals("+");
 	}
 
 	private static boolean isEOL(char c) {
