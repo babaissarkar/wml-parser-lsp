@@ -34,7 +34,10 @@ public class Preprocessor {
 	private boolean skipElse = true;
 	private Table defines;
 	private PathContext context;
+	
 	private Path currentPath = Path.of(".");
+	private String currentPathUri;
+	
 	private List<String> currentDefineArgs = new ArrayList<>();
 	private List<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
@@ -42,7 +45,6 @@ public class Preprocessor {
 	// format: macroName, positionString
 	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
 	private boolean listFilesInInfo = false;
-	private String currentPathStr;
 
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -121,7 +123,7 @@ public class Preprocessor {
 		int prevMacroCount = this.defines.rowCount();
 		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 		this.currentPath = path;
-		this.currentPathStr = path.toUri().toString();
+		this.currentPathUri = path.toUri().toString();
 
 		debugPrint("Preprocessing: " + coloredPath);
 
@@ -156,12 +158,12 @@ public class Preprocessor {
 		String textdomain;
 		if (peek(itor).isDirectiveName("textdomain", true)) {
 			Token t = itor.next();
-			var directiveHeader = DirectiveHeader.parse(t, currentPath.toString());
+			var directiveHeader = DirectiveHeader.parse(t, currentPathUri);
 			textdomain = directiveHeader.args()[0];
 			debugPrint("Textdomain: " + textdomain);
 		}
 
-		fileExplanations.put(currentPath.toUri().toString(), handleDocComment(itor));
+		fileExplanations.put(currentPathUri, handleDocComment(itor));
 
 		while (itor.hasNext()) {
 			Token t = itor.next();
@@ -214,7 +216,7 @@ public class Preprocessor {
 		String content = t.content();
 		if (t.isKind(COMMENT)) {
 			if (t.isDirective()) {
-				handleDirective(t, itor, currentPath.toUri().toString());
+				handleDirective(t, itor, currentPathUri);
 				// suppress empty whitespace & linebreaks after directive lines
 				skip(itor, WHITESPACE);
 				skip(itor, EOL);
@@ -250,7 +252,7 @@ public class Preprocessor {
 				// terminated before define completed, error
 				errorPrint("End directive "
 						+ colorify(directiveName, directiveColor)
-						+ " not found. Pos: " + position(t, currentPath.toString()));
+						+ " not found. Pos: " + position(t, currentPathUri));
 				break;
 			} else {
 				// we don't want to expand any macro calls in body when consuming directive body,
@@ -277,7 +279,7 @@ public class Preprocessor {
 						+ colorify(endDir1, directiveColor)
 						+ " or "
 						+ colorify(endDir2, directiveColor)
-						+ " not found. Pos: " + position(t, currentPath.toString()));
+						+ " not found. Pos: " + position(t, currentPathUri));
 				return;
 			} else {
 				if (!itor.hasNext()) return;
@@ -288,7 +290,7 @@ public class Preprocessor {
 	}
 
 	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathUri) {
-		var directiveHeader = DirectiveHeader.parse(directiveStart, currentPath.toString());
+		var directiveHeader = DirectiveHeader.parse(directiveStart, currentPathUri);
 		var directiveArgs = directiveHeader.args();
 
 		if (directiveHeader.head().equals("define")) {
@@ -307,7 +309,7 @@ public class Preprocessor {
 				debugPrint("Deprecated macro: " + macroName);
 				Token t = itor.next();
 				isDeprecated = true;
-				var deprecationHeader = DirectiveHeader.parse(t, currentPath.toString());
+				var deprecationHeader = DirectiveHeader.parse(t, currentPathUri);
 				var depreArgs = deprecationHeader.args();
 				depreLevel = Integer.parseInt(depreArgs[0]);
 				if (depreLevel == 2 || depreLevel == 3) {
@@ -339,7 +341,7 @@ public class Preprocessor {
 			var macroDefaultArgs = new LinkedHashMap<String, String>();
 			while (peek(itor).isDirectiveName("arg", true)) {
 				Token t = itor.next();
-				String defArgName = DirectiveHeader.parse(t, currentPath.toString()).args()[0]; // arg NAME
+				String defArgName = DirectiveHeader.parse(t, currentPathUri).args()[0]; // arg NAME
 
 				skip(itor, EOL);
 
@@ -416,18 +418,15 @@ public class Preprocessor {
 
 		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return "";
 
-		String coloredPath = colorify(p.toString(), filePathColor);
-
-		debugPrint("Trying to include: " + coloredPath);
-
 		if (!Files.exists(p)) {
+			String coloredPath = colorify(p.toString(), filePathColor);
 			warningPrint(coloredPath + " does not exist");
 			return "";
 		}
 
+		String coloredPath = colorify(context.relativize(p), filePathColor);
 		String msg = "Including: ";
 		if (listFilesInInfo) {
-			coloredPath = colorify(context.relativize(p), filePathColor);
 			infoPrint(msg + coloredPath);
 		} else {
 			debugPrint(msg + coloredPath);
@@ -498,7 +497,7 @@ public class Preprocessor {
 					macroCall.beginColumn(),
 					macroCall.endColumn(),
 					args,
-					currentPath.toUri().toString()));
+					currentPathUri));
 
 			String argsString = Definition.argsAsString2(args, defArgs);
 			debugPrint("expanding macro " + def.coloredName()
@@ -523,7 +522,7 @@ public class Preprocessor {
 			} catch(IllegalArgumentException e) {
 				errorPrint("Error expanding macro " + def.coloredName()
 					+ " in "
-					+ colorify(currentPath.toString(), filePathColor)
+					+ colorify(currentPathUri, filePathColor)
 					+ ": " + e.getMessage());
 				return macroCall.raw();
 			}
@@ -533,7 +532,7 @@ public class Preprocessor {
 			// FIXME: do nothing for now. may need checks later.
 			return macroCall.raw();
 		} else {
-			nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPath.toString())));
+			nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPathUri)));
 			return macroCall.raw();
 		}
 	}
