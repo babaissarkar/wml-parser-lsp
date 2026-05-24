@@ -118,6 +118,8 @@ public final class Tokenizer {
 		return mergeConcatenations(tokens);
 	}
 
+	// Note: this assumes that r is currently at the character '"'
+	// Note: we are skipping starting and ending " from the token text itself, can be deduced from token kind
 	private static StringBuilder readQuoteToken(CharCursor r, StringBuilder buff, int[] counts) {
 		char prevChar = '"';
 		buff.setLength(0);
@@ -152,69 +154,73 @@ public final class Tokenizer {
 		return buff;
 	}
 
+	// Note: this assumes that r is currently at the first '<' character
+	// Note: we are skipping << and >> from the token text itself, can be deduced from token kind
 	private static StringBuilder readAngleQuoteToken(CharCursor r, StringBuilder buff, int[] counts) {
-	    buff.setLength(0);
-	    int ch = r.read();
-	    if (ch == -1 || ((char) ch) != '<') {
-	        if (ch != -1) r.unread((char) ch);
-	        return buff;
-	    }
+		buff.setLength(0);
+		int ch = r.read();
+		if (ch == -1 || ((char) ch) != '<') {
+			if (ch != -1) r.unread((char) ch);
+			return buff;
+		}
 
-	    while ((ch = r.read()) != -1) {
-	        char c = (char) ch;
-	        if (c == '>') {
-	            ch = r.read();
-	            if (ch != -1 && ((char) ch) == '>') {
-	                break;
-	            } else {
-	                if (ch != -1) r.unread((char) ch);
-	            }
-	            buff.append(c);
-	        } else {
-	            if (isEOL(c)) {
-	                counts[0]++;
-	                counts[1] = 0;
-	                if (c == '\r' && r.peek() == '\n') r.read();
-	            } else {
-	                counts[1]++;
-	            }
-	            buff.append(c);
-	        }
-	    }
-	    return buff;
+		while ((ch = r.read()) != -1) {
+			char c = (char) ch;
+			if (c == '>') {
+				ch = r.read();
+				if (ch != -1 && ((char) ch) == '>') {
+					break;
+				} else {
+					if (ch != -1) r.unread((char) ch);
+				}
+				buff.append(c);
+			} else {
+				if (isEOL(c)) {
+					counts[0]++;
+					counts[1] = 0;
+					if (c == '\r' && r.peek() == '\n') r.read();
+				} else {
+					counts[1]++;
+				}
+				buff.append(c);
+			}
+		}
+		return buff;
 	}
 
+	// Note: this assumes that r is currently at the character '{'
+	// Note: we are skipping { and } from the token text itself, can be deduced from token kind
 	private static StringBuilder readMacroToken(CharCursor r, StringBuilder buff, int[] counts) {
-	    buff.setLength(0);
-	    int ch;
-	    int nlvl = 0;
+		buff.setLength(0);
+		int ch;
+		int nlvl = 0;
 
-	    while ((ch = r.read()) != -1) {
-	        char c = (char) ch;
-	        if (c == '{') {
-	            nlvl++;
-	            buff.append(c);
-	            counts[1]++;
-	        } else if (c == '}') {
-	            if (nlvl == 0) {
-	                break;
-	            } else {
-	                nlvl--;
-	                buff.append(c);
-	                counts[1]++;
-	            }
-	        } else {
-	            if (isEOL(c)) {
-	                counts[0]++;
-	                counts[1] = 0;
-	                if (c == '\r' && r.peek() == '\n') r.read();
-	            } else {
-	                counts[1]++;
-	            }
-	            buff.append(c);
-	        }
-	    }
-	    return buff;
+		while ((ch = r.read()) != -1) {
+			char c = (char) ch;
+			if (c == '{') {
+				nlvl++;
+				buff.append(c);
+				counts[1]++;
+			} else if (c == '}') {
+				if (nlvl == 0) {
+					break;
+				} else {
+					nlvl--;
+					buff.append(c);
+					counts[1]++;
+				}
+			} else {
+				if (isEOL(c)) {
+					counts[0]++;
+					counts[1] = 0;
+					if (c == '\r' && r.peek() == '\n') r.read();
+				} else {
+					counts[1]++;
+				}
+				buff.append(c);
+			}
+		}
+		return buff;
 	}
 
 	private static StringBuilder readTagToken(CharCursor r, StringBuilder buff) {
@@ -246,10 +252,10 @@ public final class Tokenizer {
 			finalizeAndAddToken(tokens, String.valueOf(c), Token.Kind.EOL, start, 1, 0);
 		}
 	}
-	
+
 	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start) {
 		finalizeAndAddToken(tokens, buff.toString(), kind, start, 0, buff.length());
-		
+
 		if (!buff.isEmpty()) {
 			buff.delete(0, buff.length());
 		}
@@ -260,12 +266,12 @@ public final class Tokenizer {
 		if (!buff.isEmpty()) {
 			buff.delete(0, buff.length());
 		}
-		
+
 		// reset for next token
 		counts[0] = 0;
 		counts[1] = 0;
 	}
-	
+
 	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start, int ncount, int npos) {
 		if (!contents.isEmpty() || kind == Token.Kind.COMMENT) {
 			tokens.add(new Token(contents, kind, start.line(), start.col()));
@@ -281,7 +287,7 @@ public final class Tokenizer {
 	@AIGenerated
 	public static List<Token> mergeConcatenations(List<Token> tokens) {
 		if (tokens.size() < 3) return tokens; // concat impossible with less than 3 toks
-		
+
 		List<Token> result = new ArrayList<>();
 		int i = 0;
 		while (i < tokens.size()) {
@@ -306,7 +312,7 @@ public final class Tokenizer {
 
 					// Pairwise spacing rule
 					if (previousOperand.isKind(Token.Kind.TEXT)
-						&& next.isKind(Token.Kind.TEXT))
+							&& next.isKind(Token.Kind.TEXT))
 					{
 						merged.append(" ");
 					}
