@@ -9,6 +9,7 @@ import java.util.List;
 import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.Position;
 
+import static com.babai.wml.parser.ParseUtils.*;
 
 public final class Tokenizer {
 	private enum State { NORMAL, LINE_COMMENT, WS };
@@ -336,18 +337,6 @@ public final class Tokenizer {
 
 	private static boolean isConcatCandidate(Token t) {
 		return t.isKind(Token.Kind.TEXT, Token.Kind.QUOTED);
-	}
-
-	private static boolean isPlus(Token t) {
-		return t.isKind(Token.Kind.TEXT) && t.content().equals("+");
-	}
-
-	private static boolean isEOL(char c) {
-		return c == '\n' || c == '\r' || c == '\u2028' || c == '\u2029';
-	}
-
-	private static boolean isWS(char c) {
-		return Character.isWhitespace(c) && !isEOL(c);
 	}
 
 	private static final class CharCursor {

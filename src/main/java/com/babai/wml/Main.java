@@ -20,20 +20,17 @@ import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.LogUtils;
-import com.babai.wml.utils.Table;
+import com.babai.wml.utils.MacroTable;
 
 public class Main {
-	private static Table defines;
+	private static MacroTable defines, predefines;
 	private static HashMap<String, String> fileExplanations;
 	private static PathContext pathContext;
-	
-	private static Table predefines = Table.ofWithIndices(
-		new Class<?>[] { Integer.class, String.class, String.class, Definition.class },
-		new String[] { "Line", "URI", "Name", "Definition" },
-		1, 2
-		);
 
 	public static void main(String[] args) {
+		defines = new MacroTable();
+		predefines = new MacroTable();
+		
 		var argParser = new ArgParser();
 		argParser.parseArgs(args);
 		
@@ -60,12 +57,12 @@ public class Main {
 			argParser.userDataPath,
 			new HashSet<Path>());
 		
-		predefines.addRow(0, "predefined", "MULTIPLAYER", new Definition("MULTIPLAYER", "true"));
+		predefines.addMacro("MULTIPLAYER", new Definition("MULTIPLAYER", "true"), 0, "predefined");
 		
 		for (int i = 0; i < argParser.definesList.size(); i += 2) {
 			String name = argParser.definesList.get(i);
 			String val = argParser.definesList.get(i+1);
-			predefines.addRow(0, "predefined", name, new Definition(name, val));
+			predefines.addMacro(name, new Definition(name, val), 0, "predefined");
 		}
 		
 		if (argParser.startLSPServer) {
@@ -91,7 +88,7 @@ public class Main {
 		var p = new Preprocessor(pathContext, predefines);
 		p.setListFilesInInfo(argParser.listFilesInInfo);
 		
-		LogUtils.infoPrint("Predefined macros: " + predefines.rowCount());
+		LogUtils.infoPrint("Predefined macros: " + predefines.size());
 		
 		BufferedWriter writer = null;
 		if (argParser.outputPath != null) {
@@ -104,12 +101,12 @@ public class Main {
 		for (Path incpath : argParser.includes) {
 			// FIXME recheck directory support
 			long depStart = System.nanoTime();
-			long mCountStart = p.getDefines().rowCount();
+			long mCountStart = p.getDefines().size();
 			
 			p.preprocess(incpath);
 			
 			long depEnd = System.nanoTime();
-			long mCountEnd = p.getDefines().rowCount();
+			long mCountEnd = p.getDefines().size();
 			
 			LogUtils.infoPrint(
 				"Preprocessed "
@@ -121,12 +118,12 @@ public class Main {
 		String out = "";
 		if (argParser.inputPath != null) {
 			long mainStart = System.nanoTime();
-			long mCountStart = p.getDefines().rowCount();
+			long mCountStart = p.getDefines().size();
 			
 			out = p.preprocess(argParser.inputPath);
 			
 			long mainEnd = System.nanoTime();
-			long mCountEnd = p.getDefines().rowCount();
+			long mCountEnd = p.getDefines().size();
 			
 			LogUtils.infoPrint(
 				"Preprocessed "
@@ -145,13 +142,15 @@ public class Main {
 		
 		LogUtils.infoPrint(
 			"Preprocessing finished: " + (preprocEnd - start) / 1_000_000 + " ms. "
-			+ "Macros: " + defines.rowCount());
+			+ "Macros: " + defines.size());
 		
 		if (argParser.definitions) {
-			for (var row : defines.getRows()) {
-				writer.write("macro: "
-					+ (String) row.getColumn("Name").getValue() + " | "
-					+ (String) row.getColumn("URI").getValue() + "\n");
+			for (var name : defines.macros().keySet()) {
+				writer.write("macro: ");
+				writer.write(name);
+				writer.write(" | ");
+				writer.write(defines.getUri(name));
+				writer.write("\n");
 			}
 		} else if (argParser.queries.isEmpty()) {
 			writer.write(out);

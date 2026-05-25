@@ -12,6 +12,18 @@ import com.babai.wml.tokenizer.Tokenizer;
 public final class ParseUtils {
 	
 	private ParseUtils() {};
+	
+	public static boolean isPlus(Token t) {
+		return t.isKind(Token.Kind.TEXT) && t.content().equals("+");
+	}
+
+	public static boolean isEOL(char c) {
+		return c == '\n' || c == '\r' || c == '\u2028' || c == '\u2029';
+	}
+
+	public static boolean isWS(char c) {
+		return Character.isWhitespace(c) && !isEOL(c);
+	}
 
 	public static Token peek(ListIterator<Token> it) {
 		if (!it.hasNext()) {

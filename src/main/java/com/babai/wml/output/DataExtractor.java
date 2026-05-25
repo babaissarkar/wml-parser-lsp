@@ -18,7 +18,7 @@ import com.babai.wml.config.Config;
 import com.babai.wml.config.ConfigAttributeBase;
 import com.babai.wml.parser.PathContext;
 import com.babai.wml.preprocessor.Definition;
-import com.babai.wml.utils.Table;
+import com.babai.wml.utils.MacroTable;
 
 public class DataExtractor {
 	private final static Pattern linepattern = Pattern.compile("\\R");
@@ -73,7 +73,7 @@ public class DataExtractor {
 
 	public static void generateMacroRef(
 			Path macroRefPath,
-			Table defines,
+			MacroTable defines,
 			HashMap<String, String> fileExplanations,
 			PathContext pathContext)
 	{
@@ -86,15 +86,17 @@ public class DataExtractor {
 			// URI column contains duplicates, suppress them.
 			// we only need unique values for getRows() below.
 			// List of parsed files at top
-			for (var uriObj : defines.getColumn("URI")) {
-				String uriStr = (String) uriObj;
-				String filename = Path.of(URI.create(uriStr)).getFileName().toString();
+			defines.uriMap().forEach((uri, namelist) -> {
+				String filename = Path.of(URI.create(uri)).getFileName().toString();
 				if (!uriList.containsKey(filename)) {
-					uriList.put(filename, uriStr);
-					writer.write(
-						"<li><a href='#file:%s'><code class='noframe'>%s</code></a></li>"
-						.formatted(filename, filename));
+					uriList.put(filename, uri);
 				}
+			});
+			
+			for (var entry : uriList.entrySet()) {
+				writer.write(
+					"<li><a href='#file:%s'><code class='noframe'>%s</code></a></li>"
+					.formatted(entry.getKey(), entry.getKey()));
 			}
 			
 			writeln(writer, "</ul></div>");
@@ -115,14 +117,13 @@ public class DataExtractor {
 				writeln(writer, "<dl>");
 				writer.newLine();
 				
-				for (var row : defines.getRows("URI", uriStr)) {
-					String macroName = (String) row.getColumn("Name").getValue();
+				for (String macroName : defines.macrosByUri(uriStr)) {
 					if (macroName.startsWith("INTERNAL:")) continue;
-					Definition def = (Definition) row.getColumn("Definition").getValue();
+					Definition def = defines.getMacro(macroName);
 					
 					// Macro name and arguments
 					writeln(writer, "<dt id='" + macroName + "'>");
-					int lineNum = (Integer) row.getColumn("Line").getValue();
+					int lineNum = defines.getLineNum(name);
 					writer.write(
 						"<code class='noframe'><span class='macro-name'><a href='%s'>%s</a></span>"
 						.formatted(

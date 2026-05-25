@@ -2,9 +2,9 @@ package com.babai.wml.preprocessor;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.parser.PathContext;
 import com.babai.wml.tokenizer.Token;
-import com.babai.wml.utils.Table;
+import com.babai.wml.utils.MacroTable;
 
 import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.LogUtils.*;
@@ -27,11 +27,8 @@ import static com.babai.wml.tokenizer.Tokenizer.tokenize;
 import static com.babai.wml.tokenizer.Token.Kind.*;
 
 public class Preprocessor {
-	private final static Pattern wspattern = Pattern.compile("\\s+");
-	private final static Pattern eqlpattern = Pattern.compile("=");
-
 	private boolean skipElse = true;
-	private Table defines;
+	private MacroTable defines;
 	private PathContext context;
 	
 	private Path currentPath = Path.of(".");
@@ -44,30 +41,27 @@ public class Preprocessor {
 	// format: macroName, positionString
 	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
 	private boolean listFilesInInfo = false;
+	private static Pattern wspattern = Pattern.compile("//s+");
 
 	// toplevel
 	public Preprocessor(PathContext context) {
 		this.context = context;
-		this.defines =  Table.ofWithIndices(
-			new Class<?>[]{Integer.class, String.class, String.class, Definition.class},
-			new String[]{"Line", "URI", "Name", "Definition"},
-			2  // index by Name column
-		);
+		this.defines = new MacroTable();
 		this.macroCalls = new ArrayList<>();
 	}
 
 	// usually for child processes
-	public Preprocessor(PathContext context, Table defines) {
+	public Preprocessor(PathContext context, MacroTable defines) {
 		this.context = context;
 		this.defines = defines;
 		this.macroCalls = new ArrayList<>();
 	}
 
-	public Table getDefines() {
+	public MacroTable getDefines() {
 		return defines;
 	}
 
-	public void setDefines(Table t) {
+	public void setDefines(MacroTable t) {
 		this.defines = t;
 	}
 
@@ -119,7 +113,7 @@ public class Preprocessor {
 	}
 
 	public String preprocessFile(Path path) {
-		int prevMacroCount = this.defines.rowCount();
+		int prevMacroCount = this.defines.size();
 		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 		this.currentPath = path;
 		this.currentPathUri = path.toUri().toString();
@@ -129,7 +123,7 @@ public class Preprocessor {
 		String out = "";
 		try {
 			out = preprocessContent(Files.readString(path));
-			int newMacroCount = this.defines.rowCount() - prevMacroCount;
+			int newMacroCount = this.defines.size() - prevMacroCount;
 
 			String msg = "Preprocessed %s" + (newMacroCount > 0 ? ": " + newMacroCount + " macros" : "");
 			if (listFilesInInfo) {
@@ -158,7 +152,7 @@ public class Preprocessor {
 		if (peek(itor).isDirectiveName("textdomain", true)) {
 			Token t = itor.next();
 			var directiveHeader = DirectiveHeader.parse(t, currentPathUri);
-			textdomain = directiveHeader.args()[0];
+			textdomain = directiveHeader.args().getFirst();
 			debugPrint("Textdomain: " + textdomain);
 		}
 
@@ -294,8 +288,8 @@ public class Preprocessor {
 
 		if (directiveHeader.head().equals("define")) {
 			// Macro name
-			String macroName = directiveArgs[0];
-			List<String> macroArgs = Arrays.asList(directiveArgs).subList(1, directiveArgs.length);
+			String macroName = directiveArgs.getFirst();
+			List<String> macroArgs = directiveArgs.subList(1, directiveArgs.size());
 
 			skip(itor, EOL, WHITESPACE);
 
@@ -310,22 +304,22 @@ public class Preprocessor {
 				isDeprecated = true;
 				var deprecationHeader = DirectiveHeader.parse(t, currentPathUri);
 				var depreArgs = deprecationHeader.args();
-				depreLevel = Integer.parseInt(depreArgs[0]);
+				depreLevel = Integer.parseInt(depreArgs.getFirst());
 				if (depreLevel == 2 || depreLevel == 3) {
-					if (depreArgs.length > 1) {
-						removalVersion = depreArgs[1];
+					if (depreArgs.size() > 1) {
+						removalVersion = depreArgs.get(1);
 					}
 
 					// Rest of args are actually the message in this case that got split
 					// join back.
-					if (depreArgs.length > 2) {
-						depreMessage = String.join(" ", Arrays.copyOfRange(depreArgs, 2, depreArgs.length));
+					if (depreArgs.size() > 2) {
+						depreMessage = String.join(" ", depreArgs.subList(2, depreArgs.size()));
 					}
 				} else if (depreLevel == 1 || depreLevel == 4) {
 					// Rest of args are actually the message in this case that got split
 					// join back.
-					if (depreArgs.length > 1) {
-						depreMessage = String.join(" ", Arrays.copyOfRange(depreArgs, 1, depreArgs.length));
+					if (depreArgs.size() > 1) {
+						depreMessage = String.join(" ", depreArgs.subList(1, depreArgs.size()));
 					}
 				}
 
@@ -340,7 +334,7 @@ public class Preprocessor {
 			var macroDefaultArgs = new LinkedHashMap<String, String>();
 			while (peek(itor).isDirectiveName("arg", true)) {
 				Token t = itor.next();
-				String defArgName = DirectiveHeader.parse(t, currentPathUri).args()[0]; // arg NAME
+				String defArgName = DirectiveHeader.parse(t, currentPathUri).args().getFirst(); // arg NAME
 
 				skip(itor, EOL);
 
@@ -367,12 +361,11 @@ public class Preprocessor {
 			def.setDeprecationMessage(depreMessage);
 
 			debugPrint("defining macro " + def.coloredName());
-			defines.addRow(directiveStart.beginLine(), pathUri, macroName, def);
+			defines.addMacro(macroName, def, directiveStart.beginLine(), pathUri);
 
 		} else if (directiveHeader.head().equals("ifdef")) {
 			// TODO complain if ifdef does not exactly has one arg (macroname)
-			boolean hasMacro = !defines.getRows("Name", directiveArgs[0]).isEmpty();
-			if (hasMacro) {
+			if (defines.hasMacro(directiveArgs.getFirst())) {
 				skipElse = true;
 			} else {
 				// skip upto #else or #endif
@@ -381,8 +374,7 @@ public class Preprocessor {
 			}
 		} else if (directiveHeader.head().equals("ifndef")) {
 			// TODO complain if ifndef does not exactly has one arg (macroname)
-			boolean hasMacro = !defines.getRows("Name", directiveArgs[0]).isEmpty();
-			if (hasMacro) {
+			if (defines.hasMacro(directiveArgs.getFirst())) {
 				// skip upto #else or #endif
 				skipUntilEndDirective2("else", "endif", itor);
 				skipElse = false;
@@ -443,14 +435,9 @@ public class Preprocessor {
 
 		// ---------------------------------------
 
-		List<Table.Row> rows = defines.getRows("Name", macroName);
-		Definition def = null;
-		if (!rows.isEmpty()) {
-			nonexistentMacros.removeIf(m -> m.first().equals(macroName));
-			def = (Definition) rows.get(0).getColumn("Definition").getValue();
-		}
-
+		Definition def = defines.getMacro(macroName);
 		if (def != null) {
+			nonexistentMacros.removeIf(m -> m.first().equals(macroName));
 
 			// Process macro call arguments
 			int lastPos = 0;
@@ -473,15 +460,12 @@ public class Preprocessor {
 				} else {
 					// Optional keyword args
 					if (str.contains("=")) {
-						String[] keyVal = eqlpattern.split(str, 2);
-						if (def.getDefArgs().containsKey(keyVal[0])) {
-							//FIXME eliminate stripMatchingQuotes later
-							//we want to pass the value verbatim, but this is dropping quotes
-							//hint: multiple preprocessing passes can accidentally collapse
-							// "" -> " in some case, gotta handle those carefully
-							defArgs.put(keyVal[0], stripMatchingQuotes(keyVal[1]));
+						int eqPos = str.indexOf('=');
+						String key = str.substring(0, eqPos);
+						if (def.getDefArgs().containsKey(key)) {
+							defArgs.put(key, stripMatchingQuotes(str.substring(eqPos + 1)));
 						} else {
-							//TODO error: invalid defarg passed
+							// TODO error: invalid defarg passed
 						}
 					} else {
 						//TODO error: more defargs passed than needed
@@ -547,21 +531,31 @@ public class Preprocessor {
 
 	private record Pair<F, S>(F first, S second) {};
 
-	private record DirectiveHeader(String head, String[] args) {
+	private record DirectiveHeader(String head, List<String> args) {
 		// processDirectiveNameAndArgs
 		public static DirectiveHeader parse(Token token, String pathStr) {
 			if (!token.isDirective()) {
 				errorPrint("Unknown directive found at " + position(token, pathStr));
 			}
 
-			String[] parts = wspattern.split(token.content());
-			String name = parts[0];
-			String[] args = new String[parts.length - 1];
-			for (int i = 1; i < parts.length; i++) {
-				args[i-1] = parts[i];
+			String content = token.content();
+			int len = content.length();
+
+			// find end of first word
+			int i = 0;
+			while (i < len && !isWS(content.charAt(i))) i++;
+			String name = content.substring(0, i);
+
+			// collect args
+			List<String> argList = new ArrayList<>();
+			while (i < len) {
+				while (i < len && isWS(content.charAt(i))) i++; // skip whitespace
+				int start = i;
+				while (i < len && !isWS(content.charAt(i))) i++; // scan word
+				if (start < i) argList.add(content.substring(start, i));
 			}
 
-			return new DirectiveHeader(name, args);
+			return new DirectiveHeader(name, argList);
 		}
 	}
 }

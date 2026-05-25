@@ -2,6 +2,7 @@ package com.babai.wml.experimental;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 
 import com.babai.wml.parser.PathContext;
-import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.preprocessor.Preprocessor;
 
 class PreprocessorTest {
@@ -65,7 +65,7 @@ class PreprocessorTest {
 			{OUTER {MID}}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		String str = preproc.preprocessContent(defString);
-		assertEquals(3, preproc.getDefines().rowCount());
+		assertEquals(3, preproc.getDefines().size());
 		assertEquals("[(deep)]", str);
 	}
 
@@ -81,7 +81,7 @@ class PreprocessorTest {
 			{OUTER {INNER}}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		String str = preproc.preprocessContent(defString);
-		assertEquals(3, preproc.getDefines().rowCount());
+		assertEquals(3, preproc.getDefines().size());
 		assertEquals("(<val>)", str);
 	}
 
@@ -104,10 +104,10 @@ class PreprocessorTest {
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		preproc.preprocessContent(defString);
 		var defines = preproc.getDefines();
-		assertEquals(1, defines.rowCount());
-		var rows = defines.getRows("Name", "MYMACRO");
-		assertEquals(1, rows.size());
-		var macroDefinition = (Definition) rows.get(0).getColumn("Definition").getValue();
+		assertEquals(1, defines.size());
+		assertTrue(defines.hasMacro("MYMACRO"));
+		var macroDefinition = defines.getMacro("MYMACRO");
+		assertNotNull(macroDefinition);
 		assertEquals(2, macroDefinition.getArgCount());
 		assertEquals(3, macroDefinition.getDefArgCount());
 		assertEquals("This is doc\n\nDoc para 2", macroDefinition.getDocs());
@@ -201,9 +201,11 @@ class PreprocessorTest {
 			abc#enddef""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		preproc.preprocessContent(defString);
-		var rows = preproc.getDefines().getRows("Name", "OLD_MACRO");
-		assertEquals(1, rows.size());
-		var macroDefinition = (Definition) rows.get(0).getColumn("Definition").getValue();
+		var defines = preproc.getDefines();
+		assertEquals(1, defines.size());
+		assertTrue(defines.hasMacro("OLD_MACRO"));
+		var macroDefinition = defines.getMacro("OLD_MACRO");
+		assertNotNull(macroDefinition);
 		assertTrue(macroDefinition.isDeprecated());
 		assertEquals(2, macroDefinition.getDeprecationLevel());
 		assertEquals("1.19.0", macroDefinition.getDeprecationRemovalVersion());
@@ -230,7 +232,7 @@ class PreprocessorTest {
 			{ON_DIFFICULTY 40 60 80}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
 		String str = preproc.preprocessContent(defString);
-		assertEquals(2, preproc.getDefines().rowCount());
+		assertEquals(2, preproc.getDefines().size());
 		assertEquals("60", str.strip()); // FIXME where is the stray EOL coming from? We shouldn't need strip.
 	}
 }

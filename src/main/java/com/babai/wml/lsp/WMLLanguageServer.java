@@ -72,7 +72,7 @@ import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.LogUtils;
-import com.babai.wml.utils.Table;
+import com.babai.wml.utils.MacroTable;
 
 import static com.babai.wml.cli.ANSIFormatter.colorify;
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
@@ -84,7 +84,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private PathContext pathContext;
 	private Path inputPath;
 
-	private Table baseDefines, defines;
+	private MacroTable baseDefines, defines;
 	private HashSet<String> unitTypes = new HashSet<>();
 	private List<MacroCall> calls = new ArrayList<>();
 	private List<Path> includePaths = new ArrayList<>();
@@ -97,7 +97,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 // FIXME parsing disabled for now because it hangs LSP client, but it is needed for binaryPath detection...
 //	private Parser parser = new Parser();
 
-	private WMLLanguageServer(Table predefines, PathContext context, List<Path> includePaths) {
+	private WMLLanguageServer(MacroTable predefines, PathContext context, List<Path> includePaths) {
 		this.pathContext = context;
 		this.includePaths = includePaths;
 		this.defines = predefines;
@@ -107,7 +107,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		initTagRefLinks();
 	}
 	
-	public static void initServer(Table predefines, PathContext context, List<Path> includes) {
+	public static void initServer(MacroTable predefines, PathContext context, List<Path> includes) {
 		LogUtils.setLogLevel(Level.OFF);
 
 		var server = new WMLLanguageServer(
@@ -223,10 +223,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (defines != null) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-				var matches = defines.getRows("Name", word);
-				if (!matches.isEmpty()) {
-					String targetURI = matches.get(0).getColumn("URI").getValue().toString();
-					int targetLine = (int) matches.get(0).getColumn("Line").getValue();
+				if (!defines.hasMacro(word)) {
+					String targetURI = defines.getUri(word);
+					int targetLine = defines.getLineNum(word);
 					var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
 					var loc = new Location(targetURI, range);
 					return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
@@ -283,9 +282,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					}
 				} else {
 					// Macro calls
-					var matches = defines.getRows("Name", word);
-					if (!matches.isEmpty()) {
-						Definition def = (Definition) matches.get(0).getColumn("Definition").getValue();
+					if (!defines.hasMacro(word)) {
+						Definition def = defines.getMacro(word);
 						content.setKind("markdown");
 						content.setValue("**" + def.name() + "**\n\n" + def.getDocs());
 					} else {
@@ -366,7 +364,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		List<Either<SymbolInformation, DocumentSymbol>> symbolList = new ArrayList<>();
 
 		// 1. Macro Definitions
-		var matches = defines.getRows("URI", docUri);
+		var matches = defines.macrosByUri(docUri);
 		if (!matches.isEmpty()) {
 			List<DocumentSymbol> listDef = new ArrayList<>();
 			DocumentSymbol mdefRoot = new DocumentSymbol();
@@ -374,9 +372,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			mdefRoot.setKind(SymbolKind.Namespace);
 			mdefRoot.setRange(emptyRange);
 			mdefRoot.setSelectionRange(emptyRange);
-			for (var match : matches) {
-				String targetName = match.getColumn("Name").getValue().toString();
-				int targetLine = (int) match.getColumn("Line").getValue();
+			for (var targetName : matches) {
+				int targetLine = defines.getLineNum(targetName);
 				var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
 				DocumentSymbol sym = new DocumentSymbol();
 				sym.setName(targetName);
@@ -436,11 +433,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 //			if (call.endLine() < viewRange.getStart().getLine()) continue;
 			if (!call.uri().equals(uri)) continue;
 
-			var rows = defines.getRows("Name", call.name());
-			if (rows.isEmpty()) continue;
-			var def = (Definition) rows.get(0).getColumn("Definition").getValue();
-			String defTargetUri = (String) rows.get(0).getColumn("URI").getValue();
-			int targetLine = (int) rows.get(0).getColumn("Line").getValue();
+			String macro = call.name();
+			if (!defines.hasMacro(macro)) continue;
+			var def = defines.getMacro(macro);
+			String defTargetUri = defines.getUri(macro);
+			int targetLine = defines.getLineNum(macro);
 			var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
 			var loc = new Location(defTargetUri, range);
 
@@ -571,20 +568,20 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				p.preprocess(incpath);
 			}
 
-			baseDefines = defines.copy();
+			baseDefines = new MacroTable(defines);
 			if (inputPath != null) {
 				LogUtils.debugPrint("Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
 				parseFile(inputPath);
 			}
 
-			showLSPMessage("Parsed, " + defines.rowCount() + " macros and " + unitTypes.size() + " unittypes defined.");
+			showLSPMessage("Parsed, " + defines.size() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
 		}
 	}
 
 	private void parseFile(Path inputPath) throws IOException {
-		p.setDefines(baseDefines.copy());
+		p.setDefines(new MacroTable(baseDefines));
 		//parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 //		parser.parse(p.preprocess(inputPath));
 		p.preprocess(inputPath);
@@ -595,9 +592,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		calls = p.getMacroCalls();
 
 		macroCompletions.clear();
-		for (var r : defines.getRows()) {
+		for (var r : defines.macros().entrySet()) {
 			CompletionItem item = new CompletionItem();
-			Definition def = (Definition) r.getColumn("Definition").getValue();
+			Definition def = r.getValue();
 			item.setLabel(def.name());
 			item.setKind(CompletionItemKind.Method);
 			String docs = def.getDocs();
