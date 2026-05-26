@@ -233,7 +233,7 @@ public class Preprocessor {
 			} else {
 				return t.raw();
 			}
-		} else if (t.isNotKind(ANGLE_QUOTED) && content.indexOf('{') >= 0 && content.indexOf('}') >= 0) {
+		} else if (expandMacro && t.isNotKind(ANGLE_QUOTED) && content.indexOf('{') >= 0 && content.indexOf('}') >= 0) {
 			// expand embedded macro block in other tokens
 			String nestedSubst = preprocessFragment(content, currentArgs);
 			if (nestedSubst.equals(content)) { // nth to subst, return raw
@@ -247,8 +247,9 @@ public class Preprocessor {
 	}
 
 	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
-		StringBuilder body = new StringBuilder();
 		if (!itor.hasNext()) return "";
+		
+		StringBuilder body = new StringBuilder();
 		Token t = itor.next();
 		while (!t.isDirectiveName(directiveName, false)) {
 			if (!itor.hasNext()) {
@@ -414,14 +415,14 @@ public class Preprocessor {
 	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
 		if (isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
-			return handleInclusion(macroCall, context);
+			return handleInclusion(macroCall.content(), context);
 		} else {
 			return expandMacroCall(macroCall, possibleArgs);
 		}
 	}
 
-	private String handleInclusion(Token macroCall, PathContext context) {
-		Path p = context.resolve(macroCall.content(), currentPath);
+	private String handleInclusion(String pathStr, PathContext context) {
+		Path p = context.resolve(pathStr, currentPath);
 
 		if (!Files.exists(p)) {
 			String coloredPath = colorify(p.toString(), filePathColor);
@@ -441,18 +442,20 @@ public class Preprocessor {
 	}
 
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
+		
 		final String content = macroCall.content();
 		
 		var parts = ParseUtils.splitQuoted(content);
 		String macroName = parts.get(0);
-		List<MacroArg> args = new ArrayList<>();
-		HashMap<String, String> defArgs = new LinkedHashMap<>();
 
 		// ---------------------------------------
 
 		Definition def = defines.getMacro(macroName);
 		if (def != null) {
 			nonexistentMacros.removeIf(m -> m.first().equals(macroName));
+			
+			List<MacroArg> args = new ArrayList<>();
+			HashMap<String, String> defArgs = new LinkedHashMap<>();
 
 			// Process macro call arguments
 			int lastPos = 0;
@@ -466,7 +469,7 @@ public class Preprocessor {
 					int argStart = macroCall.beginColumn() + lastPos;
 					int argEnd = argStart + str.length();
 					int argLine = macroCall.beginLine() - 1; //TODO args may start on a different line. why -1?
-					String argStr = preprocessFragment(str, List.of());
+					String argStr = preprocessFragment(str, possibleArgs);
 					// Properly quote multiline args
 					if (argStr.indexOf('\n') >= 0) {
 						argStr = "(" + argStr + ")";
@@ -530,8 +533,18 @@ public class Preprocessor {
 			// FIXME: do nothing for now. may need checks later.
 			return macroCall.raw();
 		} else {
-			nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPathUri)));
-			return macroCall.raw();
+			if (parts.size() == 1) {
+				String included = handleInclusion(macroName, context);
+				if (included.isEmpty()) {
+					nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPathUri)));
+					return macroCall.raw();
+				} else {
+					return included;
+				}
+			} else {
+				nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPathUri)));
+				return macroCall.raw();
+			}
 		}
 	}
 
