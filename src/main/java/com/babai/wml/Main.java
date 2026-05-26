@@ -178,7 +178,7 @@ public class Main {
 			try {
 				if (!argParser.queries.isEmpty()) {
 					writer.write(!buff.isEmpty() ? buff.toString() : "Query did not match.");
-				} else {
+				} else if (!argParser.definitions) {
 					writer.write(out);
 				}
 			} catch (IOException ioe) {
