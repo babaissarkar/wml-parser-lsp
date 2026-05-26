@@ -75,12 +75,18 @@ public class Preprocessor {
 	}
 
 	// Can handle both file or folder
-	// TODO _initial & _final.cfg
 	public String preprocess(Path path) {
 		StringBuilder out = new StringBuilder();
 		String coloredPath = colorify(path.toString(), filePathColor);
 		if (Files.isDirectory(path)) {
 			debugPrint("Including directory: " + coloredPath);
+			
+			// _initial.cfg
+			Path initial = path.resolve("_initial.cfg");
+			if (Files.exists(initial)) {
+				out.append(preprocessFile(initial));
+			}
+			
 			Path main = path.resolve("_main.cfg");
 			if (Files.exists(main)) {
 				out.append(preprocessFile(main));
@@ -100,6 +106,12 @@ public class Preprocessor {
 					errorPrint("Cannot find " + path + ", skipping.");
 				}
 			}
+			
+			// _final.cfg
+			Path fin = path.resolve("_final.cfg");
+			if (Files.exists(fin)) {
+				out.append(preprocessFile(fin));
+			}
 		} else {
 			out.append(preprocessFile(path));
 		}
@@ -111,9 +123,10 @@ public class Preprocessor {
 
 	public String preprocessFile(Path path) {
 		int prevMacroCount = this.defines.size();
-		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 		this.currentPath = path;
 		this.currentPathUri = path.toUri().toString();
+		
+		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 
 		debugPrint("Preprocessing: " + coloredPath);
 
