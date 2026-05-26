@@ -181,7 +181,7 @@ public class Preprocessor {
 	}
 
 	private String preprocessFragment(String fragment, List<String> args) {
-		if(!(fragment.contains("{") && fragment.contains("}"))) return fragment;
+		if(fragment.indexOf('{') == -1 || fragment.indexOf('}') == -1) return fragment;
 		try {
 			var buff = new StringBuilder();
 			var itor = tokenize(fragment).listIterator();
@@ -233,7 +233,7 @@ public class Preprocessor {
 			} else {
 				return t.raw();
 			}
-		} else if (t.isNotKind(ANGLE_QUOTED) && content.contains("{") && content.contains("}")) {
+		} else if (t.isNotKind(ANGLE_QUOTED) && content.indexOf('{') >= 0 && content.indexOf('}') >= 0) {
 			// expand embedded macro block in other tokens
 			String nestedSubst = preprocessFragment(content, currentArgs);
 			if (nestedSubst.equals(content)) { // nth to subst, return raw
@@ -423,8 +423,6 @@ public class Preprocessor {
 	private String handleInclusion(Token macroCall, PathContext context) {
 		Path p = context.resolve(macroCall.content(), currentPath);
 
-		if (!Files.isDirectory(p) && !p.toString().endsWith(".cfg")) return "";
-
 		if (!Files.exists(p)) {
 			String coloredPath = colorify(p.toString(), filePathColor);
 			warningPrint(coloredPath + " does not exist");
@@ -444,6 +442,7 @@ public class Preprocessor {
 
 	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
 		final String content = macroCall.content();
+		
 		var parts = ParseUtils.splitQuoted(content);
 		String macroName = parts.get(0);
 		List<MacroArg> args = new ArrayList<>();
@@ -469,14 +468,14 @@ public class Preprocessor {
 					int argLine = macroCall.beginLine() - 1; //TODO args may start on a different line. why -1?
 					String argStr = preprocessFragment(str, List.of());
 					// Properly quote multiline args
-					if (argStr.contains("\n")) {
+					if (argStr.indexOf('\n') >= 0) {
 						argStr = "(" + argStr + ")";
 					}
 					args.add(new MacroArg(argStr, argLine, argStart, argEnd));
 				} else {
 					// Optional keyword args
-					if (str.contains("=")) {
-						int eqPos = str.indexOf('=');
+					int eqPos = str.indexOf('=');
+					if (eqPos != -1) {
 						String key = str.substring(0, eqPos);
 						if (def.getDefArgs().containsKey(key)) {
 							defArgs.put(key, stripMatchingQuotes(str.substring(eqPos + 1)));
@@ -510,11 +509,11 @@ public class Preprocessor {
 				String out = def.getValue();
 
 				// substitute args
-				if (out.contains("{")) {
+				if (out.indexOf('{') >= 0) {
 					out = def.expand(args, defArgs);
 				}
 				// substitute macros
-				if (out.contains("{")) {
+				if (out.indexOf('{') >= 0) {
 					out = preprocessFragment(out, argsList);
 				}
 				return out;
@@ -539,8 +538,9 @@ public class Preprocessor {
 	private String stripMatchingQuotes(String argVal) {
 		// Keyword args are parsed from raw macro text and may carry wrapper quotes
 		// (e.g. KEY="value"). Keep inner content and drop only a matching outer pair.
-		if (argVal != null && argVal.length() >= 2 && argVal.startsWith("\"") && argVal.endsWith("\"")) {
-			return argVal.substring(1, argVal.length() - 1);
+		int len = argVal.length();
+		if (argVal != null && len >= 2 && argVal.charAt(0) == '"' && argVal.charAt(len-1) == '"') {
+			return argVal.substring(1, len - 1);
 		}
 		return argVal;
 	}
