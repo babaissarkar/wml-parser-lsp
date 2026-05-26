@@ -2,7 +2,6 @@ package com.babai.wml.preprocessor;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -12,7 +11,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.parser.PathContext;
@@ -41,7 +39,6 @@ public class Preprocessor {
 	// format: macroName, positionString
 	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
 	private boolean listFilesInInfo = false;
-	private static Pattern wspattern = Pattern.compile("//s+");
 
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -390,7 +387,13 @@ public class Preprocessor {
 	}
 
 	private boolean isPath(String str) {
-		return str.contains("/") && !wspattern.matcher(str).find();
+		boolean hasSlash = false;
+		for (int i = 0; i < str.length(); i++) {
+			char c = str.charAt(i);
+			if (c == '/') hasSlash = true;
+			else if (Character.isWhitespace(c)) return false;
+		}
+		return hasSlash;
 	}
 
 	// TODO This might need to be recursive, like after expansion
