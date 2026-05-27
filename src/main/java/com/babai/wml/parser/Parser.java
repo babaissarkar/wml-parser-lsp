@@ -60,7 +60,7 @@ public class Parser {
 			}
 		}
 		case TAG -> {
-			String tagName = t.content().strip();
+			String tagName = t.content();
 			if (tagName.startsWith("+")) {
 				// appending tag, like [+units]
 				tagName = tagName.substring(1, tagName.length());
@@ -71,11 +71,12 @@ public class Parser {
 				// end tag
 				tagName = tagName.substring(1, tagName.length());
 				if (tagStack.isEmpty()) {
-					errorPrint("End tag without matching start tag.");
+					errorPrint(() -> "End tag without matching start tag.");
 				} else if (tagStack.getLast().equals(tagName)) {
 					tagStack.removeLast();
 				} else {
-					errorPrint("Wrong end tag " + colorify(tagName, RED)
+					final String tmpTagName = tagName;
+					errorPrint(() -> "Wrong end tag " + colorify(tmpTagName, RED)
 					+ " found for tag "
 					+ colorify("[" + tagStack.getLast() + "]", tagColor));
 				}
@@ -85,8 +86,14 @@ public class Parser {
 			}
 		}
 		case WHITESPACE, EOL, COMMENT, QUOTED, ANGLE_QUOTED -> {} //ignore
-		case MACRO -> warningPrint("Parser: Unexpanded macro {" + t.content() + "}, skipping");
-		default -> warningPrint("Parser: Unexpected token " + t.content() + ", skipping");
+		case MACRO -> {
+			final String tmpContent = t.content();
+			warningPrint(() -> "Parser: Unexpanded macro {" + tmpContent + "}, skipping");
+		}
+		default -> {
+			final String tmpContent = t.content();
+			warningPrint(() -> "Parser: Unexpected token " + tmpContent + ", skipping");
+		}
 		}
 	}
 

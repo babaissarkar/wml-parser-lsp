@@ -37,17 +37,17 @@ public class Main {
 		ANSIFormatter.setColorsEnabled(argParser.enableColors);
 		
 		if (argParser.dataPath == null) {
-			LogUtils.errorPrint("Wesnoth Gamedata path not specified.");
+			LogUtils.errorPrint(() ->"Wesnoth Gamedata path not specified.");
 		} else {
-			LogUtils.infoPrint("Wesnoth Gamedata path: "
+			LogUtils.infoPrint(() ->"Wesnoth Gamedata path: "
 				+ ANSIFormatter.colorify(
 					argParser.dataPath.toAbsolutePath().toString(), Colors.filePathColor));
 		}
 		
 		if (argParser.userDataPath == null) {
-			LogUtils.errorPrint("Wesnoth Userdata path not specified.");
+			LogUtils.errorPrint(() ->"Wesnoth Userdata path not specified.");
 		} else {
-			LogUtils.infoPrint("Wesnoth Userdata path: " 
+			LogUtils.infoPrint(() ->"Wesnoth Userdata path: " 
 				+ ANSIFormatter.colorify(
 					argParser.userDataPath.toAbsolutePath().toString(), Colors.filePathColor));
 		}
@@ -88,7 +88,7 @@ public class Main {
 		var p = new Preprocessor(pathContext, predefines);
 		p.setListFilesInInfo(argParser.listFilesInInfo);
 		
-		LogUtils.infoPrint("Predefined macros: " + predefines.size());
+		LogUtils.infoPrint(() ->"Predefined macros: " + predefines.size());
 		
 		BufferedWriter writer = null;
 		if (argParser.outputPath != null) {
@@ -108,7 +108,7 @@ public class Main {
 			long depEnd = System.nanoTime();
 			long mCountEnd = p.getDefines().size();
 			
-			LogUtils.infoPrint(
+			LogUtils.infoPrint(() ->
 				"Preprocessed "
 				+ colorify(pathContext.relativize(incpath), Colors.filePathColor) + ": "
 				+ (depEnd - depStart) / 1_000_000 + " ms. "
@@ -125,7 +125,7 @@ public class Main {
 			long mainEnd = System.nanoTime();
 			long mCountEnd = p.getDefines().size();
 			
-			LogUtils.infoPrint(
+			LogUtils.infoPrint(() ->
 				"Preprocessed "
 				+ colorify(pathContext.relativize(argParser.inputPath), Colors.filePathColor) + ": "
 				+ (mainEnd - mainStart) / 1_000_000 + " ms. "
@@ -140,7 +140,7 @@ public class Main {
 		defines = p.getDefines();
 		fileExplanations = p.getFileExplanations();
 		
-		LogUtils.infoPrint(
+		LogUtils.infoPrint(() ->
 			"Preprocessing finished: " + (preprocEnd - start) / 1_000_000 + " ms. "
 			+ "Macros: " + defines.size());
 		
@@ -169,11 +169,10 @@ public class Main {
 			
 			parser.parse(out);
 			
-			start = preprocEnd;
 			long parseEnd = System.nanoTime();
-			LogUtils.infoPrint("Parsing finished in " + (parseEnd - start) / 1_000_000 + " ms");
+			LogUtils.infoPrint(() ->"Parsing finished in " + (parseEnd - preprocEnd) / 1_000_000 + " ms");
 			
-			LogUtils.infoPrint("Binary Paths: " + binaryPaths);
+			LogUtils.infoPrint(() ->"Binary Paths: " + binaryPaths);
 			
 			try {
 				if (!argParser.queries.isEmpty()) {
@@ -182,7 +181,7 @@ public class Main {
 					writer.write(out);
 				}
 			} catch (IOException ioe) {
-				LogUtils.errorPrint(ioe.getMessage());
+				LogUtils.errorPrint(() ->ioe.getMessage());
 			}
 		}
 
@@ -190,10 +189,10 @@ public class Main {
 //		if (argParse.extractUnitTypeData) {
 //			HashSet<Config> unitTypeData = p.getUnitTypeData();
 //			writeUnitTypeData(unitTypeData, argParse.unitTypeOutPath);
-//			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypeData.size() + " unit types defined.");
+//			LogUtils.debugPrint(() ->"Total " + p.getDefines().rowCount() + " macros and " + unitTypeData.size() + " unit types defined.");
 //		} else {
-//			LogUtils.debugPrint("Unit Types: " + unitTypes);
-//			LogUtils.debugPrint("Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
+//			LogUtils.debugPrint(() ->"Unit Types: " + unitTypes);
+//			LogUtils.debugPrint(() ->"Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 		
 		writer.flush();

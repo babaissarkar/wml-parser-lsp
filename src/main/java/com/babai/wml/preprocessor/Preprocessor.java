@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.parser.PathContext;
@@ -77,9 +78,8 @@ public class Preprocessor {
 	// Can handle both file or folder
 	public String preprocess(Path path) {
 		StringBuilder out = new StringBuilder();
-		String coloredPath = colorify(path.toString(), filePathColor);
 		if (Files.isDirectory(path)) {
-			debugPrint("Including directory: " + coloredPath);
+			debugPrint(() -> "Including directory: " + colorify(path.toString(), filePathColor));
 			
 			// _initial.cfg
 			Path initial = path.resolve("_initial.cfg");
@@ -103,7 +103,7 @@ public class Preprocessor {
 								.thenComparing(Comparator.naturalOrder()))
 						.forEach(p -> out.append(preprocess(p)));
 				} catch (IOException e) {
-					errorPrint("Cannot find " + path + ", skipping.");
+					errorPrint(() -> "Cannot find " + path + ", skipping.");
 				}
 			}
 			
@@ -116,8 +116,6 @@ public class Preprocessor {
 			out.append(preprocessFile(path));
 		}
 
-		// linebreak so outputs from different files are separated
-		out.append("\n");
 		return out.toString();
 	}
 
@@ -125,25 +123,28 @@ public class Preprocessor {
 		int prevMacroCount = this.defines.size();
 		this.currentPath = path;
 		this.currentPathUri = path.toUri().toString();
-		
-		String coloredPath = colorify(path.toAbsolutePath().toString(), filePathColor);
 
-		debugPrint("Preprocessing: " + coloredPath);
+		debugPrint(() -> "Preprocessing: " + colorify(path.toAbsolutePath().toString(), filePathColor));
 
 		String out = "";
 		try {
 			out = preprocessContent(Files.readString(path));
+			
 			int newMacroCount = this.defines.size() - prevMacroCount;
 
-			String msg = "Preprocessed %s" + (newMacroCount > 0 ? ": " + newMacroCount + " macros" : "");
+			Supplier<String> logMsg = () -> {
+				String msg = "Preprocessed %s" + (newMacroCount > 0 ? ": " + newMacroCount + " macros" : "");
+				String coloredPath = colorify(context.relativize(path), filePathColor);
+				return msg.formatted(coloredPath);
+			};
+			
 			if (listFilesInInfo) {
-				coloredPath = colorify(context.relativize(path), filePathColor);
-				infoPrint(msg.formatted(coloredPath));
+				infoPrint(logMsg);
 			} else {
-				debugPrint(msg.formatted(coloredPath));
+				debugPrint(logMsg);
 			}
 		} catch (IOException e) {
-			errorPrint("Cannot find " + path + ", skipping.");
+			errorPrint(() -> "Cannot find " + path + ", skipping.");
 		}
 		return out;
 	}
@@ -163,7 +164,7 @@ public class Preprocessor {
 			Token t = itor.next();
 			var directiveHeader = DirectiveHeader.parse(t, currentPathUri);
 			textdomain = directiveHeader.args().getFirst();
-			debugPrint("Textdomain: " + textdomain);
+			debugPrint(() -> "Textdomain: " + textdomain);
 		}
 
 		fileExplanations.put(currentPathUri, handleDocComment(itor));
@@ -174,7 +175,7 @@ public class Preprocessor {
 		}
 
 		for (var pair : nonexistentMacros) {
-			warningPrint(pair.second() + " undefined macro " + colorify(pair.first(), RED));
+			warningPrint(() -> pair.second() + " undefined macro " + colorify(pair.first(), RED));
 		}
 
 		return buff.toString();
@@ -216,7 +217,6 @@ public class Preprocessor {
 	}
 
 	private String processToken(ListIterator<Token> itor, Token t, List<String> currentArgs, boolean expandMacro) {
-		String content = t.content();
 		if (t.isKind(COMMENT)) {
 			if (t.isDirective()) {
 				handleDirective(t, itor, currentPathUri);
@@ -233,16 +233,19 @@ public class Preprocessor {
 			} else {
 				return t.raw();
 			}
-		} else if (expandMacro && t.isNotKind(ANGLE_QUOTED) && content.indexOf('{') >= 0 && content.indexOf('}') >= 0) {
-			// expand embedded macro block in other tokens
-			String nestedSubst = preprocessFragment(content, currentArgs);
-			if (nestedSubst.equals(content)) { // nth to subst, return raw
-				return t.raw();
-			} else {
-				return Token.getRaw(nestedSubst, t.kind());
-			}
 		} else {
-			return t.raw();
+			String content = t.content();
+			if (expandMacro && t.isNotKind(ANGLE_QUOTED) && content.indexOf('{') >= 0 && content.indexOf('}') >= 0) {
+				// expand embedded macro block in other tokens
+				String nestedSubst = preprocessFragment(content, currentArgs);
+				if (nestedSubst.equals(content)) { // nth to subst, return raw
+					return t.raw();
+				} else {
+					return Token.getRaw(nestedSubst, t.kind());
+				}
+			} else {
+				return t.raw();
+			}
 		}
 	}
 
@@ -253,10 +256,13 @@ public class Preprocessor {
 		Token t = itor.next();
 		while (!t.isDirectiveName(directiveName, false)) {
 			if (!itor.hasNext()) {
+				final int line = t.beginLine();
+				final int col = t.beginColumn();
 				// terminated before define completed, error
-				errorPrint("End directive "
-						+ colorify(directiveName, directiveColor)
-						+ " not found. Pos: " + position(t, currentPathUri));
+				errorPrint(() ->
+					"End directive "
+					+ colorify(directiveName, directiveColor)
+					+ " not found. Pos: " + position(line, col, currentPathUri));
 				break;
 			} else {
 				// we don't want to expand any macro calls in body when consuming directive body,
@@ -278,12 +284,15 @@ public class Preprocessor {
 		Token t = itor.next();
 		while (!(t.isDirectiveName(endDir1, false) || t.isDirectiveName(endDir2, false))) {
 			if (!itor.hasNext()) {
+				final int line = t.beginLine();
+				final int col = t.beginColumn();
 				// terminated before define completed, error
-				errorPrint("End directives "
-						+ colorify(endDir1, directiveColor)
-						+ " or "
-						+ colorify(endDir2, directiveColor)
-						+ " not found. Pos: " + position(t, currentPathUri));
+				errorPrint(() ->
+					"End directives "
+					+ colorify(endDir1, directiveColor)
+					+ " or "
+					+ colorify(endDir2, directiveColor)
+					+ " not found. Pos: " + position(line, col, currentPathUri));
 				return;
 			} else {
 				if (!itor.hasNext()) return;
@@ -310,7 +319,7 @@ public class Preprocessor {
 			String removalVersion = "";
 			String depreMessage = "";
 			while (peek(itor).isDirectiveName("deprecated", true)) {
-				debugPrint("Deprecated macro: " + macroName);
+				debugPrint(() -> "Deprecated macro: " + macroName);
 				Token t = itor.next();
 				isDeprecated = true;
 				var deprecationHeader = DirectiveHeader.parse(t, currentPathUri);
@@ -371,7 +380,7 @@ public class Preprocessor {
 			def.setDeprecationRemovalVersion(removalVersion);
 			def.setDeprecationMessage(depreMessage);
 
-			debugPrint("defining macro " + def.coloredName());
+			debugPrint(() -> "defining macro " + def.coloredName());
 			defines.addMacro(macroName, def, directiveStart.beginLine(), pathUri);
 
 		} else if (directiveHeader.head().equals("ifdef")) {
@@ -425,17 +434,19 @@ public class Preprocessor {
 		Path p = context.resolve(pathStr, currentPath);
 
 		if (!Files.exists(p)) {
-			String coloredPath = colorify(p.toString(), filePathColor);
-			warningPrint(coloredPath + " does not exist");
+			warningPrint(() -> colorify(p.toString(), filePathColor) + " does not exist");
 			return "";
 		}
 
-		String coloredPath = colorify(context.relativize(p), filePathColor);
-		String msg = "Including: ";
+		Supplier<String> logMsg = () -> {
+			String coloredPath = colorify(pathStr, filePathColor);	
+			return "Including: " + coloredPath;
+		};
+		
 		if (listFilesInInfo) {
-			infoPrint(msg + coloredPath);
+			infoPrint(logMsg);
 		} else {
-			debugPrint(msg + coloredPath);
+			debugPrint(logMsg);
 		}
 
 		return preprocess(p);
@@ -501,7 +512,7 @@ public class Preprocessor {
 					currentPathUri));
 
 			String argsString = Definition.argsAsString2(args, defArgs);
-			debugPrint("expanding macro " + def.coloredName()
+			debugPrint(() -> "expanding macro " + def.coloredName()
 				+ (!argsString.isEmpty() ? " with " + colorify(argsString, macroArgColor) : ""));
 
 			var argsList = new ArrayList<String>();
@@ -521,7 +532,8 @@ public class Preprocessor {
 				}
 				return out;
 			} catch(IllegalArgumentException e) {
-				errorPrint("Error expanding macro " + def.coloredName()
+				errorPrint(() ->
+					"Error expanding macro " + def.coloredName()
 					+ " in "
 					+ colorify(currentPathUri, filePathColor)
 					+ ": " + e.getMessage());
@@ -536,13 +548,15 @@ public class Preprocessor {
 			if (parts.size() == 1) {
 				String included = handleInclusion(macroName, context);
 				if (included.isEmpty()) {
-					nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPathUri)));
+					nonexistentMacros.add(new Pair<>(macroName,
+						position(macroCall.beginLine(), macroCall.beginColumn(), currentPathUri)));
 					return macroCall.raw();
 				} else {
 					return included;
 				}
 			} else {
-				nonexistentMacros.add(new Pair<>(macroName, position(macroCall, currentPathUri)));
+				nonexistentMacros.add(new Pair<>(macroName,
+					position(macroCall.beginLine(), macroCall.beginColumn(), currentPathUri)));
 				return macroCall.raw();
 			}
 		}
@@ -564,7 +578,9 @@ public class Preprocessor {
 		// processDirectiveNameAndArgs
 		public static DirectiveHeader parse(Token token, String pathStr) {
 			if (!token.isDirective()) {
-				errorPrint("Unknown directive found at " + position(token, pathStr));
+				final int line = token.beginLine();
+				final int col = token.beginColumn();
+				errorPrint(() -> "Unknown directive found at " + position(line, col, pathStr));
 			}
 
 			String content = token.content();

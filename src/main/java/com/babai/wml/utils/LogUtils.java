@@ -1,5 +1,6 @@
 package com.babai.wml.utils;
 
+import java.util.function.Supplier;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
@@ -35,15 +36,17 @@ public final class LogUtils {
 			public String format(LogRecord record) {
 				// Customize Message for separators between Level and Message
 				Level l = record.getLevel();
-				String lvlStr = "[" + l + "]";
+				String lvlStr;
 				if (l == Level.SEVERE) {
-					lvlStr = colorify(lvlStr, RED);
+					lvlStr = colorify("[Error]", RED);
 				} else if (l == Level.WARNING) {
-					lvlStr = colorify(lvlStr, ORANGE);
+					lvlStr = colorify("[" + l + "]", ORANGE);
 				} else if (l == Level.INFO) {
-					lvlStr = colorify(lvlStr, GREEN);
+					lvlStr = colorify("[" + l + "]", GREEN);
 				} else if (l == Level.FINER) {
 					lvlStr = colorify("[DEBUG]", CYAN);
+				} else {
+					lvlStr = "[" + l + "]";
 				}
 				
 				return lvlStr + " " + record.getMessage() + "\n";
@@ -66,24 +69,32 @@ public final class LogUtils {
 		System.out.println("[" + frame.getMethodName() +":L" + frame.getLineNumber() + "]: " + str);
 	}
 	
-	public static void infoPrint(String s) {
-		pL.info(s);
+	public static void infoPrint(Supplier<String> s) {
+		if (pL.isLoggable(Level.INFO)) {
+			pL.info(s.get());
+		}
 	}
 	
-	public static void debugPrint(String s) {
-		pL.finer(s);
+	public static void debugPrint(Supplier<String> s) {
+		if (pL.isLoggable(Level.FINER)) {
+			pL.finer(s.get());
+		}
 	}
 
-	public static void warningPrint(String s) {
-		pL.warning(s);
+	public static void warningPrint(Supplier<String> s) {
+		if (pL.isLoggable(Level.WARNING)) {
+			pL.warning(s.get());
+		}
 	}
 	
-	public static void errorPrint(String s) {
-		pL.severe(s);
+	public static void errorPrint(Supplier<String> s) {
+		if (pL.isLoggable(Level.SEVERE)) {
+			pL.severe(s.get());
+		}
 	}
 
-	public static String position(Token tok, String path) {
-		return colorify(path + ":" + "(" + tok.beginLine() + "," + tok.beginColumn() + ")", lineNumColor);
+	public static String position(int line, int col, String path) {
+		return colorify(path + ":" + "(" + line + "," + col + ")", lineNumColor);
 	}
 
 	public static String position(int line, int col) {

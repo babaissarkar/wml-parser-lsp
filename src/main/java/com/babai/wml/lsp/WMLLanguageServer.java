@@ -69,12 +69,12 @@ import com.babai.wml.preprocessor.MacroArg;
 import com.babai.wml.preprocessor.MacroCall;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.utils.AIGenerated;
-import com.babai.wml.utils.Colors;
+//import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.LogUtils;
 import com.babai.wml.utils.MacroTable;
 
-import static com.babai.wml.cli.ANSIFormatter.colorify;
+//import static com.babai.wml.cli.ANSIFormatter.colorify;
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 @AIGenerated
@@ -570,7 +570,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 			baseDefines = new MacroTable(defines);
 			if (inputPath != null) {
-				LogUtils.debugPrint("Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
+				// FIXME odd... why log msg in LSP mode?
+//				LogUtils.debugPrint(() -> "Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
 				parseFile(inputPath);
 			}
 
