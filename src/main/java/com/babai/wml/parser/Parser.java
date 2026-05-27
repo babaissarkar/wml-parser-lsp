@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import com.babai.wml.query.WMLQuery;
 import com.babai.wml.tokenizer.Token;
@@ -20,9 +19,6 @@ import static com.babai.wml.tokenizer.Token.Kind.*;
 import static com.babai.wml.parser.ParseUtils.peek;
 
 public class Parser {
-	private final static Pattern nottagpattern = Pattern.compile("[^a-z_\\d]|^\\d", Pattern.CASE_INSENSITIVE);
-	private final static Pattern eqlpattern = Pattern.compile("=");
-
 	private List<String> tagStack = new ArrayList<>();
 	private HashMap<String, List<Consumer<String>>> queryLambdas = new LinkedHashMap<>();
 
@@ -31,30 +27,51 @@ public class Parser {
 	}
 
 	public void parse(String text) throws IOException {
+		var line = new StringBuilder();
 		var itor = tokenize(text).listIterator();
 		while (itor.hasNext()) {
 			Token t = itor.next();
-			parseToken(itor, t);
+			parseToken(itor, t, line);
 		}
 	}
 
-	private void parseToken(ListIterator<Token> itor, Token t) {
+	private void parseToken(ListIterator<Token> itor, Token t, StringBuilder line) {
+		line.setLength(0);
+		
 		switch (t.kind()) {
 		case TEXT -> {
-			var line = new StringBuilder();
-
+			// Read the entire line
 			line.append(t.content());
 			while (peek(itor).isKind(TEXT, WHITESPACE, QUOTED, ANGLE_QUOTED)) {
 				t = itor.next();
 				line.append(t.content());
 			}
+			
+			// Extract key and value once, outside the query loop
+			int i = 0;
+			for (; i < line.length(); i++) {
+				if (line.charAt(i) == '=') break;
+			}
 
-			for (var query : queryLambdas.entrySet()) {
-				String[] parts = eqlpattern.split(line.toString(), 2);
-				if (WMLQuery.match(tagStack, query.getKey(), parts[0].trim())) {
-					String value = parts[1].trim();
-					for (var lambda : query.getValue()) {
-						lambda.accept(value);
+			if (i != line.length()) {
+				int eqPos = i;
+
+				// Remove trailing whitespace from key
+				int keyEnd = eqPos;
+				while (keyEnd > 0 && Character.isWhitespace(line.charAt(keyEnd - 1))) keyEnd--;
+				String key = line.substring(0, keyEnd);
+
+				// Remove leading whitespace from value
+				int valStart = eqPos + 1;
+				while (valStart < line.length() && Character.isWhitespace(line.charAt(valStart))) valStart++;
+				String val = line.substring(valStart);
+				
+				// Check against queries
+				for (var query : queryLambdas.entrySet()) {
+					if (WMLQuery.match(tagStack, query.getKey(), key)) {
+						for (var lambda : query.getValue()) {
+							lambda.accept(val);
+						}
 					}
 				}
 			}
@@ -64,7 +81,7 @@ public class Parser {
 			if (tagName.startsWith("+")) {
 				// appending tag, like [+units]
 				tagName = tagName.substring(1, tagName.length());
-				if (!nottagpattern.matcher(tagName).find()) {
+				if (isTag(tagName)) {
 					tagStack.add(tagName);
 				}
 			} else if (tagName.startsWith("/")) {
@@ -81,7 +98,7 @@ public class Parser {
 					+ colorify("[" + tagStack.getLast() + "]", tagColor));
 				}
 				// needs better handling
-			} else if (!nottagpattern.matcher(tagName).find()) {
+			} else if (isTag(tagName)) {
 				tagStack.add(tagName);
 			}
 		}
@@ -96,6 +113,21 @@ public class Parser {
 		}
 		}
 	}
-
-
+	
+	private boolean isTag(CharSequence tagName) {
+		if (tagName.length() == 0) return false;
+		int i = 0;
+		char c = tagName.charAt(i);
+		if (c == '+' || c == '/') {
+			i++;
+			if (i >= tagName.length()) return false;  // "+" or "/" alone
+		}
+		if (!Character.isLetter(tagName.charAt(i))) return false;
+		i++;  // skip the validated first letter
+		for (; i < tagName.length(); i++) {
+			c = tagName.charAt(i);
+			if (!(Character.isLetterOrDigit(c) || c == '_')) return false;
+		}
+		return true;
+	}
 }
