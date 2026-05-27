@@ -13,6 +13,11 @@ import com.babai.wml.parser.PathContext;
 import com.babai.wml.preprocessor.Preprocessor;
 
 class PreprocessorTest {
+	
+	private String preprocessString(String defString) throws IOException {
+		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
+		return preproc.preprocessContent(defString);
+	}
 
 	@Test
 	void testDefineExpand() throws IOException {
@@ -21,8 +26,7 @@ class PreprocessorTest {
 			# This is some docs
 			Something#enddef
 			{MYMACRO2}""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertFalse(str.isEmpty());
 		assertEquals("Something", str);
 	}
@@ -35,8 +39,7 @@ class PreprocessorTest {
 			#define OUTER x
 			({x})#enddef
 			{OUTER {INNER}}""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertEquals("(inner_result)", str);
 	}
 
@@ -48,8 +51,7 @@ class PreprocessorTest {
 			#define OUTER
 			({INNER})#enddef
 			{OUTER}""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertEquals("(inner_result)", str);
 	}
 
@@ -122,8 +124,7 @@ class PreprocessorTest {
 			Hello {WHO}{PUNC}#enddef
 			{GREET "World"}
 			{GREET "Friend" PUNC="?"}""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertEquals("Hello \"World\"!\nHello \"Friend\"?", str);
 	}
 
@@ -135,8 +136,7 @@ class PreprocessorTest {
 			none#endarg
 			{WHO}:{NOTE}#enddef
 			{SAY "Unit" NOTE="very good"}""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertEquals("\"Unit\":very good", str);
 	}
 
@@ -150,8 +150,7 @@ class PreprocessorTest {
 			#else
 			"Nodef"
 			#endif""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertFalse(str.isEmpty());
 		assertEquals("Something\n", str);
 	}
@@ -164,8 +163,7 @@ class PreprocessorTest {
 			#else
 			good
 			#endif""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertEquals("good\n", str);
 	}
 
@@ -177,8 +175,7 @@ class PreprocessorTest {
 			#else
 			nope
 			#endif""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertEquals("ok\n", str);
 	}
 
@@ -187,8 +184,7 @@ class PreprocessorTest {
 		String defString = """
 			{DOES_NOT_EXIST}
 			text""";
-		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preprocessString(defString);
 		assertTrue(str.startsWith("{DOES_NOT_EXIST}"));
 		assertTrue(str.contains("text"));
 	}
