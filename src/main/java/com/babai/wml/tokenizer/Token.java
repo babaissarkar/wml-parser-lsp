@@ -69,25 +69,25 @@ public final class Token {
 		// TODO throw error if hasArg = false & content.startsWith(directiveName) passes.
 	}
 	
-	public String raw() {
-		return getRaw(content(), kind());
+	public void raw(StringBuilder buff) {
+		writeRaw(content, kind, buff);
 	}
 	
-	public static String getRaw(String content, Token.Kind kind) {
-		return switch (kind) {
-			case TAG -> "[" + content + "]";
-			case QUOTED -> "\"" + content + "\"";
-			case ANGLE_QUOTED -> "<<" + content + ">>";
-			case MACRO -> "{" + content + "}";
-			case COMMENT -> "#" + content;
-			case EOF -> throw new UnsupportedOperationException("EOF token has no raw vale");
-			default -> content;
+	public static void writeRaw(String content, Token.Kind kind, StringBuilder buff) {
+		switch (kind) {
+			case TAG -> buff.append("[").append(content).append("]");
+			case QUOTED -> buff.append("\"").append(content).append("\"");
+			case ANGLE_QUOTED -> buff.append("<<").append(content).append(">>");
+			case MACRO -> buff.append("{").append(content).append("}");
+			case COMMENT -> buff.append("#").append(content);
+			case EOF -> throw new UnsupportedOperationException("EOF token has no raw value");
+			default -> buff.append(content);
 		};
 	}
 
 	public enum Kind {
-		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, TAG, EOF,
-		VAL, EQL
+		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, EOF,
+		VAL, EQL, TAG
 	}
 
 	@Override

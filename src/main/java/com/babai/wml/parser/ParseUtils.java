@@ -149,9 +149,9 @@ public final class ParseUtils {
 					if (val == null) {
 						String nestedSubst = substitute(content, subst);
 						if (nestedSubst.equals(content)) { // nth to subst, return raw
-							out.append(t.raw());
+							t.raw(out);
 						} else {
-							out.append(Token.getRaw(nestedSubst, t.kind()));
+							Token.writeRaw(nestedSubst, t.kind(), out);
 						}
 					} else {
 						out.append(val);
@@ -160,12 +160,12 @@ public final class ParseUtils {
 					// embedded macro block in other tokens
 					String nestedSubst = substitute(content, subst);
 					if (nestedSubst.equals(content)) { // nth to subst, return raw
-						out.append(t.raw());
+						t.raw(out);
 					} else {
-						out.append(Token.getRaw(nestedSubst, t.kind()));
+						Token.writeRaw(nestedSubst, t.kind(), out);
 					}
 				} else {
-					out.append(t.raw());
+					t.raw(out);
 				}
 			}
 			return out.toString();

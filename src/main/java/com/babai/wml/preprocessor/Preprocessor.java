@@ -74,22 +74,27 @@ public class Preprocessor {
 	public void setListFilesInInfo(boolean listFilesInInfo) {
 		this.listFilesInInfo = listFilesInInfo;
 	}
+	
+	public String preprocess(Path path) {
+		var out = new StringBuilder();
+		preprocess(path, out);
+		return out.toString();
+	}
 
 	// Can handle both file or folder
-	public String preprocess(Path path) {
-		StringBuilder out = new StringBuilder();
+	private void preprocess(Path path, StringBuilder out) {
 		if (Files.isDirectory(path)) {
 			debugPrint(() -> "Including directory: " + colorify(path.toString(), filePathColor));
 			
 			// _initial.cfg
 			Path initial = path.resolve("_initial.cfg");
 			if (Files.exists(initial)) {
-				out.append(preprocessFile(initial));
+				preprocessFile(initial, out);
 			}
 			
 			Path main = path.resolve("_main.cfg");
 			if (Files.exists(main)) {
-				out.append(preprocessFile(main));
+				preprocessFile(main, out);
 			} else {
 				Predicate<? super Path> filter = entry ->
 					Files.isDirectory(entry)
@@ -101,7 +106,7 @@ public class Preprocessor {
 						.sorted(Comparator
 								.comparingInt((Path p) -> Files.isDirectory(p) ? 1 : 0)
 								.thenComparing(Comparator.naturalOrder()))
-						.forEach(p -> out.append(preprocess(p)));
+						.forEach(p -> preprocess(p, out));
 				} catch (IOException e) {
 					errorPrint(() -> "Cannot find " + path + ", skipping.");
 				}
@@ -110,25 +115,22 @@ public class Preprocessor {
 			// _final.cfg
 			Path fin = path.resolve("_final.cfg");
 			if (Files.exists(fin)) {
-				out.append(preprocessFile(fin));
+				preprocessFile(fin, out);
 			}
 		} else {
-			out.append(preprocessFile(path));
+			preprocessFile(path, out);
 		}
-
-		return out.toString();
 	}
 
-	public String preprocessFile(Path path) {
+	public void preprocessFile(Path path, StringBuilder buff) {
 		int prevMacroCount = this.defines.size();
 		this.currentPath = path;
 		this.currentPathUri = path.toUri().toString();
 
 		debugPrint(() -> "Preprocessing: " + colorify(path.toAbsolutePath().toString(), filePathColor));
 
-		String out = "";
 		try {
-			out = preprocessContent(Files.readString(path));
+			preprocessContent(Files.readString(path), buff);
 			
 			int newMacroCount = this.defines.size() - prevMacroCount;
 
@@ -146,13 +148,16 @@ public class Preprocessor {
 		} catch (IOException e) {
 			errorPrint(() -> "Cannot find " + path + ", skipping.");
 		}
-		return out;
+	}
+	
+	public String preprocessContent(String content) throws IOException {
+		var buff = new StringBuilder();
+		preprocessContent(content, buff);
+		return buff.toString();
 	}
 
 	// Can only deal with a file
-	public String preprocessContent(String content) throws IOException {
-		var buff = new StringBuilder();
-
+	private void preprocessContent(String content, StringBuilder buff) throws IOException {
 		var itor = tokenize(content).listIterator();
 
 		skip(itor, EOL);
@@ -171,14 +176,12 @@ public class Preprocessor {
 
 		while (itor.hasNext()) {
 			Token t = itor.next();
-			buff.append(processToken(itor, t, currentDefineArgs, true));
+			processToken(itor, t, buff, currentDefineArgs, true);
 		}
 
 		for (var pair : nonexistentMacros) {
 			warningPrint(() -> pair.second() + " undefined macro " + colorify(pair.first(), RED));
 		}
-
-		return buff.toString();
 	}
 
 	private String preprocessFragment(String fragment, List<String> args) {
@@ -189,7 +192,7 @@ public class Preprocessor {
 			while (itor.hasNext()) {
 				Token t = itor.next();
 				boolean expand = !args.contains(t.content());
-				buff.append(processToken(itor, t, args, expand));
+				processToken(itor, t, buff, args, expand);
 			}
 			return buff.toString();
 		} catch (IOException e) {
@@ -216,7 +219,7 @@ public class Preprocessor {
 		return docBuff.toString().trim();
 	}
 
-	private String processToken(ListIterator<Token> itor, Token t, List<String> currentArgs, boolean expandMacro) {
+	private void processToken(ListIterator<Token> itor, Token t, StringBuilder buff, List<String> currentArgs, boolean expandMacro) {
 		if (t.isKind(COMMENT)) {
 			if (t.isDirective()) {
 				handleDirective(t, itor, currentPathUri);
@@ -224,14 +227,12 @@ public class Preprocessor {
 				skip(itor, WHITESPACE);
 				skip(itor, EOL);
 			}
-
-			return "";
 		} else if (t.isKind(MACRO)) {
 			// exapnd macro tokens
 			if (expandMacro) {
-				return expandMacro(t, currentArgs, context);
+				expandMacro(t, currentArgs, context, buff);
 			} else {
-				return t.raw();
+				t.raw(buff);
 			}
 		} else {
 			String content = t.content();
@@ -239,12 +240,12 @@ public class Preprocessor {
 				// expand embedded macro block in other tokens
 				String nestedSubst = preprocessFragment(content, currentArgs);
 				if (nestedSubst.equals(content)) { // nth to subst, return raw
-					return t.raw();
+					t.raw(buff);
 				} else {
-					return Token.getRaw(nestedSubst, t.kind());
+					Token.writeRaw(nestedSubst, t.kind(), buff);
 				}
 			} else {
-				return t.raw();
+				t.raw(buff);
 			}
 		}
 	}
@@ -267,7 +268,7 @@ public class Preprocessor {
 			} else {
 				// we don't want to expand any macro calls in body when consuming directive body,
 				// but rather when that directive is called later on. (ie. lazy not eager behavior)
-				body.append(processToken(itor, t, currentDefineArgs, false));
+				processToken(itor, t, body, currentDefineArgs, false);
 				if (!itor.hasNext()) return body.toString();
 				t = itor.next();
 			}
@@ -421,21 +422,21 @@ public class Preprocessor {
 
 	// TODO This might need to be recursive, like after expansion
 	// if macro exists after expansion, expand again and so on until no macro calls remain.
-	private String expandMacro(Token macroCall, List<String> possibleArgs, PathContext context) {
+	private void expandMacro(Token macroCall, List<String> possibleArgs, PathContext context, StringBuilder buff) {
 		if (isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
-			return handleInclusion(macroCall.content(), context);
+			handleInclusion(macroCall.content(), context, buff);
 		} else {
-			return expandMacroCall(macroCall, possibleArgs);
+			expandMacroCall(macroCall, possibleArgs, buff);
 		}
 	}
 
-	private String handleInclusion(String pathStr, PathContext context) {
+	private void handleInclusion(String pathStr, PathContext context, StringBuilder buff) {
 		Path p = context.resolve(pathStr, currentPath);
 
 		if (!Files.exists(p)) {
 			warningPrint(() -> colorify(p.toString(), filePathColor) + " does not exist");
-			return "";
+			return;
 		}
 
 		Supplier<String> logMsg = () -> {
@@ -449,10 +450,10 @@ public class Preprocessor {
 			debugPrint(logMsg);
 		}
 
-		return preprocess(p);
+		preprocess(p, buff);
 	}
 
-	private String expandMacroCall(Token macroCall, List<String> possibleArgs) {
+	private void expandMacroCall(Token macroCall, List<String> possibleArgs, StringBuilder buff) {
 		
 		final String content = macroCall.content();
 		
@@ -530,34 +531,32 @@ public class Preprocessor {
 				if (out.indexOf('{') >= 0) {
 					out = preprocessFragment(out, argsList);
 				}
-				return out;
+				buff.append(out);
 			} catch(IllegalArgumentException e) {
 				errorPrint(() ->
 					"Error expanding macro " + def.coloredName()
 					+ " in "
 					+ colorify(currentPathUri, filePathColor)
 					+ ": " + e.getMessage());
-				return macroCall.raw();
+				macroCall.raw(buff);
 			}
 
 		// Nested arg processing
 		} else if (possibleArgs.contains(macroName)) {
 			// FIXME: do nothing for now. may need checks later.
-			return macroCall.raw();
+			macroCall.raw(buff);
 		} else {
+			int prev = buff.length();
 			if (parts.size() == 1) {
-				String included = handleInclusion(macroName, context);
-				if (included.isEmpty()) {
-					nonexistentMacros.add(new Pair<>(macroName,
-						position(macroCall.beginLine(), macroCall.beginColumn(), currentPathUri)));
-					return macroCall.raw();
-				} else {
-					return included;
-				}
-			} else {
+				handleInclusion(macroName, context, buff);
+			}
+			
+			// did we include anything? buff size should change.
+			if (buff.length() - prev == 0) {
+				// no change : handleInclusion failed
 				nonexistentMacros.add(new Pair<>(macroName,
 					position(macroCall.beginLine(), macroCall.beginColumn(), currentPathUri)));
-				return macroCall.raw();
+				macroCall.raw(buff);
 			}
 		}
 	}
