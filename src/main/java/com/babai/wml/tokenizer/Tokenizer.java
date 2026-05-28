@@ -29,6 +29,7 @@ public final class Tokenizer {
 		int[] counts = {0, 0};
 		State state = State.NORMAL;
 		Position start = Position.start();
+		Token.Kind lastTextKind = Token.Kind.TEXT;
 
 		int ch;
 		while ((ch = r.read()) != -1) {
@@ -36,20 +37,33 @@ public final class Tokenizer {
 			switch (state) {
 			case NORMAL -> {
 				if (c == '#') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, buff, lastTextKind, start);
+					lastTextKind = Token.Kind.TEXT;
+					
 					state = State.LINE_COMMENT;
 				} else if (isWS(c)) {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					state = State.WS;
-					buff.append(c);
+					if (lastTextKind != Token.Kind.VAL) {
+						finalizeAndAddToken(tokens, buff, lastTextKind, start);
+						lastTextKind = Token.Kind.TEXT;
+						
+						state = State.WS;
+						buff.append(c);
+					}
+					// skip space just after VAL otherwise
 				} else if (isEOL(c)) {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, buff, lastTextKind, start);
+					lastTextKind = Token.Kind.TEXT;
+					
 					handleEOLToken(tokens, c, r, start);
 				} else if (c == '"') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, buff, lastTextKind, start);
+					lastTextKind = Token.Kind.TEXT;
+					
 					finalizeAndAddToken(tokens, readQuoteToken(r, buff, counts), Token.Kind.QUOTED, start, counts);
 				} else if (c == '<') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, buff, lastTextKind, start);
+					lastTextKind = Token.Kind.TEXT;
+					
 					readAngleQuoteToken(r, buff, counts);
 					if (buff.isEmpty()) {
 						buff.append(c);
@@ -57,11 +71,30 @@ public final class Tokenizer {
 						finalizeAndAddToken(tokens, buff, Token.Kind.ANGLE_QUOTED, start, counts);
 					}
 				} else if (c == '{') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, buff, lastTextKind, start);
+					lastTextKind = Token.Kind.TEXT;
+					
 					finalizeAndAddToken(tokens, readMacroToken(r, buff, counts), Token.Kind.MACRO, start, counts);
 				} else if (c == '[') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+					finalizeAndAddToken(tokens, buff, lastTextKind, start);
+					lastTextKind = Token.Kind.TEXT;
+					
 					finalizeAndAddToken(tokens, readTagToken(r, buff), Token.Kind.TAG, start);
+				} else if (c == '=' && lastTextKind == Token.Kind.TEXT) {
+					// This character is intentionally suppressed
+					
+					// TODO complain if no '=' found in keyval line, as WML can't have plain lines
+					// TODO standalone '=' in a line is also wrong
+					
+					// skip preceding space
+					while (!tokens.isEmpty() && tokens.getLast().isKind(Token.Kind.WHITESPACE)) tokens.removeLast();
+
+					finalizeAndAddToken(tokens, buff, lastTextKind, start);
+					
+					buff.append(c);
+					finalizeAndAddToken(tokens, buff, Token.Kind.EQL, start);
+					
+					lastTextKind = Token.Kind.VAL;
 				} else {
 					buff.append(c);
 				}
@@ -99,7 +132,24 @@ public final class Tokenizer {
 					finalizeAndAddToken(tokens, readTagToken(r, buff), Token.Kind.TAG, start);
 				} else {
 					if (c != '#') {
-						buff.append(c);
+						if (c == '=' && lastTextKind == Token.Kind.TEXT) {
+							// This character is intentionally suppressed
+							
+							// TODO complain if no '=' found in keyval line, as WML can't have plain lines
+							// TODO standalone '=' in a line is also wrong
+							
+							// skip preceding space
+							while (tokens.getLast().isKind(Token.Kind.WHITESPACE)) tokens.removeLast();
+							
+							finalizeAndAddToken(tokens, buff, lastTextKind, start);
+							
+							buff.append(c);
+							finalizeAndAddToken(tokens, buff, Token.Kind.EQL, start);
+							
+							lastTextKind = Token.Kind.VAL;
+						} else {
+							buff.append(c);
+						}
 					}
 				}
 			}
@@ -108,7 +158,8 @@ public final class Tokenizer {
 
 		if (ch == -1 && !buff.isEmpty()) {
 			if (state == State.NORMAL) {
-				finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+				finalizeAndAddToken(tokens, buff, lastTextKind, start);
+				lastTextKind = Token.Kind.TEXT;
 			} else if (state == State.LINE_COMMENT) {
 				finalizeAndAddToken(tokens, buff, Token.Kind.COMMENT, start);
 			} else if (state == State.WS) {
@@ -256,10 +307,7 @@ public final class Tokenizer {
 
 	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start) {
 		finalizeAndAddToken(tokens, buff.toString(), kind, start, 0, buff.length());
-
-		if (!buff.isEmpty()) {
-			buff.delete(0, buff.length());
-		}
+		buff.setLength(0);
 	}
 
 	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start, int[] counts) {

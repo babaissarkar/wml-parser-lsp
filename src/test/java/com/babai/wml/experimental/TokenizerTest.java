@@ -1,6 +1,7 @@
 package com.babai.wml.experimental;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -11,6 +12,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.babai.wml.parser.ParseUtils;
+import com.babai.wml.parser.Parser;
 import com.babai.wml.tokenizer.Token;
 import com.babai.wml.tokenizer.Tokenizer;
 
@@ -73,17 +75,49 @@ class TokenizerTest {
 			e.printStackTrace();
 		}
 	}
+	
+	@Test
+	void testSimpleKeyValPair() {
+		String text = "key=value";
+		try {
+			List<Token> toks = Tokenizer.tokenize(text);
+			System.out.println("Toks(keyval test): " + toks);
+			assertEquals(3, toks.size());
+			assertEquals("key", toks.get(0).content());
+			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
+			assertEquals("value", toks.get(2).content());
+			assertEquals(Token.Kind.VAL, toks.get(2).kind());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
+	}
+	
+	@Test
+	void testSpacedKeyValPair() {
+		String text = "key = value";
+		try {
+			List<Token> toks = Tokenizer.tokenize(text);
+			System.out.println("Toks(spaced keyval): " + toks);
+			assertEquals(3, toks.size());
+			assertEquals("key", toks.get(0).content());
+			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
+			assertEquals("value", toks.get(2).content());
+			assertEquals(Token.Kind.VAL, toks.get(2).kind());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
+	}
 
 	@Test
 	void testQuotedString() {
 		String text = "key=\"value val\"\"ue2\nvalue3\"";
 		try {
 			List<Token> toks = Tokenizer.tokenize(text);
-			System.out.println("Toks(quoted test): " + toks);
-			assertEquals(2, toks.size());
+			System.out.println("Toks(quoted keyval): " + toks);
+			assertEquals(3, toks.size());
 			// checks "" -> " collapse, preservation of whitespace
-			assertEquals("key=", toks.get(0).content());
-			assertEquals("value val\"ue2\nvalue3", toks.get(1).content());
+			assertEquals("key", toks.get(0).content());
+			assertEquals("value val\"ue2\nvalue3", toks.get(2).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -94,11 +128,11 @@ class TokenizerTest {
 		String text = "key=<<value val\"ue2\nvalue3>>";
 		try {
 			List<Token> toks = Tokenizer.tokenize(text);
-			System.out.println("Toks(angle quote test): " + toks);
-			assertEquals(2, toks.size());
+			System.out.println("Toks(angle quoted keyval): " + toks);
+			assertEquals(3, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
-			assertEquals("key=", toks.get(0).content());
-			assertEquals("value val\"ue2\nvalue3", toks.get(1).content());
+			assertEquals("key", toks.get(0).content());
+			assertEquals("value val\"ue2\nvalue3", toks.get(2).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -109,11 +143,11 @@ class TokenizerTest {
 		String text = "key={MYMACRO ARG1 ARG2 ARG3=\"def\"}";
 		try {
 			List<Token> toks = Tokenizer.tokenize(text);
-			System.out.println("Toks(angle quote test): " + toks);
-			assertEquals(2, toks.size());
+			System.out.println("Toks(macro keyval): " + toks);
+			assertEquals(3, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
-			assertEquals("key=", toks.get(0).content());
-			assertEquals("MYMACRO ARG1 ARG2 ARG3=\"def\"", toks.get(1).content());
+			assertEquals("key", toks.get(0).content());
+			assertEquals("MYMACRO ARG1 ARG2 ARG3=\"def\"", toks.get(2).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -200,6 +234,28 @@ class TokenizerTest {
 			assertEquals(1, toks.size());
 			assertEquals("Journeyof aFrost Mage", toks.get(0).content());
 			assertEquals(Token.Kind.QUOTED, toks.get(0).kind());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	void testSnippetTokenization() {
+		String text = """
+			[binary_path]
+				path=data/add-ons/Frost_Mage
+			[/binary_path]""";
+		try {
+			List<Token> toks = Tokenizer.tokenize(text);
+			System.out.println("Toks(snippet tokenize): " + toks);
+
+			assertEquals(7, toks.size());
+			
+			var binaryPaths = new HashSet<String>();
+			Parser p = new Parser();
+			p.addQuery("binary_path/path", v -> binaryPaths.add(v));
+			p.parse(text);
+			
+			assertEquals(1, binaryPaths.size());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

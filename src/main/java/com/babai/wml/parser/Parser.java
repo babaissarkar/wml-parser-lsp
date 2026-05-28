@@ -35,43 +35,26 @@ public class Parser {
 		}
 	}
 
-	private void parseToken(ListIterator<Token> itor, Token t, StringBuilder line) {
-		line.setLength(0);
+	private void parseToken(ListIterator<Token> itor, Token t, StringBuilder val) {
+		val.setLength(0);
 		
 		switch (t.kind()) {
 		case TEXT -> {
-			// Read the entire line
-			line.append(t.content());
-			while (peek(itor).isKind(TEXT, WHITESPACE, QUOTED, ANGLE_QUOTED)) {
-				t = itor.next();
-				line.append(t.content());
-			}
+			String key = t.content();
 			
-			// Extract key and value once, outside the query loop
-			int i = 0;
-			for (; i < line.length(); i++) {
-				if (line.charAt(i) == '=') break;
+			// rest of line is rhs value, as '=' is suppressed in tokenizer
+			while (peek(itor).isKind(VAL, WHITESPACE, QUOTED, ANGLE_QUOTED, EQL)) {
+				t = itor.next();
+				if (t.isNotKind(EQL)) {
+					val.append(t.content());
+				}
 			}
-
-			if (i != line.length()) {
-				int eqPos = i;
-
-				// Remove trailing whitespace from key
-				int keyEnd = eqPos;
-				while (keyEnd > 0 && Character.isWhitespace(line.charAt(keyEnd - 1))) keyEnd--;
-				String key = line.substring(0, keyEnd);
-
-				// Remove leading whitespace from value
-				int valStart = eqPos + 1;
-				while (valStart < line.length() && Character.isWhitespace(line.charAt(valStart))) valStart++;
-				String val = line.substring(valStart);
 				
-				// Check against queries
-				for (var query : queryLambdas.entrySet()) {
-					if (WMLQuery.match(tagStack, query.getKey(), key)) {
-						for (var lambda : query.getValue()) {
-							lambda.accept(val);
-						}
+			// Check against queries
+			for (var query : queryLambdas.entrySet()) {
+				if (WMLQuery.match(tagStack, query.getKey(), key)) {
+					for (var lambda : query.getValue()) {
+						lambda.accept(val.toString());
 					}
 				}
 			}

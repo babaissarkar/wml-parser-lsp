@@ -75,18 +75,19 @@ public final class Token {
 	
 	public static String getRaw(String content, Token.Kind kind) {
 		return switch (kind) {
-			case TEXT, WHITESPACE, EOL -> content;
 			case TAG -> "[" + content + "]";
 			case QUOTED -> "\"" + content + "\"";
 			case ANGLE_QUOTED -> "<<" + content + ">>";
 			case MACRO -> "{" + content + "}";
 			case COMMENT -> "#" + content;
-			default -> throw new IllegalArgumentException("Unexpected value: " + kind);
+			case EOF -> throw new UnsupportedOperationException("EOF token has no raw vale");
+			default -> content;
 		};
 	}
 
 	public enum Kind {
-		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, TAG, EOF
+		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, TAG, EOF,
+		VAL, EQL
 	}
 
 	@Override
