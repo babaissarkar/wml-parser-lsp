@@ -59,30 +59,23 @@ public class Parser {
 				}
 			}
 		}
-		case TAG -> {
+		case TAG_START -> {
 			String tagName = t.content();
-			if (tagName.startsWith("+")) {
-				// appending tag, like [+units]
-				tagName = tagName.substring(1, tagName.length());
-				if (isTag(tagName)) {
-					tagStack.add(tagName);
-				}
-			} else if (tagName.startsWith("/")) {
-				// end tag
-				tagName = tagName.substring(1, tagName.length());
-				if (tagStack.isEmpty()) {
-					errorPrint(() -> "End tag without matching start tag.");
-				} else if (tagStack.getLast().equals(tagName)) {
-					tagStack.removeLast();
-				} else {
-					final String tmpTagName = tagName;
-					errorPrint(() -> "Wrong end tag " + colorify(tmpTagName, RED)
-					+ " found for tag "
-					+ colorify("[" + tagStack.getLast() + "]", tagColor));
-				}
-				// needs better handling
-			} else if (isTag(tagName)) {
+			if (isTag(tagName)) {
 				tagStack.add(tagName);
+			}
+		}
+		case TAG_END -> {
+			String tagName = t.content();
+			if (tagStack.isEmpty()) {
+				errorPrint(() -> "End tag without matching start tag.");
+			} else if (tagStack.getLast().equals(tagName)) {
+				tagStack.removeLast();
+			} else {
+				final String tmpTagName = tagName;
+				errorPrint(() -> "Wrong end tag " + colorify(tmpTagName, RED)
+				+ " found for tag "
+				+ colorify("[" + tagStack.getLast() + "]", tagColor));
 			}
 		}
 		case WHITESPACE, EOL, COMMENT, QUOTED, ANGLE_QUOTED -> {} //ignore
@@ -97,19 +90,16 @@ public class Parser {
 		}
 	}
 	
-	private boolean isTag(CharSequence tagName) {
+	private boolean isTag(String tagName) {
 		if (tagName.length() == 0) return false;
-		int i = 0;
-		char c = tagName.charAt(i);
-		if (c == '+' || c == '/') {
-			i++;
-			if (i >= tagName.length()) return false;  // "+" or "/" alone
-		}
-		if (!Character.isLetter(tagName.charAt(i))) return false;
-		i++;  // skip the validated first letter
-		for (; i < tagName.length(); i++) {
+		char c;
+		for (int i = 0; i < tagName.length(); i++) {
 			c = tagName.charAt(i);
-			if (!(Character.isLetterOrDigit(c) || c == '_')) return false;
+			if (i == 0) {
+				if (!(Character.isLetter(c))) return false;
+			} else {
+				if (!(Character.isLetterOrDigit(c) || c == '_')) return false;
+			}
 		}
 		return true;
 	}

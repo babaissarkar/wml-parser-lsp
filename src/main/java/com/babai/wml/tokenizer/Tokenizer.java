@@ -79,7 +79,8 @@ public final class Tokenizer {
 					finalizeAndAddToken(tokens, buff, lastTextKind, start);
 					lastTextKind = Token.Kind.TEXT;
 					
-					finalizeAndAddToken(tokens, readTagToken(r, buff), Token.Kind.TAG, start);
+					Token.Kind type = readTagToken(r, buff);
+					finalizeAndAddToken(tokens, buff, type, start);
 				} else if (c == '=' && lastTextKind == Token.Kind.TEXT) {
 					// This character is intentionally suppressed
 					
@@ -129,7 +130,8 @@ public final class Tokenizer {
 				} else if (c == '{') {
 					finalizeAndAddToken(tokens, readMacroToken(r, buff, counts), Token.Kind.MACRO, start, counts);
 				} else if (c == '[') {
-					finalizeAndAddToken(tokens, readTagToken(r, buff), Token.Kind.TAG, start);
+					Token.Kind type = readTagToken(r, buff);
+					finalizeAndAddToken(tokens, buff, type, start);
 				} else {
 					if (c != '#') {
 						if (c == '=' && lastTextKind == Token.Kind.TEXT) {
@@ -275,18 +277,31 @@ public final class Tokenizer {
 		return buff;
 	}
 
-	private static StringBuilder readTagToken(CharCursor r, StringBuilder buff) {
+	private static Token.Kind readTagToken(CharCursor r, StringBuilder buff) {
 		buff.setLength(0);
+		Token.Kind type = Token.Kind.TAG_START;
+		boolean firstChar = true;
 		int ch;
 		while ((ch = r.read()) != -1) {
 			char c = (char) ch;
 			if (c == ']') {
 				break;
 			} else {
-				buff.append(c);
+				if (firstChar) { // first char after '['
+					if (c == '/') {
+						type = Token.Kind.TAG_END;
+					} else if (c == '+') {
+						/* Ignore */
+					} else {
+						buff.append(c);
+					}
+				} else {
+					buff.append(c);
+				}
 			}
+			firstChar = false;
 		}
-		return buff;
+		return type;
 	}
 
 	private static void handleEOLToken(List<Token> tokens, char c, CharCursor r, Position start) {

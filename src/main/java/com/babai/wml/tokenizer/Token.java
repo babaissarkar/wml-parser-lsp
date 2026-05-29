@@ -75,11 +75,12 @@ public final class Token {
 	
 	public static void writeRaw(String content, Token.Kind kind, StringBuilder buff) {
 		switch (kind) {
-			case TAG -> buff.append("[").append(content).append("]");
-			case QUOTED -> buff.append("\"").append(content).append("\"");
+			case TAG_START -> buff.append('[').append(content).append(']');
+			case TAG_END -> buff.append("[/").append(content).append(']');
+			case QUOTED -> buff.append('"').append(content).append('"');
 			case ANGLE_QUOTED -> buff.append("<<").append(content).append(">>");
-			case MACRO -> buff.append("{").append(content).append("}");
-			case COMMENT -> buff.append("#").append(content);
+			case MACRO -> buff.append('{').append(content).append('}');
+			case COMMENT -> buff.append('#').append(content);
 			case EOF -> throw new UnsupportedOperationException("EOF token has no raw value");
 			default -> buff.append(content);
 		};
@@ -87,7 +88,7 @@ public final class Token {
 
 	public enum Kind {
 		TEXT, COMMENT, EOL, WHITESPACE, QUOTED, ANGLE_QUOTED, MACRO, EOF,
-		VAL, EQL, TAG
+		VAL, EQL, TAG_START, TAG_END
 	}
 
 	@Override

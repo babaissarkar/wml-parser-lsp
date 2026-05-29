@@ -57,11 +57,12 @@ public final class ParseUtils {
 		int nlvl = 0; // () nesting level
 		
 		while (i < chars.length) {
+			sb.setLength(0);
+			
 			// Token boundary starts at the next non-whitespace character.
 			while (i < chars.length && Character.isWhitespace(chars[i])) i++; // skip WS
 			if (i >= chars.length) break;
 
-			sb.setLength(0);
 			// Read one token. Whitespace ends the token unless we're inside a quoted span.
 			while (i < chars.length && !Character.isWhitespace(chars[i])) {
 				char c = chars[i];
@@ -132,7 +133,7 @@ public final class ParseUtils {
 	}
 	
 	public static String substitute(String template, Map<String, String> subst) {
-		if (!template.contains("{")) return template;
+		if (template.indexOf('{') == -1) return template;
 
 		try {
 			var out = new StringBuilder();
