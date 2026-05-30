@@ -1,8 +1,6 @@
 package com.babai.wml.tokenizer;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,16 +11,16 @@ import static com.babai.wml.parser.ParseUtils.*;
 
 public final class Tokenizer {
 	private enum State { NORMAL, LINE_COMMENT, WS };
-
-	public static List<Token> tokenize(Path inputPath) throws IOException {
-		return tokenize(Files.readString(inputPath));
-	}
-
+	
 	public static List<Token> tokenize(String content) throws IOException {
-		return tokenize(content.toCharArray());
+		return tokenize(content.toCharArray(), false);
 	}
 
-	public static List<Token> tokenize(char[] input) throws IOException {
+	public static List<Token> tokenize(String content, boolean mergeConcats) throws IOException {
+		return tokenize(content.toCharArray(), mergeConcats);
+	}
+
+	public static List<Token> tokenize(char[] input, boolean mergeConcats) throws IOException {
 		CharCursor r = new CharCursor(input);
 		List<Token> tokens = new ArrayList<>();
 		StringBuilder buff = new StringBuilder();
@@ -169,7 +167,7 @@ public final class Tokenizer {
 			}
 		}
 
-		return mergeConcatenations(tokens);
+		return mergeConcats ? mergeConcatenations(tokens) : tokens;
 	}
 
 	// Note: this assumes that r is currently at the character '"'

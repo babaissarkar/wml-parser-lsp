@@ -27,7 +27,7 @@ public class Parser {
 
 	public void parse(String text) throws IOException {
 		var line = new StringBuilder();
-		var itor = tokenize(text).listIterator();
+		var itor = tokenize(text, true).listIterator();
 		while (itor.hasNext()) {
 			Token t = itor.next();
 			parseToken(itor, t, line);

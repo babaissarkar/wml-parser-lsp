@@ -14,12 +14,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.parser.Parser;
 import com.babai.wml.tokenizer.Token;
-import com.babai.wml.tokenizer.Tokenizer;
+
+import static com.babai.wml.tokenizer.Tokenizer.tokenize;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class TokenizerTest {
+	
 	@Test
 	void testParenQuotedSplit() {
 		String text = "Hello\n    (How\n are) you \"Konrad the Second\"";
@@ -63,7 +65,7 @@ class TokenizerTest {
 	void testCommentSplit() {
 		String text = "Hello #Comment\nLine2";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			System.out.println("Toks(comment test): " + toks);
 			assertEquals(5, toks.size());
 			assertEquals("Hello", toks.get(0).content());
@@ -80,7 +82,7 @@ class TokenizerTest {
 	void testSimpleKeyValPair() {
 		String text = "key=value";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			System.out.println("Toks(keyval test): " + toks);
 			assertEquals(3, toks.size());
 			assertEquals("key", toks.get(0).content());
@@ -96,7 +98,7 @@ class TokenizerTest {
 	void testSpacedKeyValPair() {
 		String text = "key = value";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			System.out.println("Toks(spaced keyval): " + toks);
 			assertEquals(3, toks.size());
 			assertEquals("key", toks.get(0).content());
@@ -112,7 +114,7 @@ class TokenizerTest {
 	void testQuotedString() {
 		String text = "key=\"value val\"\"ue2\nvalue3\"";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			System.out.println("Toks(quoted keyval): " + toks);
 			assertEquals(3, toks.size());
 			// checks "" -> " collapse, preservation of whitespace
@@ -127,7 +129,7 @@ class TokenizerTest {
 	void testAngledQuotedString() {
 		String text = "key=<<value val\"ue2\nvalue3>>";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			System.out.println("Toks(angle quoted keyval): " + toks);
 			assertEquals(3, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
@@ -142,7 +144,7 @@ class TokenizerTest {
 	void testMacroString() {
 		String text = "key={MYMACRO ARG1 ARG2 ARG3=\"def\"}";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			System.out.println("Toks(macro keyval): " + toks);
 			assertEquals(3, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
@@ -157,7 +159,7 @@ class TokenizerTest {
 	void testSingleAngle() {
 		String text = "<hello>";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			assertEquals(1, toks.size());
 			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
 			assertEquals("<hello>", toks.get(0).content());
@@ -170,7 +172,7 @@ class TokenizerTest {
 	void testUnbalancedAngle() {
 		String text = "<hello";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			assertEquals(1, toks.size());
 			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
 			assertEquals("<hello", toks.get(0).content());
@@ -183,7 +185,7 @@ class TokenizerTest {
 	void testQuotedConcatenation() {
 		String text = "\"Hello \" + \"Hello\"";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text, true);
 			System.out.println("Toks(quoted concat): " + toks);
 
 			assertEquals(1, toks.size());
@@ -198,7 +200,7 @@ class TokenizerTest {
 	void testUnquotedConcatenation() {
 		String text = "foo + bar";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text, true);
 			System.out.println("Toks(unquoted concat): " + toks);
 
 			assertEquals(1, toks.size());
@@ -213,7 +215,7 @@ class TokenizerTest {
 	void testMixedConcatenation() {
 		String text = "\"Hello\" + world";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text, true);
 			System.out.println("Toks(mixed concat): " + toks);
 
 			assertEquals(1, toks.size());
@@ -228,7 +230,7 @@ class TokenizerTest {
 	void testChainedConcatenation() {
 		String text = "\"Journey\" + of + a + \"Frost Mage\"";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text, true);
 			System.out.println("Toks(chained concat): " + toks);
 
 			assertEquals(1, toks.size());
@@ -245,7 +247,7 @@ class TokenizerTest {
 				path=data/add-ons/Frost_Mage
 			[/binary_path]""";
 		try {
-			List<Token> toks = Tokenizer.tokenize(text);
+			List<Token> toks = tokenize(text);
 			System.out.println("Toks(snippet tokenize): " + toks);
 
 			assertEquals(7, toks.size());
