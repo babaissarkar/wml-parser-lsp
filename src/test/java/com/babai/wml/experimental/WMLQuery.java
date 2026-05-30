@@ -14,24 +14,29 @@ class WMLQueryTest {
 	List<String> stack(String... tags) {
 		return List.of(tags).reversed();
 	}
+	
+	boolean match(List<String> tagStack, String queryStr, String key) {
+		var query = WMLQuery.of(queryStr);
+		return query.match(tagStack, key);
+	}
 
 	// --- full tag path match (no key) ---
 
 	@Test
 	void exactPathMatch() {
 		// query: top/mid/bot, stack innermost-first: [bot, mid, top]
-		assertTrue(WMLQuery.match(stack("bot", "mid", "top"), "top/mid/bot", ""));
+		assertTrue(match(stack("bot", "mid", "top"), "top/mid/bot", ""));
 	}
 
 	@Test
 	void partialPathNoMatch() {
 		// stack is only mid/top, bot not entered yet
-		assertFalse(WMLQuery.match(stack("mid", "top"), "top/mid/bot", ""));
+		assertFalse(match(stack("mid", "top"), "top/mid/bot", ""));
 	}
 
 	@Test
 	void wrongTagNoMatch() {
-		assertFalse(WMLQuery.match(stack("wrong", "mid", "top"), "top/mid/bot", ""));
+		assertFalse(match(stack("wrong", "mid", "top"), "top/mid/bot", ""));
 	}
 
 	// --- key match ---
@@ -39,50 +44,50 @@ class WMLQueryTest {
 	@Test
 	void keyMatch() {
 		// query: top/mid/id — path matches, key line matches
-		assertTrue(WMLQuery.match(stack("mid", "top"), "top/mid/id", "id"));
+		assertTrue(match(stack("mid", "top"), "top/mid/id", "id"));
 	}
 
 	@Test
 	void keyMismatch() {
-		assertFalse(WMLQuery.match(stack("mid", "top"), "top/mid/id", "name=foo"));
+		assertFalse(match(stack("mid", "top"), "top/mid/id", "name=foo"));
 	}
 
 	@Test
 	void keyMatchWrongPath() {
-		assertFalse(WMLQuery.match(stack("wrong", "top"), "top/mid/id", "id=foo"));
+		assertFalse(match(stack("wrong", "top"), "top/mid/id", "id=foo"));
 	}
 	
 	// --- anywhere match ---
 	
 	@Test
 	void anyWhereMatch() {
-		assertTrue(WMLQuery.match(stack("b", "a", "c"), "//a/b", ""));
+		assertTrue(match(stack("b", "a", "c"), "//a/b", ""));
 	}
 	
 	@Test
 	void anyWhereMatchFalseRecovery() {
-		assertTrue(WMLQuery.match(stack("d", "b", "a", "a", "e", "c"), "//a/b", ""));
+		assertTrue(match(stack("d", "b", "a", "a", "e", "c"), "//a/b", ""));
 	}
 
 	// --- edge cases ---
 
 	@Test
 	void stackTooShallow() {
-		assertFalse(WMLQuery.match(stack("top"), "top/mid/bot", ""));
+		assertFalse(match(stack("top"), "top/mid/bot", ""));
 	}
 
 	@Test
 	void singleTagQuery() {
-		assertTrue(WMLQuery.match(stack("top"), "top", ""));
+		assertTrue(match(stack("top"), "top", ""));
 	}
 
 	@Test
 	void singleKeyQuery() {
-		assertTrue(WMLQuery.match(stack("top"), "top/id", "id"));
+		assertTrue(match(stack("top"), "top/id", "id"));
 	}
 
 	@Test
 	void emptyKeyLine() {
-		assertFalse(WMLQuery.match(stack("mid", "top"), "top/mid/id", ""));
+		assertFalse(match(stack("mid", "top"), "top/mid/id", ""));
 	}
 }

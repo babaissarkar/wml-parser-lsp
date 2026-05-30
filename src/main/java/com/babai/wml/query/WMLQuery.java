@@ -3,30 +3,55 @@ package com.babai.wml.query;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Pattern;
 
-public class WMLQuery {
-	private final static Pattern slashpattern = Pattern.compile("/");
+public class WMLQuery {	
+	private List<String> qparts;
+	private boolean absolute;
 	
-	public static boolean match(List<String> tagStack, String queryStr, String key) {
+	private WMLQuery(List<String> parts, boolean absolute) {
+		this.qparts = parts;
+		this.absolute = absolute;
+	}
+	
+	public boolean match(List<String> tagStack, String key) {
 		List<String> stack = new ArrayList<>(tagStack);
 		if (!key.isEmpty()) {
 			stack.add(key);
 		}
 		
-		if (queryStr.startsWith("//")) {
-			return Collections.indexOfSubList(stack, parseQueryString(queryStr)) != -1;
+		if (!absolute) {
+			return Collections.indexOfSubList(stack, qparts) != -1;
 		} else {
-			return Collections.indexOfSubList(stack, parseQueryString(queryStr)) == 0;
+			return Collections.indexOfSubList(stack, qparts) == 0;
 		}
 //		return false;
 	}
 	
-	private static List<String> parseQueryString(String queryStr) {
-		if (queryStr.startsWith("//")) {
-			queryStr = queryStr.substring(2, queryStr.length());
+	public static WMLQuery of(String queryStr) {
+		int start = 0;
+		boolean absolute = true;
+
+		if (queryStr.length() >= 2 && queryStr.charAt(0) == '/' && queryStr.charAt(1) == '/') {
+			absolute = false;
+			start = 2;
 		}
-		
-		return List.of(slashpattern.split(queryStr.trim()));
+
+		// trim leading whitespace
+		while (start < queryStr.length() && Character.isWhitespace(queryStr.charAt(start))) start++;
+
+		// trim trailing whitespace
+		int end = queryStr.length();
+		while (end > start && Character.isWhitespace(queryStr.charAt(end - 1))) end--;
+
+		var parts = new ArrayList<String>();
+		int partStart = start;
+		for (int i = start; i <= end; i++) {
+			if (i == end || queryStr.charAt(i) == '/') {
+				if (i > partStart) parts.add(queryStr.substring(partStart, i));
+				partStart = i + 1;
+			}
+		}
+
+		return new WMLQuery(parts, absolute);
 	}
 }

@@ -164,7 +164,8 @@ public class Main {
 			parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 			
 			for (var q : argParser.queries) {
-				parser.addQuery(q, v -> buff.append("Query " + q + " result: " + v + "\n"));
+				parser.addQuery(q, v ->
+					buff.append("Query ").append(q).append(" result: ").append(v).append("\n"));
 			}
 			
 			parser.parse(out);

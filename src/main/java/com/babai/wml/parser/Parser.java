@@ -3,7 +3,6 @@ package com.babai.wml.parser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Consumer;
@@ -20,10 +19,10 @@ import static com.babai.wml.parser.ParseUtils.peek;
 
 public class Parser {
 	private List<String> tagStack = new ArrayList<>();
-	private HashMap<String, List<Consumer<String>>> queryLambdas = new LinkedHashMap<>();
+	private HashMap<WMLQuery, List<Consumer<String>>> queryLambdas = new HashMap<>();
 
 	public void addQuery(String query, Consumer<String> queryLambda) {
-		queryLambdas.computeIfAbsent(query, k -> new ArrayList<>()).add(queryLambda);
+		queryLambdas.computeIfAbsent(WMLQuery.of(query), k -> new ArrayList<>()).add(queryLambda);
 	}
 
 	public void parse(String text) throws IOException {
@@ -51,13 +50,13 @@ public class Parser {
 			}
 				
 			// Check against queries
-			for (var query : queryLambdas.entrySet()) {
-				if (WMLQuery.match(tagStack, query.getKey(), key)) {
-					for (var lambda : query.getValue()) {
+			queryLambdas.forEach((q, actions) -> {
+				if (q.match(tagStack, key)) {
+					for (var lambda : actions) {
 						lambda.accept(val.toString());
 					}
 				}
-			}
+			});
 		}
 		case TAG_START -> {
 			String tagName = t.content();
