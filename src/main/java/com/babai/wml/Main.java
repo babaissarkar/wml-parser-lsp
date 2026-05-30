@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.logging.Level;
 
 import com.babai.wml.cli.ANSIFormatter;
 import com.babai.wml.cli.ArgParser;
@@ -35,6 +36,10 @@ public class Main {
 		argParser.parseArgs(args);
 		
 		ANSIFormatter.setColorsEnabled(argParser.enableColors);
+		
+		if (argParser.startLSPServer) {
+			LogUtils.setLogLevel(Level.OFF);
+		}
 		
 		if (argParser.dataPath == null) {
 			LogUtils.errorPrint(() ->"Wesnoth Gamedata path not specified.");

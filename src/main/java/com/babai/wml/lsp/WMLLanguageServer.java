@@ -223,7 +223,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (defines != null) {
 			try {
 				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-				if (!defines.hasMacro(word)) {
+				if (defines.hasMacro(word)) {
 					String targetURI = defines.getUri(word);
 					int targetLine = defines.getLineNum(word);
 					var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
@@ -282,7 +282,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					}
 				} else {
 					// Macro calls
-					if (!defines.hasMacro(word)) {
+					if (defines.hasMacro(word)) {
 						Definition def = defines.getMacro(word);
 						content.setKind("markdown");
 						content.setValue("**" + def.name() + "**\n\n" + def.getDocs());
@@ -365,7 +365,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		// 1. Macro Definitions
 		var matches = defines.macrosByUri(docUri);
-		if (!matches.isEmpty()) {
+		if (matches != null && !matches.isEmpty()) {
 			List<DocumentSymbol> listDef = new ArrayList<>();
 			DocumentSymbol mdefRoot = new DocumentSymbol();
 			mdefRoot.setName("Macro Definitions");
