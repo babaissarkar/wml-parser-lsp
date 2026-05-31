@@ -305,30 +305,33 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	@Override
 	public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
-		String triggerChar = params.getContext() != null ? params.getContext().getTriggerCharacter() : null;
+		if (params.getContext() == null) return CompletableFuture.completedFuture(null);
+		
+		String triggerChar = params.getContext().getTriggerCharacter();
+		CompletionTriggerKind triggerKind = params.getContext().getTriggerKind();
 		List<CompletionItem> items = new ArrayList<>();
 
 		// Directives
-		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
-				|| (triggerChar != null) && triggerChar.equals("#")) {
+		if (triggerKind == CompletionTriggerKind.Invoked
+				||  triggerChar.equals("#")) {
 			items.addAll(keywords);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
 
-		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
-				|| (triggerChar != null) && triggerChar.equals("{")) {
+		if (triggerKind == CompletionTriggerKind.Invoked
+				||  triggerChar.equals("{")) {
 			items.addAll(macroCompletions);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
 
-		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
-				|| (triggerChar != null) && triggerChar.equals("[")) {
+		if (triggerKind == CompletionTriggerKind.Invoked
+				||  triggerChar.equals("[")) {
 			items.addAll(tags);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
 
-		if (params.getContext().getTriggerKind() == CompletionTriggerKind.Invoked
-				|| (triggerChar != null) && triggerChar.equals("="))
+		if (triggerKind == CompletionTriggerKind.Invoked
+				||  triggerChar.equals("="))
 		{
 			for (var type : unitTypes) {
 				CompletionItem item = new CompletionItem(type);
