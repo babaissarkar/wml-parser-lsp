@@ -1,32 +1,16 @@
 package com.babai.wml.tokenizer;
 
-public final class Token {
-	public final static Token EMPTY = new Token("", Kind.EOF);
-	
-	private String content;
-	private Kind kind;
-	
-	private int beginLine, endLine;
-	private int beginColumn, endColumn;
+public final record Token(String content, Kind kind, int beginLine, int beginColumn) {
+	public final static Token EMPTY = new Token("", Kind.EOF, 0, 0);
 	
 	public Token(String content, Kind kind) {
-		this.content = content;
-		this.kind = kind;
+		this(content, kind, 0, 0);
 	}
 	
-	public Token(String content, Kind kind, int beginLine, int beginColumn) {
-		this.content = content;
-		this.kind = kind;
-		this.beginLine = beginLine;
-		this.beginColumn = beginColumn;
-	}
-	
-	public String content() { return content; }
-	public Kind kind() { return kind; }
-	public int beginLine() { return beginLine; }
-	public int endLine() { return endLine; }
-	public int beginColumn() { return beginColumn; }
-	public int endColumn() { return endColumn; }
+	// TODO multiline tokens
+	public int endLine() { return beginLine(); }
+	// FIXME correction for escaped stuff, like {}
+	public int endColumn() { return beginColumn() + content.length(); } 
 	
 	public boolean isDirective() {
 		if (kind != Token.Kind.COMMENT) return false;
@@ -100,12 +84,8 @@ public final class Token {
 		builder.append(kind);
 		builder.append(", beginLine=");
 		builder.append(beginLine);
-		builder.append(", endLine=");
-		builder.append(endLine);
 		builder.append(", beginColumn=");
 		builder.append(beginColumn);
-		builder.append(", endColumn=");
-		builder.append(endColumn);
 		builder.append("]");
 		return builder.toString();
 	}
