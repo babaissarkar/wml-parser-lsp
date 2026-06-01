@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.function.Consumer;
 
 import com.babai.wml.query.WMLQuery;
@@ -13,9 +12,9 @@ import com.babai.wml.tokenizer.Token;
 import static com.babai.wml.utils.Colors.*;
 import static com.babai.wml.utils.LogUtils.*;
 import static com.babai.wml.cli.ANSIFormatter.colorify;
-import static com.babai.wml.tokenizer.Tokenizer.tokenize;
-import static com.babai.wml.tokenizer.Token.Kind.*;
-import static com.babai.wml.parser.ParseUtils.peek;
+
+import static com.babai.wml.tokenizer.ParserTokenizer.addEvent;
+import static com.babai.wml.tokenizer.ParserTokenizer.tokenize;
 
 public class Parser {
 	private List<String> tagStack = new ArrayList<>();
@@ -26,66 +25,56 @@ public class Parser {
 	}
 
 	public void parse(String text) throws IOException {
-		var line = new StringBuilder();
-		var itor = tokenize(text, true).listIterator();
-		while (itor.hasNext()) {
-			Token t = itor.next();
-			parseToken(itor, t, line);
-		}
+		var key = new StringBuilder();
+		var val = new StringBuilder();
+		addEvent((kind, buff) -> parseToken(buff.toString(), kind, key, val));
+		tokenize(text.toCharArray());
 	}
 
-	private void parseToken(ListIterator<Token> itor, Token t, StringBuilder val) {
-		val.setLength(0);
+	private void parseToken(String contents, Token.Kind kind, StringBuilder key, StringBuilder val) {
+		switch (kind) {
+		case TEXT -> key.append(contents);
 		
-		switch (t.kind()) {
-		case TEXT -> {
-			String key = t.content();
-			
-			// rest of line is rhs value, as '=' is suppressed in tokenizer
-			while (peek(itor).isKind(VAL, WHITESPACE, QUOTED, ANGLE_QUOTED, EQL)) {
-				t = itor.next();
-				if (t.isNotKind(EQL)) {
-					val.append(t.content());
-				}
-			}
-				
-			// Check against queries
-			queryLambdas.forEach((q, actions) -> {
-				if (q.match(tagStack, key)) {
-					for (var lambda : actions) {
-						lambda.accept(val.toString());
+		case VAL -> val.append(contents);
+		
+		case EOL -> {
+			if (!key.isEmpty() && !val.isEmpty()) {
+				// Check against queries
+				final String keyStr = key.toString();
+				final String valStr = val.toString();
+				queryLambdas.forEach((q, actions) -> {
+					if (q.match(tagStack, keyStr)) {
+						for (var lambda : actions) {
+							lambda.accept(valStr);
+						}
 					}
-				}
-			});
+				});
+			}
+			
+			key.setLength(0);
+			val.setLength(0);
 		}
+		
 		case TAG_START -> {
-			String tagName = t.content();
-			if (isTag(tagName)) {
-				tagStack.add(tagName);
+			if (isTag(contents)) {
+				tagStack.add(contents);
 			}
 		}
+		
 		case TAG_END -> {
-			String tagName = t.content();
 			if (tagStack.isEmpty()) {
 				errorPrint(() -> "End tag without matching start tag.");
-			} else if (tagStack.getLast().equals(tagName)) {
+			} else if (tagStack.getLast().equals(contents)) {
 				tagStack.removeLast();
 			} else {
-				final String tmpTagName = tagName;
-				errorPrint(() -> "Wrong end tag " + colorify(tmpTagName, RED)
+				errorPrint(() -> "Wrong end tag " + colorify(contents, RED)
 				+ " found for tag "
 				+ colorify("[" + tagStack.getLast() + "]", tagColor));
 			}
 		}
-		case WHITESPACE, EOL, COMMENT, QUOTED, ANGLE_QUOTED -> {} //ignore
-		case MACRO -> {
-			final String tmpContent = t.content();
-			warningPrint(() -> "Parser: Unexpanded macro {" + tmpContent + "}, skipping");
-		}
-		default -> {
-			final String tmpContent = t.content();
-			warningPrint(() -> "Parser: Unexpected token " + tmpContent + ", skipping");
-		}
+		case WHITESPACE, COMMENT, QUOTED, ANGLE_QUOTED -> {} //ignore
+		case MACRO -> warningPrint(() -> "Unexpanded macro during parse, {" + contents + "}, skipping");
+		default -> {} //TODO
 		}
 	}
 	

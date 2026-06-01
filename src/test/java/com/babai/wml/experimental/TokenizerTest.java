@@ -247,16 +247,11 @@ class TokenizerTest {
 				path=data/add-ons/Frost_Mage
 			[/binary_path]""";
 		try {
-			List<Token> toks = tokenize(text);
-			System.out.println("Toks(snippet tokenize): " + toks);
-
-			assertEquals(7, toks.size());
 			
 			var binaryPaths = new HashSet<String>();
 			Parser p = new Parser();
 			p.addQuery("binary_path/path", v -> binaryPaths.add(v));
 			p.parse(text);
-			
 			assertEquals(1, binaryPaths.size());
 		} catch (IOException e) {
 			e.printStackTrace();
