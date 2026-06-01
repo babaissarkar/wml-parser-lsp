@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.babai.wml.utils.AIGenerated;
+
 public class WMLQuery {	
 	private List<String> qparts;
 	private boolean absolute;
@@ -27,6 +29,7 @@ public class WMLQuery {
 //		return false;
 	}
 	
+	@AIGenerated
 	public static WMLQuery of(String queryStr) {
 		int start = 0;
 		boolean absolute = true;
