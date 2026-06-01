@@ -127,7 +127,7 @@ public class Preprocessor {
 		this.currentPath = path;
 		this.currentPathUri = path.toUri().toString();
 
-		debugPrint(() -> "Preprocessing: " + colorify(path.toAbsolutePath().toString(), filePathColor));
+		debugPrint(() -> "Preprocessing: " + colorify(this.currentPathUri, filePathColor));
 
 		try {
 			preprocessContent(Files.readString(path), buff);
@@ -223,9 +223,6 @@ public class Preprocessor {
 		if (t.isKind(COMMENT)) {
 			if (t.isDirective()) {
 				handleDirective(t, itor, currentPathUri);
-				// suppress empty whitespace & linebreaks after directive lines
-				skip(itor, WHITESPACE);
-				skip(itor, EOL);
 			}
 		} else if (t.isKind(MACRO)) {
 			// exapnd macro tokens
@@ -304,6 +301,7 @@ public class Preprocessor {
 	}
 
 	private void handleDirective(Token directiveStart, ListIterator<Token> itor, String pathUri) {
+		boolean skipTrailingWS = true;
 		var directiveHeader = DirectiveHeader.parse(directiveStart, currentPathUri);
 		var directiveArgs = directiveHeader.args();
 
@@ -383,7 +381,6 @@ public class Preprocessor {
 
 			debugPrint(() -> "defining macro " + def.coloredName());
 			defines.addMacro(macroName, def, directiveStart.beginLine(), pathUri);
-
 		} else if (directiveHeader.head().equals("ifdef")) {
 			// TODO complain if ifdef does not exactly has one arg (macroname)
 			if (defines.hasMacro(directiveArgs.getFirst())) {
@@ -407,6 +404,14 @@ public class Preprocessor {
 				skipUntilEndDirective("endif", itor);
 				skipElse = false;
 			}
+		} else {
+			skipTrailingWS = false;
+		}
+		
+		if (skipTrailingWS) {
+			// suppress empty whitespace & linebreaks after directive lines
+			skip(itor, WHITESPACE);
+			skip(itor, EOL);
 		}
 	}
 
