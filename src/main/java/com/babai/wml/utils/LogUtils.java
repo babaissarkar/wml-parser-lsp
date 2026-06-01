@@ -38,7 +38,7 @@ public final class LogUtils {
 				Level l = record.getLevel();
 				String lvlStr;
 				if (l == Level.SEVERE) {
-					lvlStr = colorify("[Error]", RED);
+					lvlStr = colorify("[ERROR]", RED);
 				} else if (l == Level.WARNING) {
 					lvlStr = colorify("[" + l + "]", ORANGE);
 				} else if (l == Level.INFO) {
