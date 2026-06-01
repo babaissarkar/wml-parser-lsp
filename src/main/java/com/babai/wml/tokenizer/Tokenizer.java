@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.Position;
 
 import static com.babai.wml.parser.ParseUtils.*;
@@ -13,14 +12,10 @@ public final class Tokenizer {
 	private enum State { NORMAL, LINE_COMMENT, WS };
 	
 	public static List<Token> tokenize(String content) throws IOException {
-		return tokenize(content.toCharArray(), false);
+		return tokenize(content.toCharArray());
 	}
 
-	public static List<Token> tokenize(String content, boolean mergeConcats) throws IOException {
-		return tokenize(content.toCharArray(), mergeConcats);
-	}
-
-	public static List<Token> tokenize(char[] input, boolean mergeConcats) throws IOException {
+	public static List<Token> tokenize(char[] input) throws IOException {
 		CharCursor r = new CharCursor(input);
 		List<Token> tokens = new ArrayList<>();
 		StringBuilder buff = new StringBuilder();
@@ -167,7 +162,7 @@ public final class Tokenizer {
 			}
 		}
 
-		return mergeConcats ? mergeConcatenations(tokens) : tokens;
+		return tokens;
 	}
 
 	// Note: this assumes that r is currently at the character '"'
@@ -344,60 +339,6 @@ public final class Tokenizer {
 				start.forward(npos);
 			}
 		}
-	}
-
-	@AIGenerated
-	public static List<Token> mergeConcatenations(List<Token> tokens) {
-		if (tokens.size() < 3) return tokens; // concat impossible with less than 3 toks
-
-		List<Token> result = new ArrayList<>();
-		int i = 0;
-		while (i < tokens.size()) {
-			Token current = tokens.get(i);
-			if (isConcatCandidate(current)) {
-				StringBuilder merged = new StringBuilder(current.content());
-				Token.Kind resultingKind = current.kind();
-				Token previousOperand = current;
-				int j = i + 1;
-				while (j < tokens.size()) {
-					int k = j;
-					while (k < tokens.size() && tokens.get(k).isKind(Token.Kind.WHITESPACE)) k++;
-
-					if (k >= tokens.size() || !isPlus(tokens.get(k))) break;
-					k++;
-
-					while (k < tokens.size() && tokens.get(k).isKind(Token.Kind.WHITESPACE)) k++;
-
-					if (k >= tokens.size()) break;
-					Token next = tokens.get(k);
-					if (!isConcatCandidate(next)) break;
-
-					// Pairwise spacing rule
-					if (previousOperand.isKind(Token.Kind.TEXT)
-							&& next.isKind(Token.Kind.TEXT))
-					{
-						merged.append(" ");
-					}
-					merged.append(next.content());
-
-					if (next.isKind(Token.Kind.QUOTED)) {
-						resultingKind = Token.Kind.QUOTED;
-					}
-					previousOperand = next;
-					j = k + 1;
-				}
-				result.add(new Token(merged.toString(), resultingKind));
-				i = j;
-			} else {
-				result.add(current);
-				i++;
-			}
-		}
-		return result;
-	}
-
-	private static boolean isConcatCandidate(Token t) {
-		return t.isKind(Token.Kind.TEXT, Token.Kind.QUOTED);
 	}
 
 	private static final class CharCursor {
