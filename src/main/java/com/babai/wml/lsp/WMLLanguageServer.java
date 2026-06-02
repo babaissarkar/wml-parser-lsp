@@ -218,87 +218,110 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	@Override
-	public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(
-			DefinitionParams params) {
+	public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>>
+		definition(DefinitionParams params)
+	{
+		String word = null;
+		try {
+			word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+		} catch (IOException e) {
+			showLSPMessage("Can't find word under cursor!");
+		}
+		
+		if (word == null) return CompletableFuture.completedFuture(null);
+		
+		// Attempt resolution as macro
 		if (defines != null) {
-			try {
-				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-				if (defines.hasMacro(word)) {
-					String targetURI = defines.getUri(word);
-					int targetLine = defines.getLineNum(word);
-					var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
-					var loc = new Location(targetURI, range);
-					return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
-				}
-			} catch (IOException e) {
-				showLSPMessage("Can't find word under cursor!");
+			if (defines.hasMacro(word)) {
+				String targetURI = defines.getUri(word);
+				int targetLine = defines.getLineNum(word);
+				var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+				var loc = new Location(targetURI, range);
+				return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
 			}
 		}
+			
+		// Attempt resolution as file
+		Path p = checkWesnothPath(word, params.getTextDocument().getUri());
+			
+		if (p != null && Files.exists(p) && Files.isRegularFile(p)) {
+			String targetURI = p.toUri().toString();
+			var range = new Range(new Position(0, 0), new Position(0, 1));
+			var loc = new Location(targetURI, range);
+			return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
+		}
+		// TODO when folder -> check for _main.cfg -> open that if exists?
 
 		return CompletableFuture.completedFuture(null);
+	}
+
+	private Path checkWesnothPath(String word, String currUri) {
+		// FIXME gets triggers by web URLs
+		if (!word.contains("://") && (word.contains("/") || word.contains("~"))) {
+			// Wesnoth Paths
+			// if tilde is in front, it's a userdata path
+			// if not, drop, IPF.
+			int pos = word.indexOf('~');
+			if (word.charAt(0) != '~' && pos != -1) {
+				word = word.substring(0, pos);
+			}
+			pos = word.indexOf(':');
+			if (pos != -1) {
+				word = word.substring(0, pos);
+			}
+			
+			try {
+				return pathContext.resolve(word, Path.of(new URI(currUri)), binaryPaths);
+			} catch (URISyntaxException e) {
+				return null;
+			}
+		} else {
+			return null;
+		}
 	}
 
 	@Override
 	public CompletableFuture<Hover> hover(HoverParams params) {
 		var content = new MarkupContent();
-		if (defines != null) {
-			try {
-				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-
-				if (word == null || word.isEmpty()) return CompletableFuture.completedFuture(null);
-
-				if (word.contains("[")) {
-					// Tags
-					String searchWord = word.replaceAll("/", "");
-					searchWord = searchWord.substring(1, searchWord.length() - 1);
-					String link = tagLinks.getProperty(searchWord);
+		Path p = null;
+		try {
+			String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+			if (word == null || word.isEmpty()) return CompletableFuture.completedFuture(null);
+			
+			if (word.contains("[")) {
+				// Tags
+				String searchWord = word.replaceAll("/", "");
+				searchWord = searchWord.substring(1, searchWord.length() - 1);
+				String link = tagLinks.getProperty(searchWord);
+				content.setKind("markdown");
+				content.setValue("Tag: **" + word + "**" +  "\n\n"
+					+ (link != null ? "Reference: " + link : "")
+				);
+			} else if (defines != null && defines.hasMacro(word)) {
+				// Macro calls
+				Definition def = defines.getMacro(word);
+				content.setKind("markdown");
+				content.setValue("**" + def.name() + "**\n\n" + def.getDocs());
+			} else if ((p = checkWesnothPath(word, params.getTextDocument().getUri())) != null) {
+				if (Files.exists(p)) {
 					content.setKind("markdown");
-					content.setValue("Tag: **" + word + "**" +  "\n\n"
-						+ (link != null ? "Reference: " + link : "")
-					);
-				} else if (word.contains("/") || word.contains("~")) {
-					// Wesnoth Paths
-					// if tilde is in front, it's a userdata path
-					// if not, drop, IPF.
-					if (!word.startsWith("~") && word.contains("~")) {
-						word = word.substring(0, word.indexOf("~"));
-					}
-					if (word.contains(":")) {
-						word = word.substring(0, word.indexOf(":"));
-					}
-					
-					Path p = pathContext.resolve(word, Path.of(new URI(params.getTextDocument().getUri())));
-					
-					if (Files.exists(p)) {
-						content.setKind("markdown");
-						if (FS.getAssetType(word).equals("images")) {
-							content.setValue("![Image](" + p.toUri().toString() + ")");
-						} else {
-							content.setValue("Go To: [" + p.getFileName() + "](" + p.toUri().toString() + ")");
-						}
+					if (FS.getAssetType(word).equals("images")) {
+						content.setValue("![Image](" + p.toUri().toString() + ")");
 					} else {
-						content.setKind("plaintext");
-						content.setValue("Non-existant path: " + p);
+						content.setValue("Go To: [" + p.getFileName() + "](" + p.toUri().toString() + ")");
 					}
 				} else {
-					// Macro calls
-					if (defines.hasMacro(word)) {
-						Definition def = defines.getMacro(word);
-						content.setKind("markdown");
-						content.setValue("**" + def.name() + "**\n\n" + def.getDocs());
-					} else {
-						return CompletableFuture.completedFuture(null);
-					}
+					content.setKind("plaintext");
+					content.setValue("Non-existant path: " + p);
 				}
-			} catch (IOException e) {
-				showLSPMessage("Can't find word under cursor!");
-				return CompletableFuture.completedFuture(null);
-			} catch (URISyntaxException e) {
-				// shouldn't really happen...
-				showLSPMessage("Invalid uri for current document!");
+			} else {
 				return CompletableFuture.completedFuture(null);
 			}
+		} catch (IOException e) {
+			showLSPMessage("Can't find word under cursor!");
+			return CompletableFuture.completedFuture(null);
 		}
+	
 		Hover hover = new Hover(content);
 		return CompletableFuture.completedFuture(hover);
 	}
