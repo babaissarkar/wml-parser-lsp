@@ -585,6 +585,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	private void parseFile(Path inputPath) throws IOException {
+		p.clearMacroCalls();
 		p.setDefines(new MacroTable(baseDefines));
 		//parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 //		parser.parse(p.preprocess(inputPath));
@@ -612,19 +613,19 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	/** Returns the word under cursor in the file pointed by URI */
 	private static String getWordAtPosition(String uri, Position pos) throws IOException {
 		// Convert URI to path
-		String pathStr = Path.of(java.net.URI.create(uri)).toString();
+		Path path = Path.of(java.net.URI.create(uri));
 
 		// Read all lines
-		String[] lines = Files.readAllLines(Path.of(pathStr)).toArray(new String[0]);
+		List<String> lines = Files.readAllLines(path);
 
 		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.');
 		Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
 
 		int lineNum = pos.getLine();
-		if (lineNum < 0 || lineNum >= lines.length)
+		if (lineNum < 0 || lineNum >= lines.size())
 			return null;
 
-		String line = lines[lineNum];
+		String line = lines.get(lineNum);
 		int charIndex = pos.getCharacter();
 		if (charIndex < 0)
 			charIndex = 0;

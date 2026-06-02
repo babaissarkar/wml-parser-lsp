@@ -62,6 +62,10 @@ public class Preprocessor {
 	public void setDefines(MacroTable t) {
 		this.defines = t;
 	}
+	
+	public void clearMacroCalls() {
+		macroCalls.clear();
+	}
 
 	public List<MacroCall> getMacroCalls() {
 		return macroCalls;
