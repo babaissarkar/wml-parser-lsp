@@ -26,30 +26,34 @@ public final class FS {
 		}
 		return "";
 	}
-
+	
 	public static Path resolve(String pathStr, Path currentPath, HashSet<Path> binaryPaths, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
-		if (pathStr.startsWith(".")) {
+		if (pathStr.charAt(0) == '.') {
 			parent = Files.isDirectory(currentPath) ? currentPath : currentPath.getParent();
 		} else {
-			if (pathStr.startsWith("~")) {
+			if (pathStr.charAt(0) == '~') {
 				// Supports both ~add-ons and ~/add-ons
 				pathStr = pathStr.replaceFirst("^~/?", "");
 				parent = userDataPath;
 			} else {
 				// E.g.: scenary/alter.png
 				String assetType = getAssetType(pathStr);
+				
 				pathStr = Path.of(assetType, pathStr).toString();
-				if (!assetType.isEmpty()) {
+				if (!assetType.isEmpty() && binaryPaths != null) {
+					Path resolved;
 					for (var bPath : binaryPaths) {
-						parent = userDataPath.resolve(Path.of("../", bPath.toString()));
-						if (Files.exists(parent.resolve(pathStr))) {
-							return parent.resolve(pathStr).normalize();
+						parent = userDataPath.getParent().resolve(bPath).normalize();
+						resolved = parent.resolve(pathStr).normalize();
+						if (Files.exists(resolved)) {
+							return resolved;
 						} else {
-							parent = dataPath.resolve(Path.of("../", bPath.toString()));
-							if (Files.exists(parent.resolve(pathStr))) {
-								return parent.resolve(pathStr).normalize();
+							parent = dataPath.getParent().resolve(bPath).normalize();
+							resolved = parent.resolve(pathStr).normalize();
+							if (Files.exists(resolved)) {
+								return resolved;
 							}
 						}
 					}
@@ -59,7 +63,7 @@ public final class FS {
 			}
 		}
 
-		return parent != null ? parent.resolve(pathStr).normalize() : parent;
+		return parent != null ? parent.resolve(pathStr).normalize() : null;
 	}
 	
 	@AIGenerated

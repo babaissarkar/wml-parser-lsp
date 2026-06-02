@@ -63,6 +63,7 @@ import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
+import com.babai.wml.parser.Parser;
 import com.babai.wml.parser.PathContext;
 import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.preprocessor.MacroArg;
@@ -86,6 +87,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	private MacroTable baseDefines, defines;
 	private HashSet<String> unitTypes = new HashSet<>();
+	private HashSet<Path> binaryPaths = new HashSet<>();
 	private List<MacroCall> calls = new ArrayList<>();
 	private List<Path> includePaths = new ArrayList<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
@@ -93,9 +95,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private List<CompletionItem> tags = new ArrayList<>();
 	private Properties tagLinks = new Properties();
 	
+	private StringBuilder includeBuff = new StringBuilder();  
+	
 	private Preprocessor p;
-// FIXME parsing disabled for now because it hangs LSP client, but it is needed for binaryPath detection...
-//	private Parser parser = new Parser();
 
 	private WMLLanguageServer(MacroTable predefines, PathContext context, List<Path> includePaths) {
 		this.pathContext = context;
@@ -554,6 +556,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		} catch (IOException e) {
 			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
 		}
+		
+		client.refreshInlayHints();
+		client.refreshDiagnostics();
 	}
 
 	@Override
@@ -581,26 +586,25 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		} catch (IOException e) {
 			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
 		}
+		
+		client.refreshInlayHints();
+		client.refreshDiagnostics();
 	}
 
 	private void initParserForLSP() {
 		try {
 			p = new Preprocessor(pathContext, defines);
 
-//			p.setExtractData(argParse.extractUnitTypeData);
-
 			for (Path incpath : includePaths) {
-				// FIXME recheck directory support
-				p.preprocess(incpath);
+				includeBuff.append(p.preprocess(incpath));
 			}
 
 			baseDefines = new MacroTable(defines);
 			if (inputPath != null) {
-				// FIXME odd... why log msg in LSP mode?
-//				LogUtils.debugPrint(() -> "Parsing " + colorify(inputPath.toString(), Colors.filePathColor));
 				parseFile(inputPath);
 			}
 
+			showLSPMessage("Binary Paths: " + binaryPaths);
 			showLSPMessage("Parsed, " + defines.size() + " macros and " + unitTypes.size() + " unittypes defined.");
 		} catch (IOException e) {
 			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
@@ -608,13 +612,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	private void parseFile(Path inputPath) throws IOException {
+		StringBuilder buff = new StringBuilder(includeBuff);
 		p.clearMacroCalls();
 		p.setDefines(new MacroTable(baseDefines));
-		//parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
-//		parser.parse(p.preprocess(inputPath));
-		p.preprocess(inputPath);
-		
-//		unitTypes.addAll(p.getUnitTypes());
+		buff.append(p.preprocess(inputPath));
+		Parser parser = new Parser();
+		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
+		parser.addQuery("unit_type/id", v -> unitTypes.add(v));
+		parser.parse(buff.toString());
 
 		defines = p.getDefines();
 		calls = p.getMacroCalls();
