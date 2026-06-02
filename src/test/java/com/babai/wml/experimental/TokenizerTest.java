@@ -84,11 +84,9 @@ class TokenizerTest {
 		try {
 			List<Token> toks = tokenize(text);
 			System.out.println("Toks(keyval test): " + toks);
-			assertEquals(3, toks.size());
-			assertEquals("key", toks.get(0).content());
+			assertEquals(1, toks.size());
+			assertEquals("key=value", toks.get(0).content());
 			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
-			assertEquals("value", toks.get(2).content());
-			assertEquals(Token.Kind.VAL, toks.get(2).kind());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -100,11 +98,11 @@ class TokenizerTest {
 		try {
 			List<Token> toks = tokenize(text);
 			System.out.println("Toks(spaced keyval): " + toks);
-			assertEquals(3, toks.size());
+			assertEquals(5, toks.size());
 			assertEquals("key", toks.get(0).content());
 			assertEquals(Token.Kind.TEXT, toks.get(0).kind());
-			assertEquals("value", toks.get(2).content());
-			assertEquals(Token.Kind.VAL, toks.get(2).kind());
+			assertEquals("value", toks.get(4).content());
+			assertEquals(Token.Kind.TEXT, toks.get(4).kind());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -116,10 +114,10 @@ class TokenizerTest {
 		try {
 			List<Token> toks = tokenize(text);
 			System.out.println("Toks(quoted keyval): " + toks);
-			assertEquals(3, toks.size());
+			assertEquals(2, toks.size());
 			// checks "" -> " collapse, preservation of whitespace
-			assertEquals("key", toks.get(0).content());
-			assertEquals("value val\"ue2\nvalue3", toks.get(2).content());
+			assertEquals("key=", toks.get(0).content());
+			assertEquals("value val\"ue2\nvalue3", toks.get(1).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -131,10 +129,9 @@ class TokenizerTest {
 		try {
 			List<Token> toks = tokenize(text);
 			System.out.println("Toks(angle quoted keyval): " + toks);
-			assertEquals(3, toks.size());
-			// checks 1. "" -> " collapse, preservation of whitespace
-			assertEquals("key", toks.get(0).content());
-			assertEquals("value val\"ue2\nvalue3", toks.get(2).content());
+			assertEquals(2, toks.size());
+			assertEquals("key=", toks.get(0).content());
+			assertEquals("value val\"ue2\nvalue3", toks.get(1).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	
@@ -146,10 +143,10 @@ class TokenizerTest {
 		try {
 			List<Token> toks = tokenize(text);
 			System.out.println("Toks(macro keyval): " + toks);
-			assertEquals(3, toks.size());
+			assertEquals(2, toks.size());
 			// checks 1. "" -> " collapse, preservation of whitespace
-			assertEquals("key", toks.get(0).content());
-			assertEquals("MYMACRO ARG1 ARG2 ARG3=\"def\"", toks.get(2).content());
+			assertEquals("key=", toks.get(0).content());
+			assertEquals("MYMACRO ARG1 ARG2 ARG3=\"def\"", toks.get(1).content());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}	

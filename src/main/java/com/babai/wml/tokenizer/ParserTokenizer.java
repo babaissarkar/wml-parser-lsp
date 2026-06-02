@@ -32,8 +32,6 @@ public final class ParserTokenizer {
 				if (c == '#') {
 					lastTextKind = Token.Kind.TEXT;
 					state = State.LINE_COMMENT;
-				} else if (isWS(c)) {
-					continue;
 				} else if (isEOL(c)) {
 					// RVAL mode (VAL) is terminated here.
 					finalize(buff, lastTextKind, start);
@@ -98,7 +96,9 @@ public final class ParserTokenizer {
 				} else if (c == '+' && lastTextKind == Token.Kind.VAL) {
 					// don't add it, VAL mode is concating anyway
 				} else {
-					buff.append(c);
+					if (lastTextKind == Token.Kind.VAL || !isWS(c)) {
+						buff.append(c);
+					}
 				}
 			}
 
