@@ -34,7 +34,7 @@ public class Preprocessor {
 	private Path currentPath = Path.of(".");
 	private String currentPathUri;
 	
-	private List<String> currentDefineArgs = new ArrayList<>();
+	private HashSet<String> currentDefineArgs = new HashSet<>();
 	private List<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new HashMap<>();
 
@@ -205,7 +205,7 @@ public class Preprocessor {
 		return false;
 	}
 
-	private String preprocessFragment(String fragment, List<String> args) {
+	private String preprocessFragment(String fragment, HashSet<String> args) {
 		if (!hasMacroBlock(fragment)) return fragment;
 		try {
 			var buff = new StringBuilder();
@@ -240,7 +240,7 @@ public class Preprocessor {
 		return docBuff.toString().trim();
 	}
 
-	private void processToken(ListIterator<Token> itor, Token t, StringBuilder buff, List<String> currentArgs, boolean expandMacro) {
+	private void processToken(ListIterator<Token> itor, Token t, StringBuilder buff, HashSet<String> currentArgs, boolean expandMacro) {
 		if (t.isKind(COMMENT)) {
 			if (t.isDirective()) {
 				handleDirective(t, itor, currentPathUri);
@@ -448,7 +448,7 @@ public class Preprocessor {
 
 	// TODO This might need to be recursive, like after expansion
 	// if macro exists after expansion, expand again and so on until no macro calls remain.
-	private void expandMacro(Token macroCall, List<String> possibleArgs, PathContext context, StringBuilder buff) {
+	private void expandMacro(Token macroCall, HashSet<String> possibleArgs, PathContext context, StringBuilder buff) {
 		if (isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
 			handleInclusion(macroCall.content(), context, buff);
@@ -479,7 +479,7 @@ public class Preprocessor {
 		preprocess(p, buff);
 	}
 
-	private void expandMacroCall(Token macroCall, List<String> possibleArgs, StringBuilder buff) {
+	private void expandMacroCall(Token macroCall, HashSet<String> possibleArgs, StringBuilder buff) {
 		
 		final String content = macroCall.content();
 		
@@ -553,9 +553,8 @@ public class Preprocessor {
 				}
 				// substitute macros
 				if (hasMacroBlock(out)) {
-					var argsList = new ArrayList<String>();
-					argsList.addAll(def.getArgs());
-					def.getDefArgs().keySet().forEach(k -> argsList.add(k));
+					var argsList = new HashSet<String>(def.getArgs());
+					argsList.addAll(def.getDefArgs().keySet());
 					out = preprocessFragment(out, argsList);
 				}
 				buff.append(out);
