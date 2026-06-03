@@ -159,7 +159,7 @@ public class Preprocessor {
 		nonexistentMacros.forEach(k -> warningPrint(() -> "Undefined macro " + colorify(k, RED) + " in " + currentPathUri));
 	}
 	
-	public String preprocessContent(String content) throws IOException {
+	public String preprocessString(String content) throws IOException {
 		var buff = new StringBuilder();
 		preprocessContent(content, buff);
 		

@@ -16,7 +16,7 @@ class PreprocessorTest {
 	
 	private String preprocessString(String defString) throws IOException {
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		return preproc.preprocessContent(defString);
+		return preproc.preprocessString(defString);
 	}
 
 	@Test
@@ -66,7 +66,7 @@ class PreprocessorTest {
 			[{x}]#enddef
 			{OUTER {MID}}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preproc.preprocessString(defString);
 		assertEquals(3, preproc.getDefines().size());
 		assertEquals("[(deep)]", str);
 	}
@@ -82,7 +82,7 @@ class PreprocessorTest {
 			({WRAPPER {y}})#enddef
 			{OUTER {INNER}}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preproc.preprocessString(defString);
 		assertEquals(3, preproc.getDefines().size());
 		assertEquals("(<val>)", str);
 	}
@@ -104,7 +104,7 @@ class PreprocessorTest {
 			default3#endarg
 			Something#enddef""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		preproc.preprocessContent(defString);
+		preproc.preprocessString(defString);
 		var defines = preproc.getDefines();
 		assertEquals(1, defines.size());
 		assertTrue(defines.hasMacro("MYMACRO"));
@@ -196,7 +196,7 @@ class PreprocessorTest {
 			#deprecated 2 1.19.0 Use NEW_MACRO instead
 			abc#enddef""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		preproc.preprocessContent(defString);
+		preproc.preprocessString(defString);
 		var defines = preproc.getDefines();
 		assertEquals(1, defines.size());
 		assertTrue(defines.hasMacro("OLD_MACRO"));
@@ -227,7 +227,7 @@ class PreprocessorTest {
 			#endif
 			{ON_DIFFICULTY 40 60 80}""";
 		var preproc = new Preprocessor(PathContext.EMPTY_CONTEXT);
-		String str = preproc.preprocessContent(defString);
+		String str = preproc.preprocessString(defString);
 		assertEquals(2, preproc.getDefines().size());
 		assertEquals("60", str.strip()); // FIXME where is the stray EOL coming from? We shouldn't need strip.
 	}

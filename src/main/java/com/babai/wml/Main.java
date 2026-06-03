@@ -137,7 +137,7 @@ public class Main {
 				+ "Macros: " + (mCountEnd - mCountStart));
 		} else {
 			// since this is stdin, time/macro count is inconvenient. may or may not change later.
-			out = p.preprocessContent(new String(System.in.readAllBytes()));
+			out = p.preprocessString(new String(System.in.readAllBytes()));
 		}
 		
 		long preprocEnd = System.nanoTime();
