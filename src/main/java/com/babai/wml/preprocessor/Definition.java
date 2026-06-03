@@ -4,6 +4,7 @@ import static com.babai.wml.cli.ANSIFormatter.colorify;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ public class Definition {
 	private String name, value, docs = "";
 	private List<String> args = new ArrayList<>();
 	private HashMap<String, String> defArgs = new HashMap<>();
+	private HashSet<String> allArgs;
 	
 	private boolean deprecated;
 	private int deprecationLevel;
@@ -30,21 +32,16 @@ public class Definition {
 		this.name = name;
 		this.value = value;
 		this.args = args;
+		allArgs = new HashSet<>(args);
 	}
 
 	public Definition(String name, String value, List<String> args, HashMap<String, String> defArgs) {
 		this.name = name;
 		this.value = value;
-		this.args.addAll(args);
+		this.args = args;
 		this.defArgs = defArgs;
-	}
-
-	public void addArg(String arg) {
-		args.add(arg);
-	}
-
-	public void addDefArg(String key, String val) {
-		defArgs.put(key, val);
+		allArgs = new HashSet<>(args);
+		allArgs.addAll(defArgs.keySet());
 	}
 
 	public List<String> getArgs() {
@@ -172,5 +169,9 @@ public class Definition {
 
 	public String getDeprecationMessage() {
 		return deprecationMessage;
+	}
+
+	public HashSet<String> getAllArgs() {
+		return allArgs;
 	}
 }

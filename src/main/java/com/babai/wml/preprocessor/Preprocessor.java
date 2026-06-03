@@ -553,9 +553,7 @@ public class Preprocessor {
 				}
 				// substitute macros
 				if (hasMacroBlock(out)) {
-					var argsList = new HashSet<String>(def.getArgs());
-					argsList.addAll(def.getDefArgs().keySet());
-					out = preprocessFragment(out, argsList);
+					out = preprocessFragment(out, def.getAllArgs());
 				}
 				buff.append(out);
 			} catch(IllegalArgumentException e) {
