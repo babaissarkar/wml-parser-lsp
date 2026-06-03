@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
@@ -27,6 +26,8 @@ import static com.babai.wml.tokenizer.Token.Kind.*;
 
 public class Preprocessor {
 	private boolean skipElse = true;
+	private boolean listFilesInInfo = false;
+	
 	private MacroTable defines;
 	private PathContext context;
 	
@@ -35,11 +36,13 @@ public class Preprocessor {
 	
 	private List<String> currentDefineArgs = new ArrayList<>();
 	private List<MacroCall> macroCalls;
-	private HashMap<String, String> fileExplanations = new LinkedHashMap<>();
+	private HashMap<String, String> fileExplanations = new HashMap<>();
 
+	// TODO(Warning): this doesn't respect scope: a macro can be unavailable for a short span until
+	// it gets defined somewhere later. Perhaps each file can have a copy or something better.
+	// Currently: one warning per file if it stays undefined in whole file.
 	// format: macroName, positionString
-	private HashSet<Pair<String, String>> nonexistentMacros = new HashSet<>();
-	private boolean listFilesInInfo = false;
+	private HashSet<String> nonexistentMacros = new HashSet<>();
 
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -152,11 +155,15 @@ public class Preprocessor {
 		} catch (IOException e) {
 			errorPrint(() -> "Cannot find " + path + ", skipping.");
 		}
+		
+		nonexistentMacros.forEach(k -> warningPrint(() -> "Undefined macro " + colorify(k, RED) + " in " + currentPathUri));
 	}
 	
 	public String preprocessContent(String content) throws IOException {
 		var buff = new StringBuilder();
 		preprocessContent(content, buff);
+		
+		nonexistentMacros.forEach(k -> warningPrint(() -> "Undefined macro " + colorify(k, RED)));
 		return buff.toString();
 	}
 
@@ -181,10 +188,6 @@ public class Preprocessor {
 		while (itor.hasNext()) {
 			Token t = itor.next();
 			processToken(itor, t, buff, currentDefineArgs, true);
-		}
-
-		for (var pair : nonexistentMacros) {
-			warningPrint(() -> pair.second() + " undefined macro " + colorify(pair.first(), RED));
 		}
 	}
 
@@ -368,7 +371,7 @@ public class Preprocessor {
 			skip(itor, EOL, WHITESPACE);
 
 			// defargs processing
-			var macroDefaultArgs = new LinkedHashMap<String, String>();
+			var macroDefaultArgs = new HashMap<String, String>();
 			while (peek(itor).isDirectiveName("arg", true)) {
 				Token t = itor.next();
 				String defArgName = DirectiveHeader.parse(t, currentPathUri).args().getFirst(); // arg NAME
@@ -487,10 +490,10 @@ public class Preprocessor {
 
 		Definition def = defines.getMacro(macroName);
 		if (def != null) {
-			nonexistentMacros.removeIf(m -> m.first().equals(macroName));
+			nonexistentMacros.remove(macroName);
 			
 			List<MacroArg> args = new ArrayList<>();
-			HashMap<String, String> defArgs = new LinkedHashMap<>();
+			HashMap<String, String> defArgs = new HashMap<>();
 
 			// Process macro call arguments
 			int lastPos = 0;
@@ -578,8 +581,7 @@ public class Preprocessor {
 			// did we include anything? buff size should change.
 			if (buff.length() - prev == 0) {
 				// no change : handleInclusion failed
-				nonexistentMacros.add(new Pair<>(macroName,
-					position(macroCall.beginLine(), macroCall.beginColumn(), currentPathUri)));
+				nonexistentMacros.add(macroName);
 				macroCall.raw(buff);
 			}
 		}
@@ -595,8 +597,6 @@ public class Preprocessor {
 		}
 		return argVal;
 	}
-
-	private record Pair<F, S>(F first, S second) {};
 
 	private record DirectiveHeader(String head, List<String> args) {
 		// processDirectiveNameAndArgs
