@@ -35,10 +35,11 @@ public class Main {
 		var argParser = new ArgParser();
 		argParser.parseArgs(args);
 		
-		ANSIFormatter.setColorsEnabled(argParser.enableColors);
-		
 		if (argParser.startLSPServer) {
 			LogUtils.setLogLevel(Level.OFF);
+			ANSIFormatter.setColorsEnabled(false);
+		} else {
+			ANSIFormatter.setColorsEnabled(argParser.enableColors);
 		}
 		
 		if (argParser.dataPath == null) {
