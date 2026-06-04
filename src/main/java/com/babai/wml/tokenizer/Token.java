@@ -1,10 +1,10 @@
 package com.babai.wml.tokenizer;
 
-public final record Token(String content, Kind kind, int beginLine, int beginColumn) {
-	public final static Token EMPTY = new Token("", Kind.EOF, 0, 0);
+public final record Token(String content, Kind kind, int beginLine, int beginColumn, boolean nested) {
+	public final static Token EMPTY = new Token("", Kind.EOF, 0, 0, false);
 	
 	public Token(String content, Kind kind) {
-		this(content, kind, 0, 0);
+		this(content, kind, 0, 0, false);
 	}
 	
 	// TODO multiline tokens

@@ -253,9 +253,9 @@ public class Preprocessor {
 				t.raw(buff);
 			}
 		} else {
-			String content = t.content();
-			if (expandMacro && t.isNotKind(ANGLE_QUOTED) && hasMacroBlock(content)) {
+			if (expandMacro && t.isNotKind(ANGLE_QUOTED) && t.nested()) {
 				// expand embedded macro block in other tokens
+				String content = t.content();
 				String nestedSubst = preprocessFragment(content, currentArgs);
 				if (nestedSubst.equals(content)) { // nth to subst, return raw
 					t.raw(buff);
@@ -548,13 +548,11 @@ public class Preprocessor {
 				String out = def.getValue();
 
 				// substitute args
-				if (hasMacroBlock(out)) {
+				if ((def.getArgCount() > 0 ||  def.getDefArgCount() > 0) && hasMacroBlock(out)) {
 					out = def.expand(args, defArgs);
 				}
 				// substitute macros
-				if (hasMacroBlock(out)) {
-					out = preprocessFragment(out, def.getAllArgs());
-				}
+				out = preprocessFragment(out, def.getAllArgs());
 				buff.append(out);
 			} catch(IllegalArgumentException e) {
 				errorPrint(() ->

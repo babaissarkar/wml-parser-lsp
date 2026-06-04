@@ -18,8 +18,7 @@ public final class Tokenizer {
 	public static List<Token> tokenize(char[] input) throws IOException {
 		CharCursor r = new CharCursor(input);
 		List<Token> tokens = new ArrayList<>();
-		StringBuilder buff = new StringBuilder();
-		int[] counts = {0, 0};
+		StringBuilder buff = new StringBuilder(256);
 		State state = State.NORMAL;
 		Position start = Position.start();
 
@@ -40,19 +39,13 @@ public final class Tokenizer {
 					handleEOLToken(tokens, c, r, start);
 				} else if (c == '"') {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					finalizeAndAddToken(tokens, readQuoteToken(r, buff, counts), Token.Kind.QUOTED, start, counts);
+					handleQuoteToken(tokens, r, buff, start);
 				} else if (c == '<') {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-
-					readAngleQuoteToken(r, buff, counts);
-					if (buff.isEmpty()) {
-						buff.append(c);
-					} else {
-						finalizeAndAddToken(tokens, buff, Token.Kind.ANGLE_QUOTED, start, counts);
-					}
+					handleAngleQuoteToken(tokens, r, buff, start);
 				} else if (c == '{') {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					finalizeAndAddToken(tokens, readMacroToken(r, buff, counts), Token.Kind.MACRO, start, counts);
+					handleMacroToken(tokens, r, buff, start);
 				} else {
 					buff.append(c);
 				}
@@ -81,15 +74,13 @@ public final class Tokenizer {
 				if (isEOL(c)) {
 					handleEOLToken(tokens, c, r, start);
 				} else if (c == '"') {
-					finalizeAndAddToken(tokens, readQuoteToken(r, buff, counts), Token.Kind.QUOTED, start, counts);
+					handleQuoteToken(tokens, r, buff, start);
 				} else if (c == '<') {
-					finalizeAndAddToken(tokens, readAngleQuoteToken(r, buff, counts), Token.Kind.ANGLE_QUOTED, start, counts);
+					handleAngleQuoteToken(tokens, r, buff, start);
 				} else if (c == '{') {
-					finalizeAndAddToken(tokens, readMacroToken(r, buff, counts), Token.Kind.MACRO, start, counts);
-				} else {
-					if (c != '#') {
-						buff.append(c);
-					}
+					handleMacroToken(tokens, r, buff, start);
+				} else if (c != '#') {
+					buff.append(c);
 				}
 			}
 			}
@@ -110,15 +101,17 @@ public final class Tokenizer {
 
 	// Note: this assumes that r is currently at the character '"'
 	// Note: we are skipping starting and ending " from the token text itself, can be deduced from token kind
-	private static StringBuilder readQuoteToken(CharCursor r, StringBuilder buff, int[] counts) {
+	private static void handleQuoteToken(List<Token> tokens, CharCursor r, StringBuilder buff, Position start) {
 		char prevChar = '"';
 		buff.setLength(0);
+		int ncount = 0; int npos = 0;
+		
 		int ch;
 		while ((ch = r.read()) != -1) {
 			char c = (char) ch;
 			if (prevChar == '"' && c == '"') {
 				if (buff.isEmpty()) {
-					return buff;
+					return;
 				} else {
 					buff.append(c);
 				}
@@ -130,8 +123,8 @@ public final class Tokenizer {
 				if (ch2 != '"') break;
 			} else {
 				if (isEOL(c)) {
-					counts[0]++;        // newline count
-					counts[1] = 0;      // reset chars-since-last-newline
+					ncount++;        // newline count
+					npos = 0;      // reset chars-since-last-newline
 					if (c == '\r' && r.peek() == '\n') {
 						r.read(); // consume \n of \r\n pair
 					}
@@ -139,19 +132,24 @@ public final class Tokenizer {
 				buff.append(c);
 			}
 			prevChar = c;
-			counts[1]++;
+			ncount++;
 		}
-		return buff;
+		
+		finalizeAndAddToken(tokens, buff.toString(), Token.Kind.QUOTED, start, ncount, npos, false);
+		buff.setLength(0);
 	}
 
 	// Note: this assumes that r is currently at the first '<' character
 	// Note: we are skipping << and >> from the token text itself, can be deduced from token kind
-	private static StringBuilder readAngleQuoteToken(CharCursor r, StringBuilder buff, int[] counts) {
+	private static void handleAngleQuoteToken(List<Token> tokens, CharCursor r, StringBuilder buff, Position start) {
 		buff.setLength(0);
+		int ncount = 0; int npos = 0;
+		
 		int ch = r.read();
 		if (ch == -1 || ((char) ch) != '<') {
 			if (ch != -1) r.unread((char) ch);
-			return buff;
+			buff.append('<'); // lone '<'
+			return;
 		}
 
 		while ((ch = r.read()) != -1) {
@@ -166,88 +164,84 @@ public final class Tokenizer {
 				buff.append(c);
 			} else {
 				if (isEOL(c)) {
-					counts[0]++;
-					counts[1] = 0;
+					ncount++;
+					npos = 0;
 					if (c == '\r' && r.peek() == '\n') r.read();
 				} else {
-					counts[1]++;
+					npos++;
 				}
 				buff.append(c);
 			}
 		}
-		return buff;
+		
+		finalizeAndAddToken(tokens, buff.toString(), Token.Kind.ANGLE_QUOTED, start, ncount, npos, false);
+		buff.setLength(0);
 	}
 
 	// Note: this assumes that r is currently at the character '{'
 	// Note: we are skipping { and } from the token text itself, can be deduced from token kind
-	private static StringBuilder readMacroToken(CharCursor r, StringBuilder buff, int[] counts) {
+	private static void handleMacroToken(List<Token> tokens, CharCursor r, StringBuilder buff, Position start) {
 		buff.setLength(0);
 		int ch;
 		int nlvl = 0;
+		int ncount = 0; int npos = 0;
+		boolean hasNested = false;
 
 		while ((ch = r.read()) != -1) {
 			char c = (char) ch;
 			if (c == '{') {
 				nlvl++;
 				buff.append(c);
-				counts[1]++;
+				npos++;
 			} else if (c == '}') {
 				if (nlvl == 0) {
 					break;
 				} else {
 					nlvl--;
+					hasNested = true; // at least one nested matching {} pair
 					buff.append(c);
-					counts[1]++;
+					npos++;
 				}
 			} else {
 				if (isEOL(c)) {
-					counts[0]++;
-					counts[1] = 0;
+					ncount++;
+					npos = 0;
 					if (c == '\r' && r.peek() == '\n') r.read();
 				} else {
-					counts[1]++;
+					npos++;
 				}
 				buff.append(c);
 			}
 		}
-		return buff;
+		
+		finalizeAndAddToken(tokens, buff.toString(), Token.Kind.MACRO, start, ncount, npos, hasNested);
+		buff.setLength(0);
 	}
 
 	private static void handleEOLToken(List<Token> tokens, char c, CharCursor r, Position start) {
 		if (c == '\r') {
 			int c2 = r.read();
 			if (c2 != -1 && ((char) c2) == '\n') {
-				finalizeAndAddToken(tokens, "\r\n", Token.Kind.EOL, start, 1, 0);
+				finalizeAndAddToken(tokens, "\r\n", Token.Kind.EOL, start, 1, 0, false);
 			} else {
 				if (c2 != -1) {
 					r.unread((char) c2);
 				}
-				finalizeAndAddToken(tokens, "\r", Token.Kind.EOL, start, 1, 0);
+				finalizeAndAddToken(tokens, "\r", Token.Kind.EOL, start, 1, 0, false);
 			}
 		} else {
-			finalizeAndAddToken(tokens, String.valueOf(c), Token.Kind.EOL, start, 1, 0);
+			finalizeAndAddToken(tokens, String.valueOf(c), Token.Kind.EOL, start, 1, 0, false);
 		}
 	}
 
 	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start) {
-		finalizeAndAddToken(tokens, buff.toString(), kind, start, 0, buff.length());
+		finalizeAndAddToken(tokens, buff.toString(), kind, start, 0, buff.length(), false);
 		buff.setLength(0);
 	}
 
-	private static void finalizeAndAddToken(List<Token> tokens, StringBuilder buff, Token.Kind kind, Position start, int[] counts) {
-		finalizeAndAddToken(tokens, buff.toString(), kind, start, counts[0], counts[1]);
-		if (!buff.isEmpty()) {
-			buff.delete(0, buff.length());
-		}
-
-		// reset for next token
-		counts[0] = 0;
-		counts[1] = 0;
-	}
-
-	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start, int ncount, int npos) {
+	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start, int ncount, int npos, boolean hasNested) {
 		if (!contents.isEmpty() || kind == Token.Kind.COMMENT) {
-			tokens.add(new Token(contents, kind, start.line(), start.col()));
+			tokens.add(new Token(contents, kind, start.line(), start.col(), hasNested));
 			if (ncount == 0) {
 				start.forward(npos);
 			} else {
