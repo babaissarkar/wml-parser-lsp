@@ -127,8 +127,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		// Reference links for tags
 		try {
 			tagLinks.load(getClass().getResourceAsStream("/taglinks.properties"));
-			for (var tag : tagLinks.entrySet()) {
-				CompletionItem item = new CompletionItem(tag.getKey().toString());
+			for (var tag : tagLinks.keySet()) {
+				CompletionItem item = new CompletionItem(tag.toString());
 				item.setInsertText(item.getLabel() + "]$0[/" + item.getLabel());
 				item.setKind(CompletionItemKind.Snippet);
 				item.setInsertTextFormat(InsertTextFormat.Snippet);
@@ -259,11 +259,23 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (!word.contains("://") && (word.contains("/") || word.contains("~"))) {
 			// Wesnoth Paths
 			// if tilde is in front, it's a userdata path
-			// if not, drop, IPF.
 			int pos = word.indexOf('~');
-			if (word.charAt(0) != '~' && pos != -1) {
+			int bktStart = word.indexOf('[');
+			// IPF, drop
+			if (word.charAt(0) != '~' && pos != -1 && bktStart == -1) {
 				word = word.substring(0, pos);
+			} else if (bktStart >= 0) {
+				// AnimationWML
+				int bktEnd = word.indexOf(']');
+				if (bktEnd >= bktStart) {
+					// Crude: replace with first number after '[',
+					// then delete upto ']'
+					String bktPart = word.substring(bktStart, bktEnd+1);
+					word = word.replace(bktPart, String.valueOf(word.charAt(bktStart+1)));
+				}
 			}
+			
+			// drop ':' and anything after it
 			pos = word.indexOf(':');
 			if (pos != -1) {
 				word = word.substring(0, pos);
@@ -287,10 +299,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
 			if (word == null || word.isEmpty()) return CompletableFuture.completedFuture(null);
 			
-			if (word.contains("[")) {
+			if (word.charAt(0) == '[' && word.charAt(word.length()-1) == ']') {
 				// Tags
-				String searchWord = word.replaceAll("/", "");
-				searchWord = searchWord.substring(1, searchWord.length() - 1);
+				int startAt = (word.charAt(1) == '/' || word.charAt(1) == '+') ? 2 : 1;
+				// drop [ and ], and optional /
+				String searchWord = word.substring(startAt, word.length() - 1);
 				String link = tagLinks.getProperty(searchWord);
 				content.setKind("markdown");
 				content.setValue("Tag: **" + word + "**" +  "\n\n"
@@ -564,7 +577,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	// putting parsing in didSave doesn't work, either
 	@Override
 	public void didOpen(DidOpenTextDocumentParams params) {
-		String uri = params.getTextDocument().getUri();
+//		String uri = params.getTextDocument().getUri();
 //		var errorsList = p.getErrors().get(uri);
 //		if (!(errorsList == null || errorsList.isEmpty())) {
 //			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
@@ -627,7 +640,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		// Read all lines
 		List<String> lines = Files.readAllLines(path);
 
-		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.');
+		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']', ',');
 		Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
 
 		int lineNum = pos.getLine();
@@ -656,12 +669,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		if (start >= end)
 			return null;
-
-		// recognize tags
-		if (start > 0 && (line.charAt(start - 1) == '[') && end < line.length() && (line.charAt(end) == ']')) {
-			start -= 1;
-			end += 1;
-		}
 
 		return line.substring(start, end);
 	}
