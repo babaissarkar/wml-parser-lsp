@@ -111,44 +111,33 @@ public class Main {
 			
 			p.preprocess(incpath);
 			
-			long depEnd = System.nanoTime();
-			long mCountEnd = p.getDefines().size();
-			
-			LogUtils.infoPrint(() ->
-				"Preprocessed "
-				+ colorify(pathContext.relativize(incpath), Colors.filePathColor) + ": "
-				+ (depEnd - depStart) / 1_000_000 + " ms. "
-				+ "Macros: " + (mCountEnd - mCountStart));
+			writeTime(
+				"Preprocessed " + colorify(pathContext.relativize(incpath), Colors.filePathColor) + ", "
+				+ (p.getDefines().size() - mCountStart) + " macros. ",
+				depStart);
 		}
 		
 		String out = "";
 		if (argParser.inputPath != null) {
 			long mainStart = System.nanoTime();
-			long mCountStart = p.getDefines().size();
+			int countStart = p.getDefines().size();
 			
 			out = p.preprocess(argParser.inputPath);
 			
-			long mainEnd = System.nanoTime();
-			long mCountEnd = p.getDefines().size();
-			
-			LogUtils.infoPrint(() ->
-				"Preprocessed "
-				+ colorify(pathContext.relativize(argParser.inputPath), Colors.filePathColor) + ": "
-				+ (mainEnd - mainStart) / 1_000_000 + " ms. "
-				+ "Macros: " + (mCountEnd - mCountStart));
+			writeTime(
+				"Preprocessed " + colorify(pathContext.relativize(argParser.inputPath), Colors.filePathColor) + ", "
+				+ (p.getDefines().size() - countStart) + " macros. ",
+				mainStart);
 		} else {
 			// since this is stdin, time/macro count is inconvenient. may or may not change later.
 			out = p.preprocessString(new String(System.in.readAllBytes()));
 		}
 		
-		long preprocEnd = System.nanoTime();
-		
 		defines = p.getDefines();
 		fileExplanations = p.getFileExplanations();
 		
-		LogUtils.infoPrint(() ->
-			"Preprocessing finished: " + (preprocEnd - start) / 1_000_000 + " ms. "
-			+ "Macros: " + defines.size());
+		writeTime("Preprocess: " + defines.size() + " macros. ", start);
+		start = System.nanoTime();
 		
 		if (argParser.definitions) {
 			for (var name : defines.macros().keySet()) {
@@ -176,8 +165,7 @@ public class Main {
 			
 			parser.parse(out);
 			
-			long parseEnd = System.nanoTime();
-			LogUtils.infoPrint(() ->"Parsing finished in " + (parseEnd - preprocEnd) / 1_000_000 + " ms");
+			writeTime("Parse: ", start);
 			
 			LogUtils.infoPrint(() ->"Binary Paths: " + binaryPaths);
 			
@@ -204,5 +192,10 @@ public class Main {
 		
 		writer.flush();
 		writer.close();
+	}
+
+	private static void writeTime(String msg, long start) {
+		long end = System.nanoTime();
+		LogUtils.infoPrint(() -> msg + (end - start) / 1_000_000 + " ms");
 	}
 }
