@@ -2,7 +2,10 @@ package com.babai.wml.tokenizer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.nio.file.Path;
 
 import com.babai.wml.utils.Position;
 
@@ -10,6 +13,8 @@ import static com.babai.wml.parser.ParseUtils.*;
 
 public final class Tokenizer {
 	private enum State { NORMAL, LINE_COMMENT, WS };
+	private static boolean extractBinPath;
+	private static Set<Path> binaryPath = new HashSet<>();
 	
 	public static List<Token> tokenize(String content) throws IOException {
 		return tokenize(content.toCharArray());
@@ -248,12 +253,43 @@ public final class Tokenizer {
 
 	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start, int ncount, int npos, boolean hasNested) {
 		if (!contents.isEmpty() || kind == Token.Kind.COMMENT) {
+			extractData(contents);
+			
 			tokens.add(new Token(contents, kind, start.line(), start.col(), hasNested));
 			if (ncount == 0) {
 				start.forward(npos);
 			} else {
 				for (int i = 0; i < ncount; i++) start.newline();
 				start.forward(npos);
+			}
+		}
+	}
+
+	private static void extractData(String contents) {
+		if (contents.isEmpty()) return;
+		if (contents.charAt(0) != '[') {
+			if (!extractBinPath) {
+				return;
+			}
+		}
+		
+		if (contents.equals("[binary_path]")) {
+			extractBinPath = true;
+		} else if (contents.equals("[/binary_path]")) {
+			extractBinPath = false;
+		} else if (extractBinPath) {
+			if(contents.indexOf('/') >= 0) {
+				int eqlPos = contents.indexOf('=');
+				if (eqlPos >= 0) {
+					String path = contents.substring(5);
+					if (!path.isEmpty()) {
+						binaryPath.add(Path.of(path));
+					}
+				} else {
+					if (!contents.isEmpty()) {
+						binaryPath.add(Path.of(contents));
+					}
+				}
 			}
 		}
 	}
@@ -282,5 +318,9 @@ public final class Tokenizer {
 		}
 
 		private void unread(char c) { this.pushback = c; }
+	}
+
+	public static Set<Path> getBinaryPaths() {
+		return binaryPath;
 	}
 }
