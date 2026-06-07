@@ -3,9 +3,9 @@ package com.babai.wml.utils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class FS {
 	private FS() {
@@ -27,7 +27,7 @@ public final class FS {
 		return "";
 	}
 	
-	public static Path resolve(String pathStr, Path currentPath, HashSet<Path> binaryPaths, Path dataPath, Path userDataPath) {
+	public static Path resolve(String pathStr, Path currentPath, Set<Path> binaryPaths, Path dataPath, Path userDataPath) {
 		Path parent = null;
 
 		if (pathStr.charAt(0) == '.') {
