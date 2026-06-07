@@ -58,6 +58,8 @@ public final record Token(String content, Kind kind, int beginLine, int beginCol
 	}
 	
 	public static void writeRaw(String content, Token.Kind kind, StringBuilder buff) {
+		if(buff == null) return;
+		
 		switch (kind) {
 			case TAG_START -> buff.append('[').append(content).append(']');
 			case TAG_END -> buff.append("[/").append(content).append(']');

@@ -19,6 +19,7 @@ import com.babai.wml.parser.Parser;
 import com.babai.wml.parser.PathContext;
 import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.tokenizer.Tokenizer;
 import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.LogUtils;
 import com.babai.wml.utils.MacroTable;
@@ -92,15 +93,23 @@ public class Main {
 		long start = System.nanoTime();
 		
 		var p = new Preprocessor(pathContext, predefines);
+		// Fast Mode toggle: this disables macro expansion and only scans minimal details
+		// to generate the required info.
+		boolean fastMode = Boolean.valueOf(System.getProperty("fastMode", "false"))
+			|| argParser.definitions
+			|| argParser.generateMacroRef;
+		p.expandMacros(!fastMode);
 		p.setListFilesInInfo(argParser.listFilesInInfo);
 		
 		LogUtils.infoPrint(() ->"Predefined macros: " + predefines.size());
 		
 		BufferedWriter writer = null;
-		if (argParser.outputPath != null) {
-			writer = Files.newBufferedWriter(argParser.outputPath);
-		} else {
-			writer = new BufferedWriter(new OutputStreamWriter(System.out));
+		if (!fastMode) {
+			if (argParser.outputPath != null) {
+				writer = Files.newBufferedWriter(argParser.outputPath);
+			} else {
+				writer = new BufferedWriter(new OutputStreamWriter(System.out));
+			}
 		}
 //		p.setExtractData(argParse.extractUnitTypeData);
 
@@ -147,11 +156,11 @@ public class Main {
 				writer.write(defines.getUri(name));
 				writer.write("\n");
 			}
-		} else if (argParser.queries.isEmpty()) {
+		} else if (argParser.queries.isEmpty() && !fastMode) {
 			writer.write(out);
 		}
 		
-		if (argParser.parse) {
+		if (argParser.parse && !fastMode) {
 			HashSet<Path> binaryPaths = new HashSet<>();
 			var buff = new StringBuilder();
 			
@@ -172,12 +181,14 @@ public class Main {
 			try {
 				if (!argParser.queries.isEmpty()) {
 					writer.write(!buff.isEmpty() ? buff.toString() : "Query did not match.");
-				} else if (!argParser.definitions) {
+				} else if (!argParser.definitions && !fastMode) {
 					writer.write(out);
 				}
 			} catch (IOException ioe) {
 				LogUtils.errorPrint(() ->ioe.getMessage());
 			}
+		} else {
+			LogUtils.infoPrint(() ->"Binary Paths: " + Tokenizer.getBinaryPaths());
 		}
 
 //		var unitTypes = p.getUnitTypes();
@@ -190,8 +201,10 @@ public class Main {
 //			LogUtils.debugPrint(() ->"Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 		
-		writer.flush();
-		writer.close();
+		if (writer != null) {
+			writer.flush();
+			writer.close();
+		}
 	}
 
 	private static void writeTime(String msg, long start) {
