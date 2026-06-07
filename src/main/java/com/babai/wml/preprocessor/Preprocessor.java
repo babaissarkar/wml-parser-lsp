@@ -27,6 +27,7 @@ import static com.babai.wml.tokenizer.Token.Kind.*;
 public class Preprocessor {
 	private boolean skipElse = true;
 	private boolean listFilesInInfo = false;
+	private boolean expandMacro = true;
 	
 	private MacroTable defines;
 	private PathContext context;
@@ -83,9 +84,9 @@ public class Preprocessor {
 	}
 	
 	public String preprocess(Path path) {
-		var out = new StringBuilder();
+		var out = expandMacro ? new StringBuilder() : null;
 		preprocess(path, out);
-		return out.toString();
+		return out != null ? out.toString() : "";
 	}
 
 	// Can handle both file or folder
@@ -271,6 +272,11 @@ public class Preprocessor {
 	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
 		if (!itor.hasNext()) return "";
 		
+		if (!expandMacro) {
+			skipUntilEndDirective(directiveName, itor);
+			return "";
+		}
+		
 		StringBuilder body = new StringBuilder();
 		Token t = itor.next();
 		while (!t.isDirectiveName(directiveName, false)) {
@@ -452,8 +458,10 @@ public class Preprocessor {
 		if (isPath(macroCall.content())) {
 			// TODO possibleArgs should be zero in this case, otherwise error.
 			handleInclusion(macroCall.content(), context, buff);
-		} else {
+		} else if (expandMacro) {
 			expandMacroCall(macroCall, possibleArgs, buff);
+		} else if (buff != null) {
+			buff.append(macroCall.content());
 		}
 	}
 
@@ -621,5 +629,9 @@ public class Preprocessor {
 
 			return new DirectiveHeader(name, argList);
 		}
+	}
+
+	public void expandMacros(boolean expand) {
+		this.expandMacro = expand;
 	}
 }
