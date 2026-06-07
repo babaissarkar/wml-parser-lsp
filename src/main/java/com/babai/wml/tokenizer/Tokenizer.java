@@ -21,33 +21,40 @@ public final class Tokenizer {
 		StringBuilder buff = new StringBuilder(256);
 		State state = State.NORMAL;
 		Position start = Position.start();
+		boolean leading = true;
 
 		int ch;
 		while ((ch = r.read()) != -1) {
 			char c = (char) ch;
 			switch (state) {
 			case NORMAL -> {
-				if (c == '#') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					state = State.LINE_COMMENT;
-				} else if (isWS(c)) {
+				if (isWS(c) && leading) {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 					state = State.WS;
 					buff.append(c);
-				} else if (isEOL(c)) {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					handleEOLToken(tokens, c, r, start);
-				} else if (c == '"') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					handleQuoteToken(tokens, r, buff, start);
-				} else if (c == '<') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					handleAngleQuoteToken(tokens, r, buff, start);
-				} else if (c == '{') {
-					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
-					handleMacroToken(tokens, r, buff, start);
 				} else {
-					buff.append(c);
+					if (isEOL(c)) {
+						leading = true;
+						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+						handleEOLToken(tokens, c, r, start);
+					} else {
+						leading = false;
+						if (c == '#') {
+							finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+							state = State.LINE_COMMENT;
+						} else if (c == '"') {
+							finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+							handleQuoteToken(tokens, r, buff, start);
+						} else if (c == '<') {
+							finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+							handleAngleQuoteToken(tokens, r, buff, start);
+						} else if (c == '{') {
+							finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+							handleMacroToken(tokens, r, buff, start);
+						} else {
+							buff.append(c);
+						}
+					}
 				}
 			}
 
