@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -63,19 +64,17 @@ import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
-import com.babai.wml.parser.Parser;
 import com.babai.wml.parser.PathContext;
 import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.preprocessor.MacroArg;
 import com.babai.wml.preprocessor.MacroCall;
 import com.babai.wml.preprocessor.Preprocessor;
+import com.babai.wml.tokenizer.Tokenizer;
 import com.babai.wml.utils.AIGenerated;
-//import com.babai.wml.utils.Colors;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.LogUtils;
 import com.babai.wml.utils.MacroTable;
 
-//import static com.babai.wml.cli.ANSIFormatter.colorify;
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
 @AIGenerated
@@ -86,16 +85,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Path inputPath;
 
 	private MacroTable baseDefines, defines;
-	private HashSet<String> unitTypes = new HashSet<>();
-	private HashSet<Path> binaryPaths = new HashSet<>();
+	private Set<String> unitTypes = new HashSet<>();
+	private Set<Path> binaryPaths = new HashSet<>();
 	private List<MacroCall> calls = new ArrayList<>();
 	private List<Path> includePaths = new ArrayList<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
 	private List<CompletionItem> tags = new ArrayList<>();
 	private Properties tagLinks = new Properties();
-	
-	private StringBuilder includeBuff = new StringBuilder();  
 	
 	private Preprocessor p;
 
@@ -550,12 +547,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	@Override
 	public void didChange(DidChangeTextDocumentParams params) {
 		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
-
-		try {
-			parseFile(inputPath);
-		} catch (IOException e) {
-			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
-		}
+		parseFile(inputPath);
 		
 		client.refreshInlayHints();
 		client.refreshDiagnostics();
@@ -581,53 +573,41 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	@Override
 	public void didSave(DidSaveTextDocumentParams params) {
 		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
-		try {
-			parseFile(inputPath);
-		} catch (IOException e) {
-			showLSPMessage("Parsing " + inputPath.toString() + " failed.");
-		}
+		parseFile(inputPath);
 		
 		client.refreshInlayHints();
 		client.refreshDiagnostics();
 	}
 
 	private void initParserForLSP() {
-		try {
-			p = new Preprocessor(pathContext, defines);
+		p = new Preprocessor(pathContext, defines); // 'defines' supposed to be empty at this point
+		p.expandMacros(false); // we don't need full expansion for LSP mode
 
-			for (Path incpath : includePaths) {
-				includeBuff.append(p.preprocess(incpath));
-			}
-
-			baseDefines = new MacroTable(defines);
-			if (inputPath != null) {
-				parseFile(inputPath);
-			}
-
-			showLSPMessage("Binary Paths: " + binaryPaths);
-			showLSPMessage("Parsed, " + defines.size() + " macros and " + unitTypes.size() + " unittypes defined.");
-		} catch (IOException e) {
-			showLSPMessage("Parsing error: " + inputPath.toString() + " not accessible!");
+		for (Path incpath : includePaths) {
+			p.preprocess(incpath);
 		}
+
+		baseDefines = new MacroTable(defines);
+		if (inputPath != null) {
+			parseFile(inputPath);
+		}
+
+		showLSPMessage("Binary Paths: " + binaryPaths);
+		showLSPMessage("Parsed, " + defines.size() + " macros and " + unitTypes.size() + " unittypes defined.");
 	}
 
-	private void parseFile(Path inputPath) throws IOException {
-		StringBuilder buff = new StringBuilder(includeBuff);
+	private void parseFile(Path inputPath) {
 		p.clearMacroCalls();
 		p.setDefines(new MacroTable(baseDefines));
-		buff.append(p.preprocess(inputPath));
-		Parser parser = new Parser();
-		parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
-		parser.addQuery("unit_type/id", v -> unitTypes.add(v));
-		parser.parse(buff.toString());
+		p.preprocess(inputPath);
 
+		binaryPaths = Tokenizer.getBinaryPaths();
 		defines = p.getDefines();
 		calls = p.getMacroCalls();
 
 		macroCompletions.clear();
-		for (var r : defines.macros().entrySet()) {
+		for (var def : defines.macros().values()) {
 			CompletionItem item = new CompletionItem();
-			Definition def = r.getValue();
 			item.setLabel(def.name());
 			item.setKind(CompletionItemKind.Method);
 			String docs = def.getDocs();
