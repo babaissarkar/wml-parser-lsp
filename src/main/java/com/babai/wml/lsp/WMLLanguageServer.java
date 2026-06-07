@@ -304,10 +304,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			} else if ((p = checkWesnothPath(word, params.getTextDocument().getUri())) != null) {
 				if (Files.exists(p)) {
 					content.setKind("markdown");
-					if (FS.getAssetType(word).equals("images")) {
-						content.setValue("![Image](" + p.toUri().toString() + ")");
+					String uriStr = p.toUri().toString();
+					if (FS.getAssetType(uriStr).equals("images")) {
+						content.setValue("![Image](" + uriStr + ")");
 					} else {
-						content.setValue("Go To: [" + p.getFileName() + "](" + p.toUri().toString() + ")");
+						content.setValue("Go To: [" + p.getFileName() + "](" + uriStr + ")");
 					}
 				} else {
 					content.setKind("plaintext");
