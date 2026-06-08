@@ -594,6 +594,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	}
 
 	private void initParserForLSP() {
+		Tokenizer.enableExtraction(true);
+		
 		p = new Preprocessor(pathContext, defines); // 'defines' supposed to be empty at this point
 		p.expandMacros(false); // we don't need full expansion for LSP mode
 
@@ -606,16 +608,17 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			parseFile(inputPath);
 		}
 
-		showLSPMessage("Binary Paths: " + binaryPaths);
 		showLSPMessage("Parsed, " + defines.size() + " macros and " + unitTypes.size() + " unittypes defined.");
 	}
 
 	private void parseFile(Path inputPath) {
 		p.clearMacroCalls();
 		p.setDefines(new MacroTable(baseDefines));
+		
 		p.preprocess(inputPath);
 
 		binaryPaths = Tokenizer.getBinaryPaths();
+		unitTypes = Tokenizer.getUnitTypes();
 		defines = p.getDefines();
 		calls = p.getMacroCalls();
 
