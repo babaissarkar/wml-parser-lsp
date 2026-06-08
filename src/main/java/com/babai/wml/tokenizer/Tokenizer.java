@@ -13,8 +13,16 @@ import static com.babai.wml.parser.ParseUtils.*;
 
 public final class Tokenizer {
 	private enum State { NORMAL, LINE_COMMENT, WS };
-	private static boolean extractBinPath;
+	
+	// Data extraction variables
+	private static boolean enableExtraction = false;
+	private static boolean extractBinPath = false;
 	private static Set<Path> binaryPath = new HashSet<>();
+	private static boolean extractTypeID = false;
+	private static Set<String> unitTypes = new HashSet<>();
+	private static boolean extractDefine = false;
+	private static String mainDefine = "";
+	private static boolean getNextTok;
 	
 	public static List<Token> tokenize(String content) throws IOException {
 		return tokenize(content.toCharArray());
@@ -265,35 +273,6 @@ public final class Tokenizer {
 		}
 	}
 
-	private static void extractData(String contents) {
-		if (contents.isEmpty()) return;
-		if (contents.charAt(0) != '[') {
-			if (!extractBinPath) {
-				return;
-			}
-		}
-		
-		if (contents.equals("[binary_path]")) {
-			extractBinPath = true;
-		} else if (contents.equals("[/binary_path]")) {
-			extractBinPath = false;
-		} else if (extractBinPath) {
-			if(contents.indexOf('/') >= 0) {
-				int eqlPos = contents.indexOf('=');
-				if (eqlPos >= 0) {
-					String path = contents.substring(5);
-					if (!path.isEmpty()) {
-						binaryPath.add(Path.of(path));
-					}
-				} else {
-					if (!contents.isEmpty()) {
-						binaryPath.add(Path.of(contents));
-					}
-				}
-			}
-		}
-	}
-
 	private static final class CharCursor {
 		private final char[] input;
 		private int idx = 0;
@@ -319,8 +298,89 @@ public final class Tokenizer {
 
 		private void unread(char c) { this.pushback = c; }
 	}
+	
+	// Data Extraction
+	
+	public static void enableExtraction(boolean enabled) {
+		enableExtraction = enabled;
+	}
 
 	public static Set<Path> getBinaryPaths() {
 		return binaryPath;
+	}
+
+	public static Set<String> getUnitTypes() {
+		return unitTypes;
+	}
+	
+	public static String getMainDefine() {
+		return mainDefine;
+	}
+	
+	private static void extractData(String contents) {
+		// define extraction is intentionally always enabled.
+		// because it is needed by the preprocessor for [campaign] main define
+		// autodetection, and users mostly need that.
+		if (!enableExtraction) return;
+		if (contents.isEmpty()) return;
+		if (contents.charAt(0) != '['
+			&& !(extractBinPath || extractTypeID || extractDefine)) return;
+		
+		if (contents.equals("[binary_path]")) {
+			extractBinPath = true;
+		} else if (contents.equals("[unit_type]")) {
+			extractTypeID = true;
+		} else if (contents.equals("[campaign]")) {
+			extractDefine = true;
+		} else if (extractBinPath) {
+			if(contents.indexOf('/') >= 0) {
+				int eqlPos = contents.indexOf('=');
+				if (eqlPos >= 0) {
+					String path = contents.substring(5);
+					if (!path.isEmpty()) {
+						binaryPath.add(Path.of(path));
+						extractBinPath = false;
+					}
+				} else if (!contents.isEmpty()) {
+					binaryPath.add(Path.of(contents));
+					extractBinPath = false;
+				}
+			}
+		} else if (extractTypeID) {
+			int eqlPos = contents.indexOf('=');
+			if (eqlPos >= 0 && contents.startsWith("id")) {
+				String name = contents.substring(3);
+				// avoid cases where the unittype id is a variable or empty
+				if (!name.isEmpty() && name.charAt(0) != '$') {
+					unitTypes.add(name);
+					extractTypeID = false;
+				} else {
+					getNextTok = true;
+				}
+			}
+		} else if (extractDefine) {
+			int eqlPos = contents.indexOf('=');
+			if (eqlPos >= 0 && contents.startsWith("define")) {
+				String define = contents.substring(7);
+				if (!define.isEmpty()) {
+					mainDefine = define;
+					extractDefine = false;
+				} else {
+					getNextTok = true;
+				}
+			}
+		} else if (getNextTok && !contents.isEmpty()) {
+			if (extractTypeID) {
+				// avoid cases where the unittype id is a variable or empty
+				if (contents.charAt(0) != '$') {
+					unitTypes.add(contents);
+					extractTypeID = false;
+				}
+			} else if (extractDefine) {
+				mainDefine = contents;
+				extractDefine = false;
+			}
+			getNextTok = false;
+		}
 	}
 }
