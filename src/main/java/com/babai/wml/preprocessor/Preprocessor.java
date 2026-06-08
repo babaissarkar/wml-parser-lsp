@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.parser.PathContext;
 import com.babai.wml.tokenizer.Token;
+import com.babai.wml.tokenizer.Tokenizer;
 import com.babai.wml.utils.MacroTable;
 
 import static com.babai.wml.utils.Colors.*;
@@ -171,6 +172,13 @@ public class Preprocessor {
 	// Can only deal with a file
 	private void preprocessContent(String content, StringBuilder buff) throws IOException {
 		var itor = tokenize(content).listIterator();
+		
+		// add [campaign]define= definition, usually found in _main.cfg
+		// TODO support line number
+		String mdef = Tokenizer.getMainDefine();
+		if (!mdef.isEmpty()) {
+			defines.addMacro(mdef, new Definition(mdef, "true"), 0, currentPathUri);
+		}
 
 		skip(itor, EOL);
 
