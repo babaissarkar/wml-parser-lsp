@@ -98,6 +98,7 @@ public class Main {
 		boolean fastMode = Boolean.valueOf(System.getProperty("fastMode", "false"))
 			|| argParser.definitions
 			|| argParser.generateMacroRef;
+		Tokenizer.enableExtraction(fastMode);
 		p.expandMacros(!fastMode);
 		p.setListFilesInInfo(argParser.listFilesInInfo);
 		
@@ -190,14 +191,14 @@ public class Main {
 		} else {
 			LogUtils.infoPrint(() ->"Binary Paths: " + Tokenizer.getBinaryPaths());
 		}
-
-//		var unitTypes = p.getUnitTypes();
+		
 //		if (argParse.extractUnitTypeData) {
+//			var unitTypes = Tokenizer.getUnitTypes();
 //			HashSet<Config> unitTypeData = p.getUnitTypeData();
 //			writeUnitTypeData(unitTypeData, argParse.unitTypeOutPath);
 //			LogUtils.debugPrint(() ->"Total " + p.getDefines().rowCount() + " macros and " + unitTypeData.size() + " unit types defined.");
 //		} else {
-//			LogUtils.debugPrint(() ->"Unit Types: " + unitTypes);
+//			LogUtils.infoPrint(() -> "Unit Types: " + unitTypes.size());
 //			LogUtils.debugPrint(() ->"Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 		
