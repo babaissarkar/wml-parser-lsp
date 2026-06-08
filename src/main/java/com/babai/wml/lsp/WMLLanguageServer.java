@@ -175,7 +175,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		capabilities.setHoverProvider(true);
 		capabilities.setInlayHintProvider(true);
 		capabilities.setDocumentSymbolProvider(true);
-		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=")));
+		capabilities.setCompletionProvider(new CompletionOptions(true, List.of("#", "{", "/", "[", "=", ",")));
 
 		var syncOptions = new TextDocumentSyncOptions();
 		syncOptions.setOpenClose(true);
@@ -349,25 +349,25 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		// Directives
 		if (triggerKind == CompletionTriggerKind.Invoked
-				||  triggerChar.equals("#")) {
+				|| triggerChar.equals("#")) {
 			items.addAll(keywords);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
 
 		if (triggerKind == CompletionTriggerKind.Invoked
-				||  triggerChar.equals("{")) {
+				|| triggerChar.equals("{")) {
 			items.addAll(macroCompletions);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
 
 		if (triggerKind == CompletionTriggerKind.Invoked
-				||  triggerChar.equals("[")) {
+				|| triggerChar.equals("[")) {
 			items.addAll(tags);
 			return CompletableFuture.completedFuture(Either.forLeft(items));
 		}
 
 		if (triggerKind == CompletionTriggerKind.Invoked
-				||  triggerChar.equals("="))
+				|| triggerChar.equals("=") || triggerChar.equals(","))
 		{
 			for (var type : unitTypes) {
 				CompletionItem item = new CompletionItem(type);
