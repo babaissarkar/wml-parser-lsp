@@ -13,7 +13,7 @@ import static com.babai.wml.parser.ParseUtils.*;
 
 public final class Tokenizer {
 	private enum State { NORMAL, LINE_COMMENT, WS };
-	
+
 	// Data extraction variables
 	private static boolean enableExtraction = false;
 	private static boolean extractBinPath = false;
@@ -23,7 +23,7 @@ public final class Tokenizer {
 	private static boolean extractDefine = false;
 	private static String mainDefine = "";
 	private static boolean getNextTok;
-	
+
 	public static List<Token> tokenize(String content) throws IOException {
 		return tokenize(content.toCharArray());
 	}
@@ -41,17 +41,15 @@ public final class Tokenizer {
 			char c = (char) ch;
 			switch (state) {
 			case NORMAL -> {
-				if (isWS(c) && leading) {
+				if (isWS(c)) {
 					finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 					state = State.WS;
 					buff.append(c);
 				} else {
 					if (isEOL(c)) {
-						leading = true;
 						finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 						handleEOLToken(tokens, c, r, start);
 					} else {
-						leading = false;
 						if (c == '#') {
 							finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
 							state = State.LINE_COMMENT;
@@ -125,7 +123,7 @@ public final class Tokenizer {
 		char prevChar = '"';
 		buff.setLength(0);
 		int ncount = 0; int npos = 0;
-		
+
 		int ch;
 		while ((ch = r.read()) != -1) {
 			char c = (char) ch;
@@ -154,7 +152,7 @@ public final class Tokenizer {
 			prevChar = c;
 			ncount++;
 		}
-		
+
 		finalizeAndAddToken(tokens, buff.toString(), Token.Kind.QUOTED, start, ncount, npos, false);
 		buff.setLength(0);
 	}
@@ -164,7 +162,7 @@ public final class Tokenizer {
 	private static void handleAngleQuoteToken(List<Token> tokens, CharCursor r, StringBuilder buff, Position start) {
 		buff.setLength(0);
 		int ncount = 0; int npos = 0;
-		
+
 		int ch = r.read();
 		if (ch == -1 || ((char) ch) != '<') {
 			if (ch != -1) r.unread((char) ch);
@@ -193,7 +191,7 @@ public final class Tokenizer {
 				buff.append(c);
 			}
 		}
-		
+
 		finalizeAndAddToken(tokens, buff.toString(), Token.Kind.ANGLE_QUOTED, start, ncount, npos, false);
 		buff.setLength(0);
 	}
@@ -233,7 +231,7 @@ public final class Tokenizer {
 				buff.append(c);
 			}
 		}
-		
+
 		finalizeAndAddToken(tokens, buff.toString(), Token.Kind.MACRO, start, ncount, npos, hasNested);
 		buff.setLength(0);
 	}
@@ -262,7 +260,7 @@ public final class Tokenizer {
 	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start, int ncount, int npos, boolean hasNested) {
 		if (!contents.isEmpty() || kind == Token.Kind.COMMENT) {
 			extractData(contents);
-			
+
 			tokens.add(new Token(contents, kind, start.line(), start.col(), hasNested));
 			if (ncount == 0) {
 				start.forward(npos);
@@ -298,9 +296,9 @@ public final class Tokenizer {
 
 		private void unread(char c) { this.pushback = c; }
 	}
-	
+
 	// Data Extraction
-	
+
 	public static void enableExtraction(boolean enabled) {
 		enableExtraction = enabled;
 	}
@@ -312,11 +310,11 @@ public final class Tokenizer {
 	public static Set<String> getUnitTypes() {
 		return unitTypes;
 	}
-	
+
 	public static String getMainDefine() {
 		return mainDefine;
 	}
-	
+
 	private static void extractData(String contents) {
 		// define extraction is intentionally always enabled.
 		// because it is needed by the preprocessor for [campaign] main define
@@ -325,7 +323,7 @@ public final class Tokenizer {
 		if (contents.isEmpty()) return;
 		if (contents.charAt(0) != '['
 			&& !(extractBinPath || extractTypeID || extractDefine)) return;
-		
+
 		if (contents.equals("[binary_path]")) {
 			extractBinPath = true;
 		} else if (contents.equals("[unit_type]")) {
