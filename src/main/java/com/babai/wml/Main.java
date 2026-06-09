@@ -95,7 +95,7 @@ public class Main {
 		var p = new Preprocessor(pathContext, predefines);
 		// Fast Mode toggle: this disables macro expansion and only scans minimal details
 		// to generate the required info.
-		boolean fastMode = Boolean.valueOf(System.getProperty("fastMode", "false"))
+		boolean fastMode = argParser.fastMode
 			|| argParser.definitions
 			|| argParser.generateMacroRef;
 		Tokenizer.enableExtraction(fastMode);

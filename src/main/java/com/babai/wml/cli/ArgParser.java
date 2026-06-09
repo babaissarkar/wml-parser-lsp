@@ -16,6 +16,9 @@ public class ArgParser {
 	@Option(names = {"-server", "-s", "--server"}, description = "Run in LSP server mode.")
 	public boolean startLSPServer = false;
 
+	@Option(names = {"-fastMode", "-fm", "--fastMode"}, description = "Fast Mode (skips macro expansion and parsing, only scraps data). Autoenabled internally for -df/-gmr/-s.")
+	public boolean fastMode = false;
+
 	@Option(
 		names = {"-datadir", "--datadir"},
 		description = "Absolute path to Wesnoth's data directory. Can also be specified via environment variable WESNOTH_DATA.",
