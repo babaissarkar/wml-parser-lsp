@@ -23,12 +23,15 @@ public final class Tokenizer {
 	private static boolean extractDefine = false;
 	private static String mainDefine = "";
 	private static boolean getNextTok;
+	private static StringBuilder lineBuff = new StringBuilder();
 
 	public static List<Token> tokenize(String content) throws IOException {
 		return tokenize(content.toCharArray());
 	}
 
 	public static List<Token> tokenize(char[] input) throws IOException {
+		lineBuff.setLength(0);
+
 		CharCursor r = new CharCursor(input);
 		List<Token> tokens = new ArrayList<>();
 		StringBuilder buff = new StringBuilder(256);
@@ -259,7 +262,13 @@ public final class Tokenizer {
 
 	private static void finalizeAndAddToken(List<Token> tokens, String contents, Token.Kind kind, Position start, int ncount, int npos, boolean hasNested) {
 		if (!contents.isEmpty() || kind == Token.Kind.COMMENT) {
-			extractData(contents);
+			if (kind != Token.Kind.WHITESPACE) {
+				if (kind != Token.Kind.EOL) {
+					extractData(contents);
+				} else {
+					commitBuff();
+				}
+			}
 
 			tokens.add(new Token(contents, kind, start.line(), start.col(), hasNested));
 			if (ncount == 0) {
@@ -315,6 +324,14 @@ public final class Tokenizer {
 		return mainDefine;
 	}
 
+	private static void commitBuff() {
+		if (enableExtraction && extractTypeID && !lineBuff.isEmpty()) {
+			unitTypes.add(lineBuff.toString());
+			extractTypeID = false;
+			lineBuff.setLength(0);
+		}
+	}
+
 	private static void extractData(String contents) {
 		// define extraction is intentionally always enabled.
 		// because it is needed by the preprocessor for [campaign] main define
@@ -345,16 +362,22 @@ public final class Tokenizer {
 				}
 			}
 		} else if (extractTypeID) {
-			int eqlPos = contents.indexOf('=');
-			if (eqlPos >= 0 && contents.startsWith("id")) {
-				String name = contents.substring(3);
-				// avoid cases where the unittype id is a variable or empty
-				if (!name.isEmpty() && name.charAt(0) != '$') {
-					unitTypes.add(name);
-					extractTypeID = false;
+			if (contents.startsWith("id") && lineBuff.isEmpty()) {
+				int eqlPos = contents.indexOf('=');
+
+				if (eqlPos >= 0) {
+					String name = contents.substring(3);
+					// avoid cases where the unittype id is a variable or empty
+					if (!name.isEmpty() && name.charAt(0) != '$') {
+						lineBuff.append(name);
+					} else {
+						getNextTok = true;
+					}
 				} else {
 					getNextTok = true;
 				}
+			} else {
+				lineBuff.append(" ").append(contents);
 			}
 		} else if (extractDefine) {
 			int eqlPos = contents.indexOf('=');
@@ -367,7 +390,7 @@ public final class Tokenizer {
 					getNextTok = true;
 				}
 			}
-		} else if (getNextTok && !contents.isEmpty()) {
+		} else if (getNextTok) {
 			if (extractTypeID) {
 				// avoid cases where the unittype id is a variable or empty
 				if (contents.charAt(0) != '$') {
@@ -378,7 +401,9 @@ public final class Tokenizer {
 				mainDefine = contents;
 				extractDefine = false;
 			}
-			getNextTok = false;
+
+			// separate '=' token, keep checking
+			getNextTok = contents.charAt(0) == '=';
 		}
 	}
 }
