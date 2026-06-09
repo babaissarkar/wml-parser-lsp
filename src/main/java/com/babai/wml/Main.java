@@ -163,9 +163,11 @@ public class Main {
 		
 		if (argParser.parse && !fastMode) {
 			HashSet<Path> binaryPaths = new HashSet<>();
+			HashSet<String> unitTypes = new HashSet<>();
 			var buff = new StringBuilder();
 			
 			var parser = new Parser();
+			parser.addQuery("//unit_type/id", v -> unitTypes.add(v));
 			parser.addQuery("binary_path/path", v -> binaryPaths.add(Path.of(v)));
 			
 			for (var q : argParser.queries) {
@@ -177,7 +179,8 @@ public class Main {
 			
 			writeTime("Parse: ", start);
 			
-			LogUtils.infoPrint(() ->"Binary Paths: " + binaryPaths);
+			LogUtils.infoPrint(() -> "Binary Paths: " + binaryPaths);
+			LogUtils.infoPrint(() -> "Unit Types: " + unitTypes.size());
 			
 			try {
 				if (!argParser.queries.isEmpty()) {
@@ -189,16 +192,18 @@ public class Main {
 				LogUtils.errorPrint(() ->ioe.getMessage());
 			}
 		} else {
-			LogUtils.infoPrint(() ->"Binary Paths: " + Tokenizer.getBinaryPaths());
+			var unitTypes = Tokenizer.getUnitTypes();
+			LogUtils.infoPrint(() -> "Binary Paths: " + Tokenizer.getBinaryPaths());
+			LogUtils.infoPrint(() -> "Unit Types: " + unitTypes.size());
 		}
 		
 //		if (argParse.extractUnitTypeData) {
-//			var unitTypes = Tokenizer.getUnitTypes();
+
 //			HashSet<Config> unitTypeData = p.getUnitTypeData();
 //			writeUnitTypeData(unitTypeData, argParse.unitTypeOutPath);
 //			LogUtils.debugPrint(() ->"Total " + p.getDefines().rowCount() + " macros and " + unitTypeData.size() + " unit types defined.");
 //		} else {
-//			LogUtils.infoPrint(() -> "Unit Types: " + unitTypes.size());
+
 //			LogUtils.debugPrint(() ->"Total " + p.getDefines().rowCount() + " macros and " + unitTypes.size() + " unit types defined.");
 //		}
 		
