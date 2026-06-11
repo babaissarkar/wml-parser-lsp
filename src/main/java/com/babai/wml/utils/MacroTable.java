@@ -73,4 +73,9 @@ public class MacroTable {
 	public int size() {
 		return nameValMap.size();
 	}
+	
+	@Override
+	public String toString() {
+		return macros().toString().replaceAll(", ", "\n");
+	}
 }

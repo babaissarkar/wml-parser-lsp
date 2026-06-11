@@ -103,7 +103,7 @@ public class Definition {
 		for (var arg : args) {
 			sb.append(" " + arg);
 		}
-		sb.append("\n");
+		sb.append(" ");
 		sb.append(defArgs.toString());
 		sb.append("\n");
 		sb.append(value);
