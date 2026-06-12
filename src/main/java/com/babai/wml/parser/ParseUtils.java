@@ -152,7 +152,7 @@ public final class ParseUtils {
 						if (nestedSubst.equals(content)) { // nth to subst, return raw
 							t.raw(out);
 						} else {
-							Token.writeRaw(nestedSubst, t.kind(), out);
+							out.append('{').append(nestedSubst).append('}');
 						}
 					} else {
 						out.append(val);
@@ -163,7 +163,7 @@ public final class ParseUtils {
 					if (nestedSubst.equals(content)) { // nth to subst, return raw
 						t.raw(out);
 					} else {
-						Token.writeRaw(nestedSubst, t.kind(), out);
+						out.append('{').append(nestedSubst).append('}');
 					}
 				} else {
 					t.raw(out);

@@ -18,22 +18,22 @@ public final record Token(String content, Kind kind, int beginLine, int beginCol
 		if (content.isEmpty()) return false;
 		
 		String[] directives = {
-			"define",
-			"arg",
-			"undef",
-			"ifdef",
-			"ifndef",
-			"ifhave",
-			"ifnhave",
-			"ifver",
-			"ifnver",
-			"else",
-			"error",
-			"warning",
-			"deprecated",
-			"textdomain",
-			"wmlscope",
-			"wmllint"
+			"#define",
+			"#arg",
+			"#undef",
+			"#ifdef",
+			"#ifndef",
+			"#endif",
+			"#enddef",
+			"#ifhave",
+			"#ifnhave",
+			"#ifver",
+			"#ifnver",
+			"#else",
+			"#error",
+			"#warning",
+			"#deprecated",
+			"#textdomain"
 		};
 
 		for (String d : directives) {
@@ -54,22 +54,13 @@ public final record Token(String content, Kind kind, int beginLine, int beginCol
 	}
 	
 	public void raw(StringBuilder buff) {
-		writeRaw(content, kind, buff);
-	}
-	
-	public static void writeRaw(String content, Token.Kind kind, StringBuilder buff) {
-		if(buff == null) return;
+		if (buff == null || content == null) return;
 		
-		switch (kind) {
-			case TAG_START -> buff.append('[').append(content).append(']');
-			case TAG_END -> buff.append("[/").append(content).append(']');
-			case QUOTED -> buff.append('"').append(content).append('"');
-			case ANGLE_QUOTED -> buff.append("<<").append(content).append(">>");
-			case MACRO -> buff.append('{').append(content).append('}');
-			case COMMENT -> buff.append('#').append(content);
-			case EOF -> throw new UnsupportedOperationException("EOF token has no raw value");
-			default -> buff.append(content);
-		};
+		if (kind != Kind.MACRO) {
+			buff.append(content);
+		} else {
+			buff.append('{').append(content).append('}');
+		}
 	}
 
 	public enum Kind {

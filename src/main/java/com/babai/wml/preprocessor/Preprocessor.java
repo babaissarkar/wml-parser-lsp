@@ -185,7 +185,7 @@ public class Preprocessor {
 		skip(itor, WHITESPACE);
 
 		String textdomain;
-		if (peek(itor).isDirectiveName("textdomain", true)) {
+		if (peek(itor).isDirectiveName("#textdomain", true)) {
 			Token t = itor.next();
 			var directiveHeader = DirectiveHeader.parse(t, currentPathUri);
 			textdomain = directiveHeader.args().getFirst();
@@ -239,7 +239,7 @@ public class Preprocessor {
 		while (peek(itor).isKind(COMMENT) && !peek(itor).isDirective()) {
 			Token t = itor.next();
 			if (t.isDirective()) break;
-			docBuff.append(t.content().trim());
+			docBuff.append(t.content().substring(1).trim());
 			if (peek(itor).isKind(EOL)) {
 				t = itor.next();
 				docBuff.append(t.content());
@@ -261,19 +261,17 @@ public class Preprocessor {
 			} else {
 				t.raw(buff);
 			}
-		} else {
-			if (expandMacro && t.isNotKind(ANGLE_QUOTED) && t.nested()) {
-				// expand embedded macro block in other tokens
-				String content = t.content();
-				String nestedSubst = preprocessFragment(content, currentArgs);
-				if (nestedSubst.equals(content)) { // nth to subst, return raw
-					t.raw(buff);
-				} else {
-					Token.writeRaw(nestedSubst, t.kind(), buff);
-				}
-			} else {
+		} else if (expandMacro && t.isNotKind(ANGLE_QUOTED) && t.nested()) {
+			// expand embedded macro block in other tokens
+			String content = t.content();
+			String nestedSubst = preprocessFragment(content, currentArgs);
+			if (nestedSubst.equals(content)) { // nth to subst, return raw
 				t.raw(buff);
+			} else {
+				buff.append(nestedSubst);
 			}
+		} else {
+			t.raw(buff);
 		}
 	}
 
@@ -340,7 +338,7 @@ public class Preprocessor {
 		var directiveHeader = DirectiveHeader.parse(directiveStart, currentPathUri);
 		var directiveArgs = directiveHeader.args();
 
-		if (directiveHeader.head().equals("define")) {
+		if (directiveHeader.head().equals("#define")) {
 			// Macro name
 			String macroName = directiveArgs.getFirst();
 			List<String> macroArgs = directiveArgs.subList(1, directiveArgs.size());
@@ -352,7 +350,7 @@ public class Preprocessor {
 			int depreLevel = 0;
 			String removalVersion = "";
 			String depreMessage = "";
-			while (peek(itor).isDirectiveName("deprecated", true)) {
+			while (peek(itor).isDirectiveName("#deprecated", true)) {
 				debugPrint(() -> "Deprecated macro: " + macroName);
 				Token t = itor.next();
 				isDeprecated = true;
@@ -386,13 +384,13 @@ public class Preprocessor {
 
 			// defargs processing
 			var macroDefaultArgs = new HashMap<String, String>();
-			while (peek(itor).isDirectiveName("arg", true)) {
+			while (peek(itor).isDirectiveName("#arg", true)) {
 				Token t = itor.next();
 				String defArgName = DirectiveHeader.parse(t, currentPathUri).args().getFirst(); // arg NAME
 
 				skip(itor, EOL);
 
-				macroDefaultArgs.put(defArgName, consumeUntilEndDirective("endarg", itor));
+				macroDefaultArgs.put(defArgName, consumeUntilEndDirective("#endarg", itor));
 
 				skip(itor, EOL, WHITESPACE);
 			}
@@ -403,7 +401,7 @@ public class Preprocessor {
 			currentDefineArgs.addAll(macroArgs);
 			macroDefaultArgs.forEach((k, v) -> currentDefineArgs.add(k));
 
-			var def = new Definition(macroName, consumeUntilEndDirective("enddef", itor), macroArgs, macroDefaultArgs);
+			var def = new Definition(macroName, consumeUntilEndDirective("#enddef", itor), macroArgs, macroDefaultArgs);
 
 			currentDefineArgs.clear(); // clear arg context
 
@@ -416,27 +414,27 @@ public class Preprocessor {
 
 			debugPrint(() -> "defining macro " + def.coloredName());
 			defines.addMacro(macroName, def, directiveStart.beginLine(), pathUri);
-		} else if (directiveHeader.head().equals("ifdef")) {
+		} else if (directiveHeader.head().equals("#ifdef")) {
 			// TODO complain if ifdef does not exactly has one arg (macroname)
 			if (defines.hasMacro(directiveArgs.getFirst())) {
 				skipElse = true;
 			} else {
 				// skip upto #else or #endif
-				skipUntilEndDirective2("else", "endif", itor);
+				skipUntilEndDirective2("#else", "#endif", itor);
 				skipElse = false;
 			}
-		} else if (directiveHeader.head().equals("ifndef")) {
+		} else if (directiveHeader.head().equals("#ifndef")) {
 			// TODO complain if ifndef does not exactly has one arg (macroname)
 			if (defines.hasMacro(directiveArgs.getFirst())) {
 				// skip upto #else or #endif
-				skipUntilEndDirective2("else", "endif", itor);
+				skipUntilEndDirective2("#else", "#endif", itor);
 				skipElse = false;
 			} else {
 				skipElse = true;
 			}
-		} else if (directiveHeader.head().equals("else")) {
+		} else if (directiveHeader.head().equals("#else")) {
 			if (skipElse) {
-				skipUntilEndDirective("endif", itor);
+				skipUntilEndDirective("#endif", itor);
 				skipElse = false;
 			}
 		} else {

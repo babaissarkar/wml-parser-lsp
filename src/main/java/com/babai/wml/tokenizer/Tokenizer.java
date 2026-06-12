@@ -37,7 +37,6 @@ public final class Tokenizer {
 		StringBuilder buff = new StringBuilder(256);
 		State state = State.NORMAL;
 		Position start = Position.start();
-		boolean leading = true;
 
 		int ch;
 		while ((ch = r.read()) != -1) {
@@ -55,6 +54,7 @@ public final class Tokenizer {
 					} else {
 						if (c == '#') {
 							finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
+							buff.append(c);
 							state = State.LINE_COMMENT;
 						} else if (c == '"') {
 							finalizeAndAddToken(tokens, buff, Token.Kind.TEXT, start);
@@ -86,6 +86,7 @@ public final class Tokenizer {
 				if (!isWS(c)) {
 					finalizeAndAddToken(tokens, buff, Token.Kind.WHITESPACE, start);
 					if (c == '#') {
+						buff.append(c);
 						state = State.LINE_COMMENT;
 					} else {
 						state = State.NORMAL;
@@ -121,31 +122,31 @@ public final class Tokenizer {
 	}
 
 	// Note: this assumes that r is currently at the character '"'
-	// Note: we are skipping starting and ending " from the token text itself, can be deduced from token kind
 	private static void handleQuoteToken(List<Token> tokens, CharCursor r, StringBuilder buff, Position start) {
-		char prevChar = '"';
+		char prevChar = 0;
 		buff.setLength(0);
 		int ncount = 0; int npos = 0;
 
+		buff.append('"');
+		
 		int ch;
 		while ((ch = r.read()) != -1) {
 			char c = (char) ch;
 			if (prevChar == '"' && c == '"') {
-				if (buff.isEmpty()) {
-					return;
-				} else {
+				if (buff.length() == 1) {
 					buff.append(c);
+					break;
 				}
+				// else case: consecutive "" in middle of string: only 1 is added
 			} else if (prevChar != '"' && c == '"') {
-				int c2 = r.read();
-				if (c2 == -1) break;
-				char ch2 = (char) c2;
-				r.unread(ch2);
-				if (ch2 != '"') break;
+				buff.append(c);
+				
+				int c2 = r.peek();
+				if (c2 == -1 || (char) c2 != '"') break;
 			} else {
 				if (isEOL(c)) {
-					ncount++;        // newline count
-					npos = 0;      // reset chars-since-last-newline
+					ncount++;
+					npos = 0;
 					if (c == '\r' && r.peek() == '\n') {
 						r.read(); // consume \n of \r\n pair
 					}
@@ -161,26 +162,27 @@ public final class Tokenizer {
 	}
 
 	// Note: this assumes that r is currently at the first '<' character
-	// Note: we are skipping << and >> from the token text itself, can be deduced from token kind
 	private static void handleAngleQuoteToken(List<Token> tokens, CharCursor r, StringBuilder buff, Position start) {
 		buff.setLength(0);
 		int ncount = 0; int npos = 0;
-
+		
+		buff.append('<');
 		int ch = r.read();
 		if (ch == -1 || ((char) ch) != '<') {
 			if (ch != -1) r.unread((char) ch);
-			buff.append('<'); // lone '<'
-			return;
+			return; // lone '<'
 		}
 
+		buff.append('<');
 		while ((ch = r.read()) != -1) {
 			char c = (char) ch;
 			if (c == '>') {
 				ch = r.read();
 				if (ch != -1 && ((char) ch) == '>') {
+					buff.append(c).append((char) ch);
 					break;
-				} else {
-					if (ch != -1) r.unread((char) ch);
+				} else if (ch != -1) {
+					r.unread((char) ch);
 				}
 				buff.append(c);
 			} else {
