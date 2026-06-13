@@ -1,13 +1,11 @@
 package com.babai.wml.parser;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
 import java.util.ListIterator;
 
 import com.babai.wml.tokenizer.Token;
-import com.babai.wml.tokenizer.Tokenizer;
 
 public final class ParseUtils {
 	
@@ -135,43 +133,11 @@ public final class ParseUtils {
 	public static String substitute(String template, Map<String, String> subst) {
 		if (template.indexOf('{') == -1) return template;
 
-		try {
-			var out = new StringBuilder();
-			var tokens = Tokenizer.tokenize(template);
-			var itor = tokens.listIterator();
-			
-			while (itor.hasNext()) {
-				Token t = itor.next();
-				String content = t.content();
-				if (t.isKind(Token.Kind.MACRO)) {
-					String val = subst.get(content);
-					
-					// embedded macro block
-					if (val == null) {
-						String nestedSubst = substitute(content, subst);
-						if (nestedSubst.equals(content)) { // nth to subst, return raw
-							t.raw(out);
-						} else {
-							out.append('{').append(nestedSubst).append('}');
-						}
-					} else {
-						out.append(val);
-					}
-				} else if (t.isNotKind(Token.Kind.ANGLE_QUOTED)) {
-					// embedded macro block in other tokens
-					String nestedSubst = substitute(content, subst);
-					if (nestedSubst.equals(content)) { // nth to subst, return raw
-						t.raw(out);
-					} else {
-						out.append('{').append(nestedSubst).append('}');
-					}
-				} else {
-					t.raw(out);
-				}
-			}
-			return out.toString();
-		} catch (IOException e) {
-			return template;
+		String out = template;
+		for (var e : subst.entrySet()) {
+			String key = "{" + e.getKey() + "}";
+			out = out.replace(key, e.getValue());
 		}
+		return out;
 	}
 }
