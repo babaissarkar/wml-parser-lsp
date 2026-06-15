@@ -1,6 +1,7 @@
 package com.babai.wml.preprocessor;
 
 import java.util.List;
+import java.util.Objects;
 
 public class MacroCall {
 	private final String name;
@@ -30,5 +31,20 @@ public class MacroCall {
 	public String toString() {
 		return "MacroCall [name=" + name + ", startLine=" + startLine + ", startChar=" + startChar + ", argPos="
 				+ argPos + ", uri=" + uri + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(name, startChar, startLine, uri);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!(obj instanceof MacroCall other)) return false;
+		return startChar == other.startChar
+				&& startLine == other.startLine
+				&& Objects.equals(name, other.name)
+				&& Objects.equals(uri, other.uri);
 	}
 }

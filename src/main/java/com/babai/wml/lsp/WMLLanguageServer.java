@@ -86,7 +86,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private MacroTable baseDefines, defines;
 	private Set<String> unitTypes = new HashSet<>();
 	private Set<Path> binaryPaths = new HashSet<>();
-	private List<MacroCall> calls = new ArrayList<>();
+	private Set<MacroCall> calls = new HashSet<>();
 	private List<Path> includePaths = new ArrayList<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();

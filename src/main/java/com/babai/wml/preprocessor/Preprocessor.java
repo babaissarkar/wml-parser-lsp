@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
@@ -37,7 +38,7 @@ public class Preprocessor {
 	private String currentPathUri;
 	
 	private HashSet<String> currentDefineArgs = new HashSet<>();
-	private List<MacroCall> macroCalls;
+	private HashSet<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new HashMap<>();
 
 	// TODO(Warning): this doesn't respect scope: a macro can be unavailable for a short span until
@@ -50,14 +51,14 @@ public class Preprocessor {
 	public Preprocessor(PathContext context) {
 		this.context = context;
 		this.defines = new MacroTable();
-		this.macroCalls = new ArrayList<>();
+		this.macroCalls = new LinkedHashSet<>();
 	}
 
 	// usually for child processes
 	public Preprocessor(PathContext context, MacroTable defines) {
 		this.context = context;
 		this.defines = defines;
-		this.macroCalls = new ArrayList<>();
+		this.macroCalls = new LinkedHashSet<>();
 	}
 
 	public MacroTable getDefines() {
@@ -72,7 +73,7 @@ public class Preprocessor {
 		macroCalls.clear();
 	}
 
-	public List<MacroCall> getMacroCalls() {
+	public HashSet<MacroCall> getMacroCalls() {
 		return macroCalls;
 	}
 
