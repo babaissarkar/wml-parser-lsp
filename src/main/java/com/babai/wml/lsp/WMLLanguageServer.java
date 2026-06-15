@@ -66,7 +66,6 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 
 import com.babai.wml.parser.PathContext;
 import com.babai.wml.preprocessor.Definition;
-import com.babai.wml.preprocessor.MacroArg;
 import com.babai.wml.preprocessor.MacroCall;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.tokenizer.Tokenizer;
@@ -402,7 +401,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				new Position(0, 0));
 		List<Either<SymbolInformation, DocumentSymbol>> symbolList = new ArrayList<>();
 
-		// 1. Macro Definitions
+		// Macro Definitions
 		var matches = defines.macrosByUri(docUri);
 		if (matches != null && !matches.isEmpty()) {
 			List<DocumentSymbol> listDef = new ArrayList<>();
@@ -425,74 +424,39 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			symbolList.add(Either.forRight(mdefRoot));
 		}
 
-		// 2. Macro Calls
-		if (!calls.isEmpty()) {
-			List<DocumentSymbol> listCall = new ArrayList<>();
-			DocumentSymbol mcallRoot = new DocumentSymbol();
-			mcallRoot.setName("Macro Calls");
-			mcallRoot.setKind(SymbolKind.Namespace);
-			mcallRoot.setRange(emptyRange);
-			mcallRoot.setSelectionRange(emptyRange);
-
-			for (MacroCall call : calls) {
-				if (!call.uri().equals(docUri)) {
-					continue;
-				}
-				DocumentSymbol sym = new DocumentSymbol();
-				sym.setName(call.name());
-				sym.setKind(SymbolKind.Method);
-				sym.setRange(new Range(
-						new Position(call.startLine(), call.startChar()),
-						new Position(call.endLine(), call.endChar())
-						));
-				sym.setSelectionRange(new Range(
-						new Position(call.startLine(), call.startChar()),
-						new Position(call.startLine(), call.endChar())
-						));
-				listCall.add(sym);
-			}
-
-			if (!listCall.isEmpty()) {
-				mcallRoot.setChildren(listCall);
-				symbolList.add(Either.forRight(mcallRoot));
-			}
-		}
-
 		return CompletableFuture.completedFuture(symbolList);
 	}
 
 	@Override
 	public CompletableFuture<List<InlayHint>> inlayHint(InlayHintParams params) {
 		String uri = params.getTextDocument().getUri();
+		var viewRange = params.getRange();
 		List<InlayHint> hints = new ArrayList<>();
 
 		for (MacroCall call : calls) {
 			// skip calls outside the visible range
-//			if (call.startLine() > viewRange.getEnd().getLine()) continue;
-//			if (call.endLine() < viewRange.getStart().getLine()) continue;
 			if (!call.uri().equals(uri)) continue;
+			if (call.startLine() > viewRange.getEnd().getLine()) continue;
+			if (call.startLine() < viewRange.getStart().getLine()) continue;
 
 			String macro = call.name();
-			if (!defines.hasMacro(macro)) continue;
 			var def = defines.getMacro(macro);
+			if (def == null) continue;
+			
 			String defTargetUri = defines.getUri(macro);
 			int targetLine = defines.getLineNum(macro);
 			var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
 			var loc = new Location(defTargetUri, range);
 
-			List<MacroArg> args = call.args();
-			for (int i = 0; i < args.size(); i++) {
-				if (i >= def.getArgs().size()) break;
+			for (int i = 0; i < def.getArgs().size(); i++) {
 
-				var arg = args.get(i);
 				var paramName = def.getArgs().get(i);
 
 				var part = new InlayHintLabelPart(paramName + "=");
-				//	            part.setTooltip(Either.forLeft(def.paramDoc(i))); // optional, null is fine
 				part.setLocation(loc); // ctrl+click jumps to #define
 
 				var hint = new InlayHint();
-				hint.setPosition(new Position(arg.startLine(), arg.startChar()));
+				hint.setPosition(new Position(call.startLine(), call.startChar() + call.positions(i)));
 				hint.setLabel(Either.forRight(List.of(part)));
 				hint.setKind(InlayHintKind.Parameter);
 				hint.setPaddingRight(true);
