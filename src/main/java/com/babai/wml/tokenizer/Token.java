@@ -1,7 +1,7 @@
 package com.babai.wml.tokenizer;
 
 public final record Token(String content, Kind kind, int beginLine, int beginColumn, boolean nested) {
-	public final static Token EMPTY = new Token("", Kind.EOF, 0, 0, false);
+	public final static Token EMPTY = new Token("", Kind.EOF, 1, 1, false);
 	
 	public Token(String content, Kind kind) {
 		this(content, kind, 0, 0, false);

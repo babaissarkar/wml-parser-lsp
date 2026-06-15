@@ -125,9 +125,10 @@ public final class Tokenizer {
 	private static void handleQuoteToken(List<Token> tokens, CharCursor r, StringBuilder buff, Position start) {
 		char prevChar = 0;
 		buff.setLength(0);
-		int ncount = 0; int npos = 0;
+		int ncount = 0;
 
 		buff.append('"');
+		int npos = 1;
 		
 		int ch;
 		while ((ch = r.read()) != -1) {
@@ -135,11 +136,13 @@ public final class Tokenizer {
 			if (prevChar == '"' && c == '"') {
 				if (buff.length() == 1) {
 					buff.append(c);
+					npos++;
 					break;
 				}
 				// else case: consecutive "" in middle of string: only 1 is added
 			} else if (prevChar != '"' && c == '"') {
 				buff.append(c);
+				npos++;
 				
 				int c2 = r.peek();
 				if (c2 == -1 || (char) c2 != '"') break;
@@ -150,11 +153,12 @@ public final class Tokenizer {
 					if (c == '\r' && r.peek() == '\n') {
 						r.read(); // consume \n of \r\n pair
 					}
+				} else {
+					npos++;
 				}
 				buff.append(c);
 			}
 			prevChar = c;
-			ncount++;
 		}
 
 		finalizeAndAddToken(tokens, buff.toString(), Token.Kind.QUOTED, start, ncount, npos, false);
