@@ -466,8 +466,21 @@ public class Preprocessor {
 			handleInclusion(macroCall.content(), context, buff);
 		} else if (expandMacro) {
 			expandMacroCall(macroCall, possibleArgs, buff);
-		} else if (buff != null) {
-			buff.append(macroCall.content());
+		} else {
+			var info = ParseUtils.parseMacroCall("{" + macroCall.content() + "}");
+			var mdef = defines.getMacro(info.first());
+			if (mdef != null && mdef.getArgCount() > 0) {
+				macroCalls.add(new MacroCall(
+						info.first(),
+						macroCall.beginLine()-1,
+						macroCall.beginColumn()-1,
+						info.second(),
+						currentPathUri));
+			}
+			
+			if (buff != null) {
+				macroCall.raw(buff);
+			}
 		}
 	}
 
@@ -507,6 +520,7 @@ public class Preprocessor {
 			nonexistentMacros.remove(macroName);
 			
 			List<MacroArg> args = new ArrayList<>();
+			List<Integer> argPos = new ArrayList<>();
 			HashMap<String, String> defArgs = new HashMap<>();
 
 			// Process macro call arguments
@@ -527,6 +541,7 @@ public class Preprocessor {
 						argStr = "(" + argStr + ")";
 					}
 					args.add(new MacroArg(argStr, argLine, argStart, argEnd));
+					argPos.add(argStart);
 				} else {
 					// Optional keyword args
 					int eqPos = str.indexOf('=');
@@ -542,14 +557,12 @@ public class Preprocessor {
 					}
 				}
 			}
-
+			
 			macroCalls.add(new MacroCall(
 					macroName,
 					macroCall.beginLine(),
-					macroCall.endLine(),
 					macroCall.beginColumn(),
-					macroCall.endColumn(),
-					args,
+					argPos,
 					currentPathUri));
 
 			debugPrint(() -> {

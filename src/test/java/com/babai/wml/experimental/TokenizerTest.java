@@ -14,13 +14,100 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.babai.wml.parser.ParseUtils;
 import com.babai.wml.parser.Parser;
 import com.babai.wml.tokenizer.Token;
+import com.babai.wml.tokenizer.Tokenizer;
 
+import com.babai.wml.tokenizer.Token.Kind;
 import static com.babai.wml.tokenizer.Tokenizer.tokenize;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class TokenizerTest {
+	
+	@Test
+	void testArgPosSimple() {
+		String macro = "{TEST ARG1 ARG2 ARG3}";
+		var info = ParseUtils.parseMacroCall(macro);
+		assertEquals("TEST", info.first());
+		var posList = info.second();
+		assertEquals(3, posList.size());
+		assertEquals(6, posList.get(0));
+		assertEquals(11, posList.get(1));
+		assertEquals(16, posList.get(2));
+	}
+	
+	@Test
+	void testArgPosParen() {
+		String macro = "{TEST ARG1 ARG2 (LONG ARG3) ( ) ()}";
+		var info = ParseUtils.parseMacroCall(macro);
+		assertEquals("TEST", info.first());
+		var posList = info.second();
+		assertEquals(5, posList.size());
+		assertEquals(6, posList.get(0));
+		assertEquals(11, posList.get(1));
+		assertEquals(16, posList.get(2));
+		assertEquals(28, posList.get(3));
+		assertEquals(32, posList.get(4));
+	}
+	
+	@Test
+	void testTokenPositions() throws IOException {
+		String text = """
+				#define TESTB A B
+				#arg C
+				Default#endarg
+				"a={A}, b={B}, c={C}"#enddef
+				#define TEST
+				#arg A
+				Unknown#endarg
+				"Hello, {A}!"#enddef
+				{TEST}
+				{TESTB 2 3 C=4}
+				""";
+		var toks = Tokenizer.tokenize(text);
+
+		record Expectation(String content, Kind kind, int beginLine, int beginColumn) {}
+
+		List<Expectation> expected = List.of(
+				new Expectation("#define TESTB A B",        Kind.COMMENT, 1,  1),
+				new Expectation("\n",                       Kind.EOL,     1,  18),
+				new Expectation("#arg C",                   Kind.COMMENT, 2,  1),
+				new Expectation("\n",                       Kind.EOL,     2,  7),
+				new Expectation("Default",                  Kind.TEXT,    3,  1),
+				new Expectation("#endarg",                  Kind.COMMENT, 3,  8),
+				new Expectation("\n",                       Kind.EOL,     3,  15),
+				new Expectation("\"a={A}, b={B}, c={C}\"",  Kind.QUOTED,  4,  1),
+				new Expectation("#enddef",                  Kind.COMMENT, 4,  22),
+				new Expectation("\n",                       Kind.EOL,     4,  29),
+				new Expectation("#define TEST",             Kind.COMMENT, 5,  1),
+				new Expectation("\n",                       Kind.EOL,     5,  13),
+				new Expectation("#arg A",                   Kind.COMMENT, 6,  1),
+				new Expectation("\n",                       Kind.EOL,     6,  7),
+				new Expectation("Unknown",                  Kind.TEXT,    7,  1),
+				new Expectation("#endarg",                  Kind.COMMENT, 7,  8),
+				new Expectation("\n",                       Kind.EOL,     7,  15),
+				new Expectation("\"Hello, {A}!\"",          Kind.QUOTED,  8,  1),
+				new Expectation("#enddef",                  Kind.COMMENT, 8,  14),
+				new Expectation("\n",                       Kind.EOL,     8,  21),
+				new Expectation("TEST",                     Kind.MACRO,   9,  1),
+				new Expectation("\n",                       Kind.EOL,     9,  5),
+				new Expectation("TESTB 2 3 C=4",            Kind.MACRO,   10, 1),
+				new Expectation("\n",                       Kind.EOL,     10, 14)
+				);
+
+		assertEquals(expected.size(), toks.size(),
+				"Token count mismatch. Got: " + toks);
+
+		for (int i = 0; i < expected.size(); i++) {
+			Expectation exp = expected.get(i);
+			Token tok = toks.get(i);
+			String ctx = "Token[" + i + "] (" + exp.content() + ")";
+			assertEquals(exp.content(),     tok.content(),     ctx + " content mismatch");
+			assertEquals(exp.kind(),        tok.kind(),        ctx + " kind mismatch");
+			assertEquals(exp.beginLine(),   tok.beginLine(),   ctx + " beginLine mismatch");
+			assertEquals(exp.beginColumn(), tok.beginColumn(), ctx + " beginColumn mismatch");
+		}
+	}
 	
 	@Test
 	void testParenQuotedSplit() {
@@ -69,10 +156,12 @@ class TokenizerTest {
 			System.out.println("Toks(comment test): " + toks);
 			assertEquals(5, toks.size());
 			assertEquals("Hello", toks.get(0).content());
+			assertEquals(1, toks.get(0).beginLine());
 			assertEquals(" ", toks.get(1).content());
 			assertEquals("#Comment", toks.get(2).content());
 			assertEquals("\n", toks.get(3).content());
 			assertEquals("Line2", toks.get(4).content());
+			assertEquals(2, toks.get(4).beginLine());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

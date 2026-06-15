@@ -46,6 +46,50 @@ public final class ParseUtils {
 		}
 	}
 	
+	public record Pair<T, V>(T first, V second) {}; 
+	
+	public static Pair<String, List<Integer>> parseMacroCall(String macro) {
+		var pos = new ArrayList<Integer>();
+		
+		int i = 0;
+		
+		if (macro.length() < 2
+			|| ((macro.charAt(i) != '{') && macro.charAt(macro.length() - 1) != '}'))
+		{
+			return new Pair<>("", pos); // not a macro call or invalid size
+		}
+		i++; // skip initial {
+		
+		while (i < macro.length() - 1 && isWS(macro.charAt(i))) i++; // skip WS after {
+		
+		// Macro Name
+		int nameStart = i;
+		while (i < macro.length() - 1 && !isWS(macro.charAt(i))) i++;
+		int nameEnd = i;
+		
+		// Macro args
+		boolean inParen = false;
+		while (i < macro.length() - 1) { // -1 because last one would always be '}'
+			while (i < macro.length() - 1 && isWS(macro.charAt(i))) i++; // skip separator WS
+			pos.add(i); // mark arg start
+			
+			if(macro.charAt(i) == '(') {
+				inParen = true;
+				i++;
+			}
+			
+			if (inParen) {
+				while (i < macro.length() - 1 && macro.charAt(i) != ')') i++;
+				if (macro.charAt(i) == ')') i++;
+				inParen = false;
+			} else {
+				while (i < macro.length() - 1 && !isWS(macro.charAt(i))) i++; // skip arg
+			}
+		}
+		
+		return new Pair<>(macro.substring(nameStart, nameEnd), pos);
+	}
+	
 	public static List<String> splitQuoted(String token) {
 		List<String> parts = new ArrayList<>();
 		StringBuilder sb = new StringBuilder();
