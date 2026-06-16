@@ -202,6 +202,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			// 3. Old deprecated rootPath
 			inputPath = Path.of(params.getRootPath());
 		}
+		
+		if (pathContext.userDataPath() == null) {
+			Path upath = inputPath;
+			while (upath != null && !upath.endsWith("data")) upath = upath.getParent();
+			if (upath != null) {
+				this.pathContext = new PathContext(pathContext.dataPath(), upath, pathContext.binaryPaths());
+			}
+		}
 
 		// Send a "ready" message after startup
 		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
