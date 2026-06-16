@@ -412,4 +412,8 @@ public final class Tokenizer {
 			getNextTok = contents.charAt(0) == '=';
 		}
 	}
+
+	public static void clearUnitTypes() {
+		unitTypes.clear();
+	}
 }

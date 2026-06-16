@@ -46,6 +46,7 @@ public class Preprocessor {
 	// Currently: one warning per file if it stays undefined in whole file.
 	// format: macroName, positionString
 	private HashSet<String> nonexistentMacros = new HashSet<>();
+	private HashMap<String, String> unitTypes = new HashMap<>();
 
 	// toplevel
 	public Preprocessor(PathContext context) {
@@ -75,6 +76,10 @@ public class Preprocessor {
 
 	public HashSet<MacroCall> getMacroCalls() {
 		return macroCalls;
+	}
+	
+	public HashMap<String, String> getUnitTypes() {
+		return unitTypes;
 	}
 
 	public HashMap<String, String> getFileExplanations() {
@@ -158,6 +163,11 @@ public class Preprocessor {
 		} catch (IOException e) {
 			errorPrint(() -> "Cannot find " + path + ", skipping.");
 		}
+		
+		for (var ut : Tokenizer.getUnitTypes()) {
+			unitTypes .put(ut, path.toUri().toString());
+		}
+		Tokenizer.clearUnitTypes();
 		
 		nonexistentMacros.forEach(k -> warningPrint(() -> "Undefined macro " + colorify(k, RED) + " in " + currentPathUri));
 	}

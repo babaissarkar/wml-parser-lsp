@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -84,7 +85,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private Path inputPath;
 
 	private MacroTable baseDefines, defines;
-	private Set<String> unitTypes = new HashSet<>();
+	private HashMap<String, String> unitTypes = new HashMap<>();
 	private Set<Path> binaryPaths = new HashSet<>();
 	private Set<MacroCall> calls = new HashSet<>();
 	private List<Path> includePaths = new ArrayList<>();
@@ -250,6 +251,14 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 		// TODO when folder -> check for _main.cfg -> open that if exists?
 
+		// Attempt as Unit Type
+		if (unitTypes.containsKey(word)) {
+			String targetURI = unitTypes.get(word);
+			var range = new Range(new Position(0, 0), new Position(0, 1));
+			var loc = new Location(targetURI, range);
+			return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
+		}
+
 		return CompletableFuture.completedFuture(null);
 	}
 
@@ -326,6 +335,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					content.setKind("plaintext");
 					content.setValue("Non-existant path: " + p);
 				}
+			} else if (unitTypes.containsKey(word)) {
+				content.setKind("markdown");
+				content.setValue("**Unit Type:** [" + word + "](" + unitTypes.get(word) + ")");
 			} else {
 				return CompletableFuture.completedFuture(null);
 			}
@@ -368,7 +380,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (triggerKind == CompletionTriggerKind.Invoked
 				|| triggerChar.equals("=") || triggerChar.equals(","))
 		{
-			for (var type : unitTypes) {
+			for (var type : unitTypes.keySet()) {
 				CompletionItem item = new CompletionItem(type);
 				item.setInsertText(item.getLabel());
 				item.setKind(CompletionItemKind.Constant);
@@ -582,9 +594,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		p.preprocess(inputPath);
 
 		binaryPaths = Tokenizer.getBinaryPaths();
-		unitTypes = Tokenizer.getUnitTypes();
 		defines = p.getDefines();
 		calls = p.getMacroCalls();
+		unitTypes = p.getUnitTypes();
 
 		macroCompletions.clear();
 		for (var def : defines.macros().values()) {
@@ -601,25 +613,48 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	/** Returns the word under cursor in the file pointed by URI */
 	private static String getWordAtPosition(String uri, Position pos) throws IOException {
-		// Convert URI to path
-		Path path = Path.of(java.net.URI.create(uri));
+		List<String> lines = Files.readAllLines(Path.of(URI.create(uri)));
 
-		// Read all lines
-		List<String> lines = Files.readAllLines(path);
-
-		List<Character> validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']', ',');
-		Predicate<Character> isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
+		List<Character> validChars;
+		Predicate<Character> isValid;
 
 		int lineNum = pos.getLine();
 		if (lineNum < 0 || lineNum >= lines.size())
 			return null;
 
 		String line = lines.get(lineNum);
+		
 		int charIndex = pos.getCharacter();
 		if (charIndex < 0)
 			charIndex = 0;
 		if (charIndex >= line.length())
 			charIndex = line.length() - 1;
+		
+		String key = "";
+		int eqlPos = line.indexOf('=');
+		if (eqlPos >= 0) {
+			key = line.substring(0, eqlPos).strip();
+			switch (key) {
+			case "type", "recruit", "extra_recruit" -> {
+				validChars = List.of('_', '-');
+				isValid = c -> Character.isJavaIdentifierPart(c) || Character.isWhitespace(c) || validChars.contains(c);
+			}
+			case "halo", "image" -> {
+				validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']', ',');
+				isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
+			}
+			default -> {
+				validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']');
+				isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
+			}
+			};
+			
+		} else {
+			validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']');
+			isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
+		}
+		
+		
 
 		// If cursor is on whitespace, move back one char
 		if (!isValid.test(line.charAt(charIndex)) && charIndex > 0) {
@@ -637,7 +672,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (start >= end)
 			return null;
 
-		return line.substring(start, end);
+		return line.substring(start, end).strip();
 	}
 	
 	private void showLSPMessage(String m) {
