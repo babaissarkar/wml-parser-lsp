@@ -354,16 +354,23 @@ public final class Tokenizer {
 		} else if (contents.equals("[campaign]")) {
 			extractDefine = true;
 		} else if (extractBinPath) {
-			if(contents.indexOf('/') >= 0) {
+			if (contents.indexOf('/') >= 0) {
 				int eqlPos = contents.indexOf('=');
 				if (eqlPos >= 0) {
-					String path = contents.substring(5);
+					String path = contents.substring(5).strip();
+					if (path.charAt(0) == '"' && path.charAt(path.length() - 1) == '"') {
+						path = path.substring(1, path.length() - 1);
+					}
 					if (!path.isEmpty()) {
 						binaryPath.add(Path.of(path));
 						extractBinPath = false;
 					}
 				} else if (!contents.isEmpty()) {
-					binaryPath.add(Path.of(contents));
+					String path = contents.strip();
+					if (path.charAt(0) == '"' && path.charAt(path.length() - 1) == '"') {
+						path = path.substring(1, path.length() - 1);
+					}
+					binaryPath.add(Path.of(path));
 					extractBinPath = false;
 				}
 			}
