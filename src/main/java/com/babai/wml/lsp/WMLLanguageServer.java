@@ -661,11 +661,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']');
 			isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
 		}
-		
-		
 
 		// If cursor is on whitespace, move back one char
-		if (!isValid.test(line.charAt(charIndex)) && charIndex > 0) {
+		if (charIndex > 0 && !isValid.test(line.charAt(charIndex))) {
 			charIndex--;
 		}
 

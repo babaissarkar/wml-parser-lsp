@@ -332,7 +332,17 @@ public final class Tokenizer {
 
 	private static void commitBuff() {
 		if (enableExtraction && extractTypeID && !lineBuff.isEmpty()) {
-			unitTypes.add(lineBuff.toString());
+			String unitType = "";
+			if (lineBuff.charAt(0) == '"' && lineBuff.charAt(lineBuff.length() - 1) == '"') {
+				unitType = lineBuff.substring(1, lineBuff.length() - 1);
+			} else {
+				unitType = lineBuff.toString();
+			}
+			
+			// extra condition: unittype must start with alphabetic
+			if (!unitType.isEmpty() && Character.isAlphabetic(unitType.charAt(0))) {
+				unitTypes.add(unitType);
+			}
 			extractTypeID = false;
 			lineBuff.setLength(0);
 		}
@@ -390,7 +400,10 @@ public final class Tokenizer {
 					getNextTok = true;
 				}
 			} else {
-				lineBuff.append(" ").append(contents);
+				if (!lineBuff.isEmpty()) {
+					lineBuff.append(" ");
+				}
+				lineBuff.append(contents);
 			}
 		} else if (extractDefine) {
 			int eqlPos = contents.indexOf('=');
