@@ -43,27 +43,6 @@ public class Main {
 			ANSIFormatter.setColorsEnabled(argParser.enableColors);
 		}
 		
-		if (argParser.dataPath == null) {
-			LogUtils.errorPrint(() ->"Wesnoth Gamedata path not specified.");
-		} else {
-			LogUtils.infoPrint(() ->"Wesnoth Gamedata path: "
-				+ ANSIFormatter.colorify(
-					argParser.dataPath.toAbsolutePath().toString(), Colors.filePathColor));
-		}
-		
-		if (argParser.userDataPath == null) {
-			LogUtils.errorPrint(() ->"Wesnoth Userdata path not specified.");
-		} else {
-			LogUtils.infoPrint(() ->"Wesnoth Userdata path: " 
-				+ ANSIFormatter.colorify(
-					argParser.userDataPath.toAbsolutePath().toString(), Colors.filePathColor));
-		}
-		
-		pathContext = new PathContext(
-			argParser.dataPath,
-			argParser.userDataPath,
-			new HashSet<Path>());
-		
 		predefines.addMacro("MULTIPLAYER", new Definition("MULTIPLAYER", "true"), 0, "predefined");
 		
 		for (int i = 0; i < argParser.definesList.size(); i += 2) {
@@ -91,6 +70,33 @@ public class Main {
 		LogUtils.setLogLevel(argParser.logLevel);
 		
 		long start = System.nanoTime();
+
+		if (argParser.dataPath == null) {
+			LogUtils.errorPrint(() ->"Wesnoth Gamedata path not specified.");
+			System.exit(1);
+		} else {
+			LogUtils.infoPrint(() ->"Wesnoth Gamedata path: "
+				+ ANSIFormatter.colorify(
+					argParser.dataPath.toAbsolutePath().toString(), Colors.filePathColor));
+		}
+
+		if (argParser.userDataPath == null) {
+			Path upath = argParser.inputPath.toAbsolutePath();
+			while (upath != null && !upath.endsWith("data")) upath = upath.getParent();
+			if (upath != null) {
+				pathContext = new PathContext(pathContext.dataPath(), upath, pathContext.binaryPaths());
+				LogUtils.infoPrint(() ->"Wesnoth Userdata path: "
+					+ ANSIFormatter.colorify(
+						pathContext.userDataPath().toAbsolutePath().toString(), Colors.filePathColor));
+			} else {
+				LogUtils.errorPrint(() ->"Wesnoth Userdata path not found or specified.");
+				System.exit(1);
+			}
+		} else {
+			LogUtils.infoPrint(() ->"Wesnoth Userdata path: "
+				+ ANSIFormatter.colorify(
+					argParser.userDataPath.toAbsolutePath().toString(), Colors.filePathColor));
+		}
 		
 		var p = new Preprocessor(pathContext, predefines);
 		// Fast Mode toggle: this disables macro expansion and only scans minimal details
