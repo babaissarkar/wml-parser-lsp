@@ -52,7 +52,7 @@ public class Main {
 		}
 		
 		if (argParser.startLSPServer) {
-			WMLLanguageServer.initServer(predefines, pathContext, argParser.includes);
+			WMLLanguageServer.initServer(predefines, argParser.dataPath, argParser.userDataPath, argParser.includes);
 		} else {
 			try {
 				initParse(argParser);
@@ -84,7 +84,7 @@ public class Main {
 			Path upath = argParser.inputPath.toAbsolutePath();
 			while (upath != null && !upath.endsWith("data")) upath = upath.getParent();
 			if (upath != null) {
-				pathContext = new PathContext(pathContext.dataPath(), upath, pathContext.binaryPaths());
+				pathContext = new PathContext(argParser.dataPath, upath);
 				LogUtils.infoPrint(() ->"Wesnoth Userdata path: "
 					+ ANSIFormatter.colorify(
 						pathContext.userDataPath().toAbsolutePath().toString(), Colors.filePathColor));

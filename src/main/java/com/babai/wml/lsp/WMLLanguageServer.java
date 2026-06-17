@@ -96,8 +96,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	
 	private Preprocessor p;
 
-	private WMLLanguageServer(MacroTable predefines, PathContext context, List<Path> includePaths) {
-		this.pathContext = context;
+	private WMLLanguageServer(MacroTable predefines, PathContext ctxt, List<Path> includePaths) {
+		this.pathContext = ctxt;
 		this.includePaths = includePaths;
 		this.defines = predefines;
 
@@ -106,12 +106,12 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		initTagRefLinks();
 	}
 	
-	public static void initServer(MacroTable predefines, PathContext context, List<Path> includes) {
+	public static void initServer(MacroTable predefines, Path dataPath, Path userDataPath, List<Path> includes) {
 		LogUtils.setLogLevel(Level.OFF);
 
 		var server = new WMLLanguageServer(
 			predefines,
-			context,
+			new PathContext(dataPath, userDataPath),
 			includes);
 
 		// Initialize a simple JSON-RPC connection over stdin/stdout
@@ -207,7 +207,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			Path upath = inputPath;
 			while (upath != null && !upath.endsWith("data")) upath = upath.getParent();
 			if (upath != null) {
-				this.pathContext = new PathContext(pathContext.dataPath(), upath, pathContext.binaryPaths());
+				this.pathContext = new PathContext(pathContext.dataPath(), upath);
 			}
 		}
 

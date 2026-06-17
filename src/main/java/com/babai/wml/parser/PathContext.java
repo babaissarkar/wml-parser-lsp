@@ -1,14 +1,13 @@
 package com.babai.wml.parser;
 
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.Set;
 
 import com.babai.wml.utils.FS;
 
-public record PathContext(Path dataPath, Path userDataPath, Set<Path> binaryPaths) {
+public record PathContext(Path dataPath, Path userDataPath) {
 	public static final PathContext EMPTY_CONTEXT =
-		new PathContext(Path.of("."), Path.of("."), new HashSet<Path>());
+		new PathContext(Path.of("."), Path.of("."));
 	
 	public Path resolve(String pathToResolve, Path currentPath, Set<Path> binaryPaths) {
 		return FS.resolve(pathToResolve, currentPath, binaryPaths, dataPath(), userDataPath());
