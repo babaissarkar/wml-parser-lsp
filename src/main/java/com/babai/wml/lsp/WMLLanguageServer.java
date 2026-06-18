@@ -341,7 +341,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					}
 				} else {
 					content.setKind("plaintext");
-					content.setValue("Non-existant path: " + p);
+					content.setValue("Non-existant path: " + word);
 				}
 			} else if (unitTypes.containsKey(word)) {
 				content.setKind("markdown");
