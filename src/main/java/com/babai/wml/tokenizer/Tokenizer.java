@@ -24,6 +24,10 @@ public final class Tokenizer {
 	private static String mainDefine = "";
 	private static boolean getNextTok;
 	private static StringBuilder lineBuff = new StringBuilder();
+	
+	static {
+		binaryPath.add(Path.of("data/core"));
+	}
 
 	public static List<Token> tokenize(String content) throws IOException {
 		return tokenize(content.toCharArray());

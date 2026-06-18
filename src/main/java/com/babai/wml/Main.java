@@ -95,7 +95,7 @@ public class Main {
 			Path upath = argParser.inputPath.toAbsolutePath();
 			while (upath != null && !upath.endsWith("data")) upath = upath.getParent();
 			if (upath != null) {
-				pathContext = new PathContext(argParser.dataPath, upath);
+				pathContext = new PathContext(argParser.dataPath, upath.getParent());
 				LogUtils.infoPrint(() ->"Wesnoth Userdata path: "
 					+ ANSIFormatter.colorify(
 						pathContext.userDataPath().toAbsolutePath().toString(), Colors.filePathColor));
@@ -182,6 +182,8 @@ public class Main {
 			HashSet<Path> binaryPaths = new HashSet<>();
 			HashSet<String> unitTypes = new HashSet<>();
 			var buff = new StringBuilder();
+			
+			binaryPaths.add(Path.of("data/core"));
 			
 			var parser = new Parser();
 			parser.addQuery("//unit_type/id", v -> unitTypes.add(v));

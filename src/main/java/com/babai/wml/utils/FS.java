@@ -27,41 +27,70 @@ public final class FS {
 		return "";
 	}
 	
-	public static Path resolve(String pathStr, Path currentPath, Set<Path> binaryPaths, Path dataPath, Path userDataPath) {
+	public static Path resolveAsset(String pathStr, Path currentPath, Set<Path> binaryPaths, Path dataPath, Path userDataPath) {
 		Path parent = null;
-
-		if (pathStr.charAt(0) == '.') {
-			parent = Files.isDirectory(currentPath) ? currentPath : currentPath.getParent();
-		} else {
-			if (pathStr.charAt(0) == '~') {
-				// Supports both ~add-ons and ~/add-ons
-				pathStr = pathStr.replaceFirst("^~/?", "");
-				parent = userDataPath;
-			} else {
-				// E.g.: scenary/alter.png
-				String assetType = getAssetType(pathStr);
 				
-				pathStr = Path.of(assetType, pathStr).toString();
-				if (!assetType.isEmpty() && binaryPaths != null) {
-					Path resolved;
-					for (var bPath : binaryPaths) {
-						parent = userDataPath.getParent().resolve(bPath).normalize();
-						resolved = parent.resolve(pathStr).normalize();
-						if (Files.exists(resolved)) {
-							return resolved;
-						} else {
-							parent = dataPath.getParent().resolve(bPath).normalize();
-							resolved = parent.resolve(pathStr).normalize();
-							if (Files.exists(resolved)) {
-								return resolved;
-							}
-						}
+		// E.g.: scenary/alter.png
+		String assetType = getAssetType(pathStr);
+
+		if (binaryPaths != null) {
+			Path resolved;
+			for (var bPath : binaryPaths) {
+				// asset specific folders
+				parent = userDataPath.resolve(bPath).resolve(assetType).normalize();
+				resolved = parent.resolve(pathStr).normalize();
+				if (Files.exists(resolved)) {
+					return resolved;
+				} else {
+					parent = dataPath.resolve(bPath).resolve(assetType).normalize();
+					resolved = parent.resolve(pathStr).normalize();
+					if (Files.exists(resolved)) {
+						return resolved;
 					}
-					pathStr = Path.of("core", pathStr).toString();
 				}
-				parent = dataPath;
+
+				// asset-less folders
+				parent = userDataPath.resolve(bPath).normalize();
+				resolved = parent.resolve(pathStr).normalize();
+				if (Files.exists(resolved)) {
+					return resolved;
+				} else {
+					parent = dataPath.resolve(bPath).normalize();
+					resolved = parent.resolve(pathStr).normalize();
+					if (Files.exists(resolved)) {
+						return resolved;
+					}
+				}
+			}
+
+			// empty binpath
+			// asset specific folders
+			parent = userDataPath.resolve(assetType).normalize();
+			resolved = parent.resolve(pathStr).normalize();
+			if (Files.exists(resolved)) {
+				return resolved;
+			} else {
+				parent = dataPath.resolve(assetType).normalize();
+				resolved = parent.resolve(pathStr).normalize();
+				if (Files.exists(resolved)) {
+					return resolved;
+				}
+			}
+
+			// asset-less folders
+			parent = userDataPath.normalize();
+			resolved = parent.resolve(pathStr).normalize();
+			if (Files.exists(resolved)) {
+				return resolved;
+			} else {
+				parent = dataPath.normalize();
+				resolved = parent.resolve(pathStr).normalize();
+				if (Files.exists(resolved)) {
+					return resolved;
+				}
 			}
 		}
+		parent = dataPath;
 
 		return parent != null ? parent.resolve(pathStr).normalize() : null;
 	}

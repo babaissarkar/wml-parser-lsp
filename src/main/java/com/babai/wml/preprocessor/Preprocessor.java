@@ -500,7 +500,7 @@ public class Preprocessor {
 	}
 
 	private void handleInclusion(String pathStr, PathContext context, StringBuilder buff) {
-		Path p = context.resolve(pathStr, currentPath, null);
+		Path p = context.resolveFileInclusion(pathStr, currentPath);
 
 		if (!Files.exists(p)) {
 			warningPrint(() -> colorify(p.toString(), filePathColor) + " does not exist");

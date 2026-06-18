@@ -207,7 +207,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 			Path upath = inputPath;
 			while (upath != null && !upath.endsWith("data")) upath = upath.getParent();
 			if (upath != null) {
-				this.pathContext = new PathContext(pathContext.dataPath(), upath);
+				this.pathContext = new PathContext(pathContext.dataPath(), upath.getParent());
 			}
 		}
 

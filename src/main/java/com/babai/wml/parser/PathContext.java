@@ -1,5 +1,6 @@
 package com.babai.wml.parser;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
@@ -10,7 +11,26 @@ public record PathContext(Path dataPath, Path userDataPath) {
 		new PathContext(Path.of("."), Path.of("."));
 	
 	public Path resolve(String pathToResolve, Path currentPath, Set<Path> binaryPaths) {
-		return FS.resolve(pathToResolve, currentPath, binaryPaths, dataPath(), userDataPath());
+		if (pathToResolve.charAt(0) == '.' || pathToResolve.charAt(0) == '~')
+			return resolveFileInclusion(pathToResolve, currentPath);
+		return FS.resolveAsset(pathToResolve, currentPath, binaryPaths, dataPath, userDataPath);
+	}
+
+	public Path resolveFileInclusion(String pathStr, Path currentPath) {
+		Path parent = null;
+		if (pathStr.charAt(0) == '.') {
+			parent = Files.isDirectory(currentPath) ? currentPath : currentPath.getParent();
+		} else {
+			if (pathStr.charAt(0) == '~') {
+				// Supports both ~add-ons and ~/add-ons
+				pathStr = pathStr.replaceFirst("^~/?", "");
+				parent = userDataPath.resolve("data");
+			} else {
+				parent = dataPath.resolve("data");
+			}
+		}
+		// parent shouldn't be null at this point
+		return parent.resolve(pathStr).normalize().toAbsolutePath();
 	}
 	
 	public String relativize(Path target) {
