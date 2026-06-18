@@ -561,11 +561,11 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	// putting parsing in didSave doesn't work, either
 	@Override
 	public void didOpen(DidOpenTextDocumentParams params) {
-//		String uri = params.getTextDocument().getUri();
-//		var errorsList = p.getErrors().get(uri);
-//		if (!(errorsList == null || errorsList.isEmpty())) {
-//			client.publishDiagnostics(new PublishDiagnosticsParams(uri, errorsList));
-//		}
+		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
+		parseFile(inputPath);
+		
+		client.refreshInlayHints();
+		client.refreshDiagnostics();
 	}
 
 	@Override
