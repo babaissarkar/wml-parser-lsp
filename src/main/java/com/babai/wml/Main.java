@@ -51,6 +51,17 @@ public class Main {
 			predefines.addMacro(name, new Definition(name, val), 0, "predefined");
 		}
 		
+		// TODO autodetect if possible, requires preprocessing _main.cfg
+		final String[] difficulties = {"EASY", "NORMAL", "HARD", "NIGHTMARE"};
+		boolean hasDifficultyDefine = false;
+		for (var d : difficulties) {
+			hasDifficultyDefine = predefines.hasMacro(d);
+		}
+		
+		if (!hasDifficultyDefine) {
+			predefines.addMacro("NORMAL", new Definition("NORMAL", "true"), 0, "predefined");
+		}
+		
 		if (argParser.startLSPServer) {
 			WMLLanguageServer.initServer(predefines, argParser.dataPath, argParser.userDataPath, argParser.includes);
 		} else {
