@@ -289,11 +289,6 @@ public class Preprocessor {
 	private String consumeUntilEndDirective(String directiveName, ListIterator<Token> itor) {
 		if (!itor.hasNext()) return "";
 		
-		if (!expandMacro) {
-			skipUntilEndDirective(directiveName, itor);
-			return "";
-		}
-		
 		StringBuilder body = new StringBuilder();
 		Token t = itor.next();
 		while (!t.isDirectiveName(directiveName, false)) {
@@ -408,13 +403,22 @@ public class Preprocessor {
 
 			// Body
 			// Collect args in context, used in processToken macroExpansion
-			currentDefineArgs.clear();
-			currentDefineArgs.addAll(macroArgs);
-			macroDefaultArgs.forEach((k, v) -> currentDefineArgs.add(k));
+			if (expandMacro) {
+				currentDefineArgs.clear();
+				currentDefineArgs.addAll(macroArgs);
+				macroDefaultArgs.forEach((k, v) -> currentDefineArgs.add(k));
+			}
 
-			var def = new Definition(macroName, consumeUntilEndDirective("#enddef", itor), macroArgs, macroDefaultArgs);
+			String body = expandMacro
+				? consumeUntilEndDirective("#enddef", itor)
+				: "";
+			var def = new Definition(macroName, body, macroArgs, macroDefaultArgs);
 
-			currentDefineArgs.clear(); // clear arg context
+			if (expandMacro) {
+				currentDefineArgs.clear(); // clear arg context
+			} else {
+				skipUntilEndDirective("#enddef", itor);
+			}
 
 			// Extra stuff
 			def.setDocs(doc);
