@@ -139,6 +139,9 @@ public class Preprocessor {
 
 	public void preprocessFile(Path path, StringBuilder buff) {
 		int prevMacroCount = this.defines.size();
+		var oldPath = this.currentPath;
+		var oldPathUri = this.currentPathUri;
+		
 		this.currentPath = path;
 		this.currentPathUri = path.toUri().toString();
 
@@ -160,6 +163,9 @@ public class Preprocessor {
 			} else {
 				debugPrint(logMsg);
 			}
+			
+			this.currentPath = oldPath;
+			this.currentPathUri = oldPathUri;
 		} catch (IOException e) {
 			errorPrint(() -> "Cannot find " + path + ", skipping.");
 		}
@@ -180,7 +186,7 @@ public class Preprocessor {
 		return buff.toString();
 	}
 
-	// Can only deal with a file
+	// Can only deal with a string
 	private void preprocessContent(String content, StringBuilder buff) throws IOException {
 		var itor = tokenize(content).listIterator();
 		
