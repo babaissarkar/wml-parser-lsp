@@ -70,15 +70,28 @@ import com.babai.wml.preprocessor.Definition;
 import com.babai.wml.preprocessor.MacroCall;
 import com.babai.wml.preprocessor.Preprocessor;
 import com.babai.wml.tokenizer.Tokenizer;
-import com.babai.wml.utils.AIGenerated;
 import com.babai.wml.utils.FS;
 import com.babai.wml.utils.LogUtils;
 import com.babai.wml.utils.MacroTable;
 
 import static org.eclipse.lsp4j.launch.LSPLauncher.createServerLauncher;
 
-@AIGenerated
 public class WMLLanguageServer implements LanguageServer, LanguageClientAware, TextDocumentService {
+	private final static Set<String> animKeys = Set.of(
+		// Progressive Strings
+		"image", "image_diagonal", "halo",
+
+		// Progressive Integers
+		"halo_x", "halo_y", "x", "y", "directional_x", "directional_y", "layer",
+
+		// Progressive Reals
+		"alpha", "offset", "blend_ratio", "submerge"
+	);
+	
+	private final static Set<String> unitTypeKeys = Set.of(
+		"type", "recruit", "advances_to", "extra_recruit"
+	);
+	
 	public LanguageClient client;
 	
 	private PathContext pathContext;
@@ -629,7 +642,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private static String getWordAtPosition(String uri, Position pos) throws IOException {
 		List<String> lines = Files.readAllLines(Path.of(URI.create(uri)));
 
-		List<Character> validChars;
 		Predicate<Character> isValid;
 
 		int lineNum = pos.getLine();
@@ -646,26 +658,22 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		
 		String key = "";
 		int eqlPos = line.indexOf('=');
+		isValid = Character::isJavaIdentifierPart;
 		if (eqlPos >= 0) {
 			key = line.substring(0, eqlPos).strip();
 			switch (key) {
-			case "type", "recruit", "extra_recruit" -> {
-				validChars = List.of('_', '-');
-				isValid = c -> Character.isJavaIdentifierPart(c) || Character.isWhitespace(c) || validChars.contains(c);
-			}
-			case "halo", "image" -> {
-				validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']', ',');
-				isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
-			}
-			default -> {
-				validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']');
-				isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
-			}
+			case String s when unitTypeKeys.contains(s) ->
+				isValid = isValid.or(Character::isWhitespace).or(Set.of('_', '-')::contains);
+
+			case String s when animKeys.contains(s) ->
+				isValid = isValid.or(Set.of(':', '+', '-', '/', '~', '.', '[', ']', ',')::contains);
+
+			default ->
+				isValid = isValid.or(Set.of(':', '+', '-', '/', '~', '.', '[', ']')::contains);
 			};
 			
 		} else {
-			validChars = List.of(':', '+', '-', '/', '~', '.', '[', ']');
-			isValid = c -> Character.isJavaIdentifierPart(c) || validChars.contains(c);
+			isValid = isValid.or(Set.of(':', '+', '-', '/', '~', '.', '[', ']')::contains);
 		}
 
 		// If cursor is on whitespace, move back one char
