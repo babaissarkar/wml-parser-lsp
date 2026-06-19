@@ -312,7 +312,8 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		var content = new MarkupContent();
 		Path p = null;
 		try {
-			String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
+			String uri = params.getTextDocument().getUri();
+			String word = getWordAtPosition(uri, params.getPosition());
 			if (word == null || word.isEmpty()) return CompletableFuture.completedFuture(null);
 			
 			if (word.charAt(0) == '[' && word.charAt(word.length()-1) == ']') {
@@ -337,11 +338,16 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 					if (FS.getAssetType(uriStr).equals("images")) {
 						content.setValue("![Image](" + uriStr + ")");
 					} else {
-						content.setValue("Go To: [" + p.getFileName() + "](" + uriStr + ")");
+						content.setValue("Resolves to: " + p);
 					}
 				} else {
+					p = pathContext.resolveFileInclusion(word, Path.of(URI.create(uri)));
 					content.setKind("plaintext");
-					content.setValue("Non-existant path: " + word);
+					if (Files.exists(p)) {
+						content.setValue("Resolves to: " + p);
+					} else {
+						content.setValue("Non-existant path: " + word);
+					}
 				}
 			} else if (unitTypes.containsKey(word)) {
 				content.setKind("markdown");
@@ -410,7 +416,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 
 		return CompletableFuture.completedFuture(null);
-	}
+	}	
 
 	@Override
 	public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
