@@ -50,6 +50,16 @@ public class MacroTable {
 		nameUriMap.remove(name);
 	}
 	
+	public void removeMacroByUri(String uri) {
+		Set<String> names = uriNamelistMap.remove(uri);
+		if (names == null) return;
+		for (String name : names) {
+			nameValMap.remove(name);
+			nameLineNumMap.remove(name);
+			nameUriMap.remove(name);
+		}
+	}
+	
 	public String getUri(String name) {
 		return nameUriMap.get(name);
 	}

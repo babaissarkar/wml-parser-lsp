@@ -73,6 +73,10 @@ public class Preprocessor {
 	public void clearMacroCalls() {
 		macroCalls.clear();
 	}
+	
+	public void clearMacroCallsByUri(String uri) {
+		macroCalls.removeIf(c -> c.uri().equals(uri));
+	}
 
 	public HashSet<MacroCall> getMacroCalls() {
 		return macroCalls;

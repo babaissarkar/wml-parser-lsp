@@ -95,9 +95,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public LanguageClient client;
 	
 	private PathContext pathContext;
-	private Path inputPath;
+	String workspaceUri = null;
 
-	private MacroTable baseDefines, defines;
+	private MacroTable defines;
 	private HashMap<String, String> unitTypes = new HashMap<>();
 	private Set<Path> binaryPaths = new HashSet<>();
 	private Set<MacroCall> calls = new HashSet<>();
@@ -207,17 +207,17 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		if (params.getWorkspaceFolders() != null && !params.getWorkspaceFolders().isEmpty()) {
 			// 1. Multi-root workspaces (modern)
-			inputPath = Path.of(URI.create(params.getWorkspaceFolders().get(0).getUri()));
+			workspaceUri = params.getWorkspaceFolders().get(0).getUri();
 		} else if (params.getRootUri() != null) {
 			// 2. Single-root URI
-			inputPath = Path.of(URI.create(params.getRootUri()));
+			workspaceUri = params.getRootUri();
 		} else if (params.getRootPath() != null) {
 			// 3. Old deprecated rootPath
-			inputPath = Path.of(params.getRootPath());
+			workspaceUri = Path.of(params.getRootPath()).toUri().toString();
 		}
 		
 		if (pathContext.userDataPath() == null) {
-			Path upath = inputPath;
+			Path upath = Path.of(URI.create(workspaceUri));
 			while (upath != null && !upath.endsWith("data")) upath = upath.getParent();
 			if (upath != null) {
 				this.pathContext = new PathContext(pathContext.dataPath(), upath.getParent());
@@ -225,9 +225,9 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 
 		// Send a "ready" message after startup
-		showLSPMessage("WML LSP Server started at: Path=" + inputPath.toAbsolutePath());
+		showLSPMessage("WML LSP Server started at: URI=" + workspaceUri);
 
-		initParserForLSP();
+		initParserForLSP(workspaceUri);
 
 		return CompletableFuture.completedFuture(result);
 	}
@@ -251,14 +251,12 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		if (word == null) return CompletableFuture.completedFuture(null);
 		
 		// Attempt resolution as macro
-		if (defines != null) {
-			if (defines.hasMacro(word)) {
-				String targetURI = defines.getUri(word);
-				int targetLine = defines.getLineNum(word);
-				var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
-				var loc = new Location(targetURI, range);
-				return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
-			}
+		if (defines != null && defines.hasMacro(word)) {
+			String targetURI = defines.getUri(word);
+			int targetLine = defines.getLineNum(word);
+			var range = new Range(new Position(targetLine, 0), new Position(targetLine, 1));
+			var loc = new Location(targetURI, range);
+			return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
 		}
 			
 		// Attempt resolution as file
@@ -369,7 +367,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 				return CompletableFuture.completedFuture(null);
 			}
 		} catch (IOException e) {
-			showLSPMessage("Can't find word under cursor!");
+			showLSPMessage("IO Error while resolving: " + e.getMessage());
 			return CompletableFuture.completedFuture(null);
 		}
 	
@@ -418,9 +416,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		if (triggerChar != null && triggerChar.equals("/")) {
 			try {
-//				String word = getWordAtPosition(params.getTextDocument().getUri(), params.getPosition());
-//				showLSPMessage(word);
-				items.addAll(listAll(inputPath, "", params.getPosition()));
+				items.addAll(listAll(Path.of(URI.create(workspaceUri)), "", params.getPosition()));
 				return CompletableFuture.completedFuture(Either.forLeft(items));
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -563,8 +559,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	@Override
 	public void didChange(DidChangeTextDocumentParams params) {
-		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
-		parseFile(inputPath);
+		parseFile(params.getTextDocument().getUri());
 		
 		client.refreshInlayHints();
 		client.refreshDiagnostics();
@@ -580,8 +575,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	// putting parsing in didSave doesn't work, either
 	@Override
 	public void didOpen(DidOpenTextDocumentParams params) {
-		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
-		parseFile(inputPath);
+		parseFile(params.getTextDocument().getUri());
 		
 		client.refreshInlayHints();
 		client.refreshDiagnostics();
@@ -589,36 +583,33 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 	@Override
 	public void didSave(DidSaveTextDocumentParams params) {
-		inputPath = Path.of(URI.create(params.getTextDocument().getUri()));
-		parseFile(inputPath);
+		parseFile(params.getTextDocument().getUri());
 		
 		client.refreshInlayHints();
 		client.refreshDiagnostics();
 	}
 
-	private void initParserForLSP() {
+	private void initParserForLSP(String rootUri) {
 		Tokenizer.enableExtraction(true);
 		
-		p = new Preprocessor(pathContext, defines); // 'defines' supposed to be empty at this point
+		p = new Preprocessor(pathContext, defines); // 'defines' supposed to contain only predefined macros
 		p.expandMacros(false); // we don't need full expansion for LSP mode
-
-		for (Path incpath : includePaths) {
-			p.preprocess(incpath);
-		}
-
-		baseDefines = new MacroTable(defines);
-		if (inputPath != null) {
-			parseFile(inputPath);
+		
+		includePaths.forEach(p::preprocess);
+		
+		if (rootUri != null) {
+			parseFile(rootUri);
 		}
 
 		showLSPMessage("Parsed, " + defines.size() + " macros and " + unitTypes.size() + " unittypes defined.");
 	}
 
-	private void parseFile(Path inputPath) {
-		p.clearMacroCalls();
-		p.setDefines(new MacroTable(baseDefines));
+	private void parseFile(String uri) {
+		p.clearMacroCallsByUri(uri);
+		defines.removeMacroByUri(uri);
+		unitTypes.entrySet().removeIf(e -> e.getValue().equals(uri));
 		
-		p.preprocess(inputPath);
+		p.preprocess(Path.of(URI.create(uri)));
 
 		binaryPaths = Tokenizer.getBinaryPaths();
 		defines = p.getDefines();
