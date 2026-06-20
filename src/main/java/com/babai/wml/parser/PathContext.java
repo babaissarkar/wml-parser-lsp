@@ -34,15 +34,17 @@ public record PathContext(Path dataPath, Path userDataPath) {
 	}
 	
 	public String relativize(Path target) {
-		Path afterData = FS.relativizeIfUnder(dataPath, target);
+		Path afterData = FS.relativizeIfUnder(dataPath.resolve("data"), target);
 		boolean dataRelativized = !afterData.equals(target);
 
-		Path afterUser = FS.relativizeIfUnder(userDataPath, afterData);
+		Path afterUser = FS.relativizeIfUnder(userDataPath.resolve("data"), afterData);
 		boolean userRelativized = !afterUser.equals(afterData);
 
 		String out = afterUser.toString();
 		if (!dataRelativized && userRelativized) {
 			out = "~" + out;
+		} else if (dataRelativized) {
+			out = afterData.toString();
 		}
 		return out;
 	}

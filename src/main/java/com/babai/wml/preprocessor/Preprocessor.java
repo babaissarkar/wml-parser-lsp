@@ -171,7 +171,7 @@ public class Preprocessor {
 		}
 		
 		for (var ut : Tokenizer.getUnitTypes()) {
-			unitTypes .put(ut, path.toUri().toString());
+			unitTypes.put(ut, path.toUri().toString());
 		}
 		Tokenizer.clearUnitTypes();
 		
@@ -191,7 +191,7 @@ public class Preprocessor {
 		var itor = tokenize(content).listIterator();
 		
 		// add [campaign]define= definition, usually found in _main.cfg
-		// TODO support line number
+		// TODO support line number, don't allow redefinition
 		String mdef = Tokenizer.getMainDefine();
 		if (!mdef.isEmpty()) {
 			defines.addMacro(mdef, new Definition(mdef, "true"), 0, currentPathUri);
