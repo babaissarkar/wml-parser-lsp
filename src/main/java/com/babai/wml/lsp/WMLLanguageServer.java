@@ -3,6 +3,7 @@ package com.babai.wml.lsp;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -629,61 +630,101 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 	}
 
+
+	private static final Predicate<Character> UNIT_EXTRA =
+		c -> Character.isJavaIdentifierPart(c) || Character.isWhitespace(c) || c == '_' || c == '-';
+
+	private static final Predicate<Character> ANIM_EXTRA =
+		c -> Character.isJavaIdentifierPart(c) ||
+			c == ':' || c == '+' || c == '-' || c == '/' || c == '~' || c == '.' ||
+			c == '[' || c == ']' || c == ',';
+
+	private static final Predicate<Character> DEFAULT_EXTRA =
+		c -> Character.isJavaIdentifierPart(c) ||
+			c == ':' || c == '+' || c == '-' || c == '/' || c == '~' || c == '.' ||
+			c == '[' || c == ']';
+
+	/**
+	 * Checks whether line[start, end) equals any element of keys, without
+	 * allocating a substring for the comparison.
+	 */
+	private static boolean containsKey(Set<String> keys, String line, int start, int end) {
+		int keyLen = end - start;
+		for (String k : keys) {
+			if (k.length() == keyLen && line.regionMatches(start, k, 0, keyLen)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Returns the word under cursor in the file pointed by URI */
 	private static String getWordAtPosition(String uri, Position pos) throws IOException {
-		List<String> lines = Files.readAllLines(Path.of(URI.create(uri)));
-
-		Predicate<Character> isValid;
-
+		byte[] data = Files.readAllBytes(Path.of(URI.create(uri)));
+		int len = data.length;
+		// Scan bytes to manually find the line
 		int lineNum = pos.getLine();
-		if (lineNum < 0 || lineNum >= lines.size())
-			return null;
+		int lineStart = -1;
+		int currentLine = 0;
+		for (int i = 0; i < len; i++) {
+			if (currentLine == lineNum) {
+				lineStart = i;
+				break;
+			}
+			if (data[i] == '\n') currentLine++;
+		}
+		if (lineStart < 0)
+			return null; // lineNum negative or out of range
+		int lineEnd = lineStart;
+		while (lineEnd < len && data[lineEnd] != '\n') lineEnd++;
+		if (lineEnd > lineStart && data[lineEnd - 1] == '\r') lineEnd--; // strip CRLF
+		String line = new String(data, lineStart, lineEnd - lineStart, StandardCharsets.UTF_8);
 
-		String line = lines.get(lineNum);
-		
 		int charIndex = pos.getCharacter();
 		if (charIndex < 0)
 			charIndex = 0;
 		if (charIndex >= line.length())
 			charIndex = line.length() - 1;
-		
-		String key = "";
+
+		Predicate<Character> isValid;
 		int eqlPos = line.indexOf('=');
-		isValid = Character::isJavaIdentifierPart;
 		if (eqlPos >= 0) {
-			key = line.substring(0, eqlPos).strip();
-			switch (key) {
-			case String s when unitTypeKeys.contains(s) ->
-				isValid = isValid.or(Character::isWhitespace).or(Set.of('_', '-')::contains);
+			// Trim key bounds in-place instead of line.substring(0, eqlPos).strip()
+			int keyStart = 0;
+			int keyEnd = eqlPos;
+			while (keyStart < keyEnd && Character.isWhitespace(line.charAt(keyStart))) keyStart++;
+			while (keyEnd > keyStart && Character.isWhitespace(line.charAt(keyEnd - 1))) keyEnd--;
 
-			case String s when animKeys.contains(s) ->
-				isValid = isValid.or(Set.of(':', '+', '-', '/', '~', '.', '[', ']', ',')::contains);
-
-			default ->
-				isValid = isValid.or(Set.of(':', '+', '-', '/', '~', '.', '[', ']')::contains);
-			};
-			
+			if (containsKey(unitTypeKeys, line, keyStart, keyEnd)) {
+				isValid = UNIT_EXTRA;
+			} else if (containsKey(animKeys, line, keyStart, keyEnd)) {
+				isValid = ANIM_EXTRA;
+			} else {
+				isValid = DEFAULT_EXTRA;
+			}
 		} else {
-			isValid = isValid.or(Set.of(':', '+', '-', '/', '~', '.', '[', ']')::contains);
+			isValid = DEFAULT_EXTRA;
 		}
 
 		// If cursor is on whitespace, move back one char
 		if (charIndex > 0 && !isValid.test(line.charAt(charIndex))) {
 			charIndex--;
 		}
-
 		int start = charIndex;
 		int end = charIndex;
-
 		while (start > 0 && isValid.test(line.charAt(start - 1)))
 			start--;
 		while (end < line.length() && isValid.test(line.charAt(end)))
 			end++;
-
 		if (start >= end)
 			return null;
 
-		return line.substring(start, end).strip();
+		// Trim whitespace in-place instead of line.substring(start, end).strip()
+		int trimStart = start;
+		int trimEnd = end;
+		while (trimStart < trimEnd && Character.isWhitespace(line.charAt(trimStart))) trimStart++;
+		while (trimEnd > trimStart && Character.isWhitespace(line.charAt(trimEnd - 1))) trimEnd--;
+		return line.substring(trimStart, trimEnd);
 	}
 	
 	private void showLSPMessage(String m) {
