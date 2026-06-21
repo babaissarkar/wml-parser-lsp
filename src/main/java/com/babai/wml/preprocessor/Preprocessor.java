@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
@@ -38,13 +37,15 @@ public class Preprocessor {
 	private String currentPathUri;
 	
 	private HashSet<String> currentDefineArgs = new HashSet<>();
-	private HashSet<MacroCall> macroCalls;
 	private HashMap<String, String> fileExplanations = new HashMap<>();
+	
+	// connected macrocall refs
+	private HashMap<String, HashSet<MacroCall>> macroCallsByName = new HashMap<>();
+	private HashMap<String, HashSet<MacroCall>> macroCallsByUri = new HashMap<>();
 
 	// TODO(Warning): this doesn't respect scope: a macro can be unavailable for a short span until
 	// it gets defined somewhere later. Perhaps each file can have a copy or something better.
 	// Currently: one warning per file if it stays undefined in whole file.
-	// format: macroName, positionString
 	private HashSet<String> nonexistentMacros = new HashSet<>();
 	private HashMap<String, String> unitTypes = new HashMap<>();
 
@@ -52,14 +53,12 @@ public class Preprocessor {
 	public Preprocessor(PathContext context) {
 		this.context = context;
 		this.defines = new MacroTable();
-		this.macroCalls = new LinkedHashSet<>();
 	}
 
 	// usually for child processes
 	public Preprocessor(PathContext context, MacroTable defines) {
 		this.context = context;
 		this.defines = defines;
-		this.macroCalls = new LinkedHashSet<>();
 	}
 
 	public MacroTable getDefines() {
@@ -71,15 +70,21 @@ public class Preprocessor {
 	}
 	
 	public void clearMacroCalls() {
-		macroCalls.clear();
+		macroCallsByName.clear();
+		macroCallsByUri.clear();
 	}
 	
 	public void clearMacroCallsByUri(String uri) {
-		macroCalls.removeIf(c -> c.uri().equals(uri));
+		macroCallsByUri.remove(uri);
+		macroCallsByName.forEach((k, v) -> v.removeIf(m -> m.uri().equals(uri)));
 	}
-
-	public HashSet<MacroCall> getMacroCalls() {
-		return macroCalls;
+	
+	public HashSet<MacroCall> getMacroCallsByName(String name) {
+		return macroCallsByName.get(name);
+	}
+	
+	public HashSet<MacroCall> getMacroCallsByUri(String uri) {
+		return macroCallsByUri.get(uri);
 	}
 	
 	public HashMap<String, String> getUnitTypes() {
@@ -494,13 +499,15 @@ public class Preprocessor {
 		} else {
 			var info = ParseUtils.parseMacroCall("{" + macroCall.content() + "}");
 			var mdef = defines.getMacro(info.first());
-			if (mdef != null && mdef.getArgCount() > 0) {
-				macroCalls.add(new MacroCall(
+			if (mdef != null) {
+				var mcall = new MacroCall(
 						info.first(),
 						macroCall.beginLine()-1,
 						macroCall.beginColumn()-1,
 						info.second(),
-						currentPathUri));
+						currentPathUri);
+				macroCallsByName.computeIfAbsent(info.first(), k -> new HashSet<>()).add(mcall);
+				macroCallsByUri.computeIfAbsent(currentPathUri, k -> new HashSet<>()).add(mcall);
 			}
 			
 			if (buff != null) {
@@ -583,12 +590,14 @@ public class Preprocessor {
 				}
 			}
 			
-			macroCalls.add(new MacroCall(
+			var mcall = new MacroCall(
 					macroName,
-					macroCall.beginLine(),
-					macroCall.beginColumn(),
+					macroCall.beginLine()-1,
+					macroCall.beginColumn()-1,
 					argPos,
-					currentPathUri));
+					currentPathUri);
+			macroCallsByName.computeIfAbsent(macroName, k -> new HashSet<>()).add(mcall);
+			macroCallsByUri.computeIfAbsent(currentPathUri, k -> new HashSet<>()).add(mcall);
 
 			debugPrint(() -> {
 				String argsString = Definition.argsAsString2(args, defArgs);

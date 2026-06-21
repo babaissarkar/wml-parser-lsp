@@ -50,6 +50,7 @@ import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.ReferenceParams;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.SymbolKind;
@@ -101,7 +102,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	private MacroTable defines;
 	private HashMap<String, String> unitTypes = new HashMap<>();
 	private Set<Path> binaryPaths = new HashSet<>();
-	private Set<MacroCall> calls = new HashSet<>();
 	private List<Path> includePaths = new ArrayList<>();
 	private List<CompletionItem> macroCompletions = new ArrayList<>();
 	private List<CompletionItem> keywords = new ArrayList<>();
@@ -186,6 +186,7 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 	public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
 		var capabilities = new ServerCapabilities();
 		capabilities.setDefinitionProvider(true);
+		capabilities.setReferencesProvider(true);
 		capabilities.setHoverProvider(true);
 		capabilities.setInlayHintProvider(true);
 		capabilities.setDocumentSymbolProvider(true);
@@ -280,6 +281,55 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		}
 
 		return CompletableFuture.completedFuture(null);
+	}
+
+	@Override
+	public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
+		String word = null;
+		String uri = params.getTextDocument().getUri();
+		try {
+			word = getWordAtPosition(uri, params.getPosition());
+		} catch (IOException e) {
+			showLSPMessage("Can't find word under cursor!");
+		}
+
+		// Only macro names are supported as reference targets for now.
+		if (word == null || defines == null || !defines.hasMacro(word)) {
+			return CompletableFuture.completedFuture(null);
+		}
+
+		final String macroName = word;
+		List<Location> locations = new ArrayList<>();
+
+		for (MacroCall call : p.getMacroCallsByName(macroName)) {
+			locations.add(new Location(call.uri(), macroNameRange(call)));
+		}
+
+		boolean includeDeclaration = params.getContext() != null
+				&& params.getContext().isIncludeDeclaration();
+		if (includeDeclaration) {
+			String defUri = defines.getUri(macroName);
+			int defLine = defines.getLineNum(macroName);
+			if (defUri != null) {
+				var defRange = new Range(new Position(defLine, 0), new Position(defLine, 1));
+				locations.add(new Location(defUri, defRange));
+			}
+		}
+
+		return CompletableFuture.completedFuture(locations);
+	}
+
+	/**
+	 * Range of the macro name itself within a call, e.g. the NAME span in
+	 * "{NAME arg1 arg2}". call.startChar() points at the opening '{', and by
+	 * WML convention the name immediately follows it with no whitespace.
+	 */
+	private static Range macroNameRange(MacroCall call) {
+		int nameStart = call.startChar() + 1; // skip '{'
+		int nameEnd = nameStart + call.name().length();
+		return new Range(
+				new Position(call.startLine(), nameStart),
+				new Position(call.startLine(), nameEnd));
 	}
 
 	private Path checkWesnothPath(String word, String currUri) {
@@ -469,15 +519,15 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 		var viewRange = params.getRange();
 		List<InlayHint> hints = new ArrayList<>();
 
-		for (MacroCall call : calls) {
+		for (MacroCall call : p.getMacroCallsByUri(uri)) {
 			// skip calls outside the visible range
-			if (!call.uri().equals(uri)) continue;
 			if (call.startLine() > viewRange.getEnd().getLine()) continue;
 			if (call.startLine() < viewRange.getStart().getLine()) continue;
 
 			String macro = call.name();
 			var def = defines.getMacro(macro);
 			if (def == null) continue;
+			if (def.getArgCount() <= 0) continue;
 			
 			String defTargetUri = defines.getUri(macro);
 			int targetLine = defines.getLineNum(macro);
@@ -614,7 +664,6 @@ public class WMLLanguageServer implements LanguageServer, LanguageClientAware, T
 
 		binaryPaths = Tokenizer.getBinaryPaths();
 		defines = p.getDefines();
-		calls = p.getMacroCalls();
 		unitTypes = p.getUnitTypes();
 
 		macroCompletions.clear();
