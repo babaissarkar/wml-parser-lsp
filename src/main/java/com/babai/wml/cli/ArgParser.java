@@ -27,14 +27,14 @@ public class ArgParser {
 
 	@Option(
 		names = {"-userdatadir", "--userdatadir"},
-		description = "Absolute path to Wesnoth's userdata directory. Can also be specified via environment variable WESNOTH_USERDATA.",
+		description = "If specified, sets absolute path to Wesnoth's userdata directory. Can also be specified via environment variable WESNOTH_USERDATA. If not specified, parent directories of input is checked one by one until a 'data' directory is found, and it's parent is then set to be the userdata directory.",
 		defaultValue="${env:WESNOTH_USERDATA}")
 	public Path userDataPath;
 	
 	@Option(names = {"-i", "-include", "--include"}, arity = "1", description = "File/folders to be preprocessed before to collect macro definitions")
 	public List<Path> includes = new ArrayList<>();
 
-	@Option(names = {"-define", "-d", "--define"}, arity = "2", description = "Define macro: -define NAME BODY", paramLabel = "NAME BODY", hideParamSyntax = true)
+	@Option(names = {"-define", "-d", "--define"}, arity = "2", description = "Define macro: -define NAME BODY. 'MULTIPLAYER' is defined automatically, as well as 'NORMAL', if no difficulty macro (EASY/NORMAL/HARD/NIGHTMARE) is defined via this option. ", paramLabel = "NAME BODY", hideParamSyntax = true)
 	public List<String> definesList = new ArrayList<>();
 	
 	@Parameters(index = "0", arity = "0..1", paramLabel = "INPUT", description = "Path to the main input file or folder (default: stdin). Not needed in LSP mode (-s).")
